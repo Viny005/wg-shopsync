@@ -30,7 +30,7 @@ Ergänzend ermöglicht sie eine einfache Aufteilung von Ausgaben zwischen ausgew
 - **Build / Tooling:** Flutter SDK, npm, Git
 - **Sonstiges:** Authentifizierung (E-Mail), optionale Push-Notifications
 
-Diese Liste ist eine Momentaufnahme — Änderungen im Projektverlauf sind erlaubt und in der Architekturbeschreibung (M2) endgültig festzulegen.
+Diese Liste ist eine Momentaufnahme.Änderungen im Projektverlauf sind erlaubt und in der Architekturbeschreibung (M2) endgültig festzulegen.
 
 ## Repository
 
