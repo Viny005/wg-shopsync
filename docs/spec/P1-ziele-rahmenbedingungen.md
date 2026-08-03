@@ -79,11 +79,9 @@ Detaillierte Projektbeschränkungen werden im Dokument
 | CON-02 | Entwicklung durch ein Team aus sechs Studierenden |
 | CON-03 | Plattformübergreifende Entwicklung mit Unterstützung von Smartphones, Tablets und Webbrowsern |
 | CON-04 | Gemeinsame Nutzung innerhalb von Wohngemeinschaften |
-| CON-05 | Eine Benutzerin bzw. ein Benutzer kann gleichzeitig nur einer WG angehören |
-| CON-06 | Kostenaufteilung ohne integrierte Zahlungsabwicklung |
-| CON-07 | Zentrale Cloud-Datenhaltung für die Synchronisation erforderlich |
-| CON-08 | Offline-Nutzung wichtiger Kernfunktionen soll unterstützt werden |
-| CON-09 | Spezifikation und Architekturdokumentation werden als Markdown-Dateien im Repository geführt |
+| CON-05 | Zentrale Cloud-Datenhaltung für die Synchronisation erforderlich |
+| CON-06 | Offline-Nutzung wichtiger Kernfunktionen soll unterstützt werden |
+| CON-07 | Spezifikation und Architekturdokumentation werden als Markdown-Dateien im Repository geführt |
 
 ## P1.6 Erfolgskriterien
 
@@ -113,9 +111,4 @@ Detaillierte Projektbeschränkungen werden im Dokument
 
 | ID | Risiko | Gegenmaßnahme |
 |----|---------|---------------|
-| R-01 | Gleichzeitige Änderungen durch mehrere Benutzer können zu Synchronisationskonflikten führen. | Last-Write-Wins-Strategie im MVP. |
-| R-02 | Eine fehlende Internetverbindung verhindert den sofortigen Datenaustausch. | Lokale Speicherung und spätere Synchronisation. |
-| R-03 | Fehler bei der Synchronisation können zu unterschiedlichen Listenständen führen. | Regelmäßige Synchronisation und zentrale Datenhaltung. |
-| R-04 | Der Ersteller einer WG verlässt die WG. | Automatische Übergabe der Erstellerrolle an ein anderes Mitglied. |
-| R-05 | Benutzer erfassen Ausgaben oder Artikel unvollständig oder fehlerhaft. | Einfache Benutzeroberfläche und Eingabevalidierung. |
-| R-06 | Eine geringe Nutzerakzeptanz kann den Nutzen der Anwendung einschränken. | Fokus auf einfache und intuitive Bedienbarkeit. |
+| R-01 | Ausfall oder eingeschränkte Verfügbarkeit der Cloud-Datenbank kann die Nutzung der Anwendung beeinträchtigen. | Verwendung eines etablierten Cloud-Dienstes und regelmäßige Datensicherungen. |
