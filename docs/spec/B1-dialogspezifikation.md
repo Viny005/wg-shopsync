@@ -404,6 +404,11 @@ Screen 8 dient der Verwaltung gemeinsamer Ausgaben und der Anzeige von Salden in
 
 Screen 9 ermöglicht die Verwaltung des Benutzerkontos, den Logout sowie das Verlassen einer Wohngemeinschaft.
 
+<p align="center">
+  <img src="./images/navigationsdiagramm.png" alt="Navigationsdiagramm" width="800">
+</p>
+Abbildung B1-1: Navigationsdiagramm der Benutzerschnittstelle von WG-ShopSync
+
 Das Diagramm beschreibt ausschließlich die Navigation auf Ebene der Benutzerschnittstelle. Die fachlichen Abläufe werden separat in F1 (Geschäftsprozesse) und F2 (Anwendungsfälle) beschrieben.
 ---
 
