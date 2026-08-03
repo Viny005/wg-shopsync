@@ -4,7 +4,7 @@ Dieses Kapitel beschreibt die zentralen fachlichen Entitäten von WG-ShopSync so
 
 Das Datenmodell wurde aus den in F2 beschriebenen Anwendungsfällen und den fachlichen Anforderungen aus F1 abgeleitet.
 
-Die Entitäten bilden die Grundlage für die Speicherung und Verarbeitung von Benutzern, Wohngemeinschaften, Einkaufslisten, Ausgaben und Schulden.
+Die Entitäten bilden die Grundlage für die Speicherung und Verarbeitung von Benutzern, Wohngemeinschaften, Einkaufslisten, Ausgaben und Schulden. 
 
 ---
 
