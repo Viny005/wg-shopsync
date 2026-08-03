@@ -29,7 +29,7 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Eingaben | Gesamtbetrag einer Ausgabe, beteiligte Mitglieder |
 | Ausgaben | Kostenanteile pro Mitglied |
 | Regeln | - Der Gesamtbetrag wird gleichmäßig verteilt.<br>- Die Aufteilung kann auf alle Mitglieder oder nur auf ausgewählte Mitglieder erfolgen.<br>- Die Summe aller Anteile entspricht dem Gesamtbetrag.<br>- Rundungsdifferenzen werden automatisch ausgeglichen. |
-| Verwendet von | UC-11 Ausgabe erfassen, UC-12 Ausgabe bearbeiten, UC-14 Kosten aufteilen |
+| Verwendet von | [UC-11 – Ausgabe erfassen](F2-anwendungsfaelle.md#uc-11--ausgabe-erfassen), [UC-12 – Ausgabe bearbeiten](F2-anwendungsfaelle.md#uc-12--ausgabe-bearbeiten), [UC-13 – Kosten aufteilen](F2-anwendungsfaelle.md#uc-13--kosten-aufteilen) |
 
 ---
 
@@ -41,7 +41,7 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Eingaben | WG-Daten |
 | Ausgaben | Einladungscode |
 | Regeln | - Jeder Einladungscode ist eindeutig.<br>- Der Code wird automatisch erzeugt.<br>- Der Code bleibt dauerhaft gültig. |
-| Verwendet von | UC-03 WG erstellen |
+| Verwendet von | [UC-03 – WG erstellen](F2-anwendungsfaelle.md#uc-03--wg-erstellen) |
 
 ---
 
@@ -53,7 +53,7 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Eingaben | Einladungscode |
 | Ausgaben | Gültig / Ungültig |
 | Regeln | - Der Code muss existieren.<br>- Nur gültige Codes erlauben den Beitritt zur Wohngemeinschaft. |
-| Verwendet von | UC-04 WG beitreten |
+| Verwendet von | [UC-04 – WG beitreten](F2-anwendungsfaelle.md#uc-04--wg-beitreten) |
 
 ---
 
@@ -65,7 +65,7 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Eingaben | Einkaufsliste |
 | Ausgaben | Sortierte Einkaufsliste |
 | Regeln | - Offene Artikel werden vor gekauften Artikeln angezeigt.<br>- Innerhalb der Gruppen erfolgt die Sortierung alphabetisch. |
-| Verwendet von | UC-10 Einkaufsliste anzeigen |
+| Verwendet von | [UC-10 – Einkaufsliste anzeigen](F2-anwendungsfaelle.md#uc-10--einkaufsliste-anzeigen) |
 
 ---
 
@@ -77,7 +77,7 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Eingaben | Schuld, Benutzeraktion „Als bezahlt markieren“ |
 | Ausgaben | Aktualisierte Schuld |
 | Regeln | - Nur bestehende Schulden können aktualisiert werden.<br>- Der Status wechselt von „Offen“ zu „Bezahlt“.<br>- Das Zahlungsdatum wird gespeichert.<br>- Der ursprüngliche Betrag bleibt unverändert. |
-| Verwendet von | UC-15 Schulden anzeigen, UC-16 Schuld als bezahlt markieren |
+| Verwendet von | [UC-14 – Schulden anzeigen](F2-anwendungsfaelle.md#uc-14--schulden-anzeigen), [UC-15 – Schuld als bezahlt markieren](F2-anwendungsfaelle.md#uc-15--schuld-als-bezahlt-markieren) |
 
 ---
 
@@ -89,7 +89,7 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Eingaben | Ausgaben, Kostenanteile, Zahlungsstatus |
 | Ausgaben | Aktuelle Salden der Mitglieder |
 | Regeln | - Für jede Ausgabe werden Kostenanteile berücksichtigt.<br>- Bereits bezahlte Schulden werden nicht mehr als offen berücksichtigt.<br>- Der Saldo zeigt, wer Geld erhält und wer Geld schuldet. |
-| Verwendet von | UC-14 Kosten aufteilen, UC-15 Schulden anzeigen, UC-17 Kostenübersicht anzeigen |
+| Verwendet von | [UC-13 – Kosten aufteilen](F2-anwendungsfaelle.md#uc-13--kosten-aufteilen), [UC-14 – Schulden anzeigen](F2-anwendungsfaelle.md#uc-14--schulden-anzeigen), [UC-15 – Schuld als bezahlt markieren](F2-anwendungsfaelle.md#uc-15--schuld-als-bezahlt-markieren), [UC-16 – Kostenübersicht anzeigen](F2-anwendungsfaelle.md#uc-16--kostenubersicht-anzeigen) |
 
 ---
 
