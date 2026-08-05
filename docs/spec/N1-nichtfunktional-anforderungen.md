@@ -8,31 +8,11 @@ Nichtfunktionale Anforderungen beschreiben die Qualitätsmerkmale von WG-ShopSyn
 
 ## N1.1-01: Echtzeit-Synchronisation
 
-Änderungen an der gemeinsamen Einkaufsliste müssen für alle Mitglieder einer WG nahezu in Echtzeit sichtbar sein.
+Änderungen an gemeinsam genutzten Daten sollen zeitnah für alle Mitglieder sichtbar werden.
 
 ### Fit Criterion
 
-Änderungen an der Einkaufsliste werden innerhalb von 2 Sekunden auf den Geräten aller verbundenen WG-Mitglieder angezeigt.
-
----
-
-## N1.1-02: Schnelle Anmeldung
-
-Die Anmeldung eines Benutzers soll ohne spürbare Verzögerung erfolgen.
-
-### Fit Criterion
-
-Der Anmeldevorgang ist innerhalb von 3 Sekunden abgeschlossen.
-
----
-
-## N1.1-03: Schnelles Speichern
-
-Das Speichern neuer Artikel oder Ausgaben soll ohne wahrnehmbare Verzögerung erfolgen.
-
-### Fit Criterion
-
-Ein neuer Artikel oder eine neue Ausgabe wird innerhalb von 1 Sekunde gespeichert.
+Änderungen werden innerhalb von höchstens 2 Sekunden auf den Geräten verbundener Benutzer angezeigt.
 
 ---
 
