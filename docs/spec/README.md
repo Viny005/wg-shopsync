@@ -197,6 +197,16 @@ E3
 
 ---
 
+## Hinweis zur Dokumentstruktur
+
+Die Nummerierung der Spezifikation orientiert sich an der verwendeten Vorlage.
+
+Einzelne Kapitelnummern können aus strukturellen Gründen nicht belegt sein. Daher existiert kein Kapitel S2.
+
+Für WG-ShopSync sind die Inhalte von S2 nicht relevant und werden nicht benötigt.
+
+---
+
 # Ziel der Spezifikation
 
 Die Spezifikation dient als zentrale Referenz für:
