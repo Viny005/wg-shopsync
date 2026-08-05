@@ -75,7 +75,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-02 |
 | Name | Einloggen |
 | Ziel | Ein registrierter Benutzer meldet sich am System an. |
-| Akteur | Registrierter Benutzer |
+| Akteur | Benutzer |
 | Auslöser | Der Benutzer möchte auf sein Konto zugreifen. |
 | Vorbedingung | Ein Benutzerkonto existiert. |
 | Nachbedingung | Der Benutzer ist erfolgreich angemeldet und erhält Zugriff auf seine WG-Daten. |
@@ -114,7 +114,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-03 |
 | Name | WG erstellen |
 | Ziel | Ein angemeldeter Benutzer erstellt eine neue Wohngemeinschaft. |
-| Akteur | Angemeldeter Benutzer (WG-Ersteller) |
+| Akteur | Benutzer (WG-Ersteller) |
 | Auslöser | Der Benutzer möchte eine neue WG anlegen. |
 | Vorbedingung | Der Benutzer ist angemeldet. |
 | Nachbedingung | Die WG wurde erstellt, der Benutzer ist Mitglied der WG und besitzt die Rolle „WG-Ersteller“. |
@@ -158,7 +158,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-04 |
 | Name | WG beitreten |
 | Ziel | Ein angemeldeter Benutzer tritt einer bestehenden Wohngemeinschaft bei. |
-| Akteur | Angemeldeter Benutzer |
+| Akteur | Benutzer |
 | Auslöser | Der Benutzer besitzt einen Einladungscode einer bestehenden WG. |
 | Vorbedingung | Eine WG mit gültigem Einladungscode existiert. |
 | Nachbedingung | Der Benutzer ist Mitglied der WG und hat Zugriff auf die gemeinsamen Daten der WG. |
@@ -204,7 +204,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-05 |
 | Name | WG verlassen |
 | Ziel | Ein Mitglied verlässt eine bestehende Wohngemeinschaft. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Das Mitglied möchte die Wohngemeinschaft verlassen. |
 | Vorbedingung | Der Benutzer ist Mitglied einer Wohngemeinschaft. |
 | Nachbedingung | Die Mitgliedschaft wurde entfernt und der Benutzer hat keinen Zugriff mehr auf die WG-Daten. |
@@ -242,7 +242,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-06 |
 | Name | Artikel hinzufügen |
 | Ziel | Ein Mitglied fügt einen neuen Artikel zur gemeinsamen Einkaufsliste hinzu. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Ein Produkt wird benötigt. |
 | Vorbedingung | Der Benutzer ist Mitglied einer Wohngemeinschaft. |
 | Nachbedingung | Der Artikel wurde gespeichert und erscheint auf der Einkaufsliste. |
@@ -279,7 +279,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-07 |
 | Name | Artikel bearbeiten |
 | Ziel | Ein Mitglied ändert die Informationen eines vorhandenen Artikels. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Die Informationen eines Artikels sollen geändert werden. |
 | Vorbedingung | Der Artikel existiert auf der Einkaufsliste. |
 | Nachbedingung | Die Änderungen wurden gespeichert und sind für die Mitglieder sichtbar. |
@@ -315,7 +315,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-08 |
 | Name | Artikel löschen |
 | Ziel | Ein Mitglied entfernt einen nicht mehr benötigten Artikel aus der gemeinsamen Einkaufsliste. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Der Artikel wird nicht mehr benötigt. |
 | Vorbedingung | Der Artikel existiert auf der Einkaufsliste. |
 | Nachbedingung | Der Artikel wurde entfernt und erscheint nicht mehr auf der Einkaufsliste. |
@@ -361,7 +361,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-09 |
 | Name | Artikel als gekauft markieren |
 | Ziel | Ein Mitglied kennzeichnet einen Artikel als gekauft, damit alle Mitglieder den aktuellen Einkaufsstand sehen können. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Der Artikel wurde eingekauft. |
 | Vorbedingung | Der Artikel existiert und besitzt den Status „Offen“. |
 | Nachbedingung | Der Artikel besitzt den Status „Gekauft“. |
@@ -407,7 +407,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-10 |
 | Name | Einkaufsliste anzeigen |
 | Ziel | Ein Mitglied zeigt die aktuelle Einkaufsliste seiner Wohngemeinschaft an. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Das Mitglied möchte offene oder bereits gekaufte Artikel einsehen. |
 | Vorbedingung | Der Benutzer ist Mitglied einer Wohngemeinschaft. |
 | Nachbedingung | Die Einkaufsliste wird angezeigt. |
@@ -452,7 +452,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-11 |
 | Name | Ausgabe erfassen |
 | Ziel | Ein Mitglied erfasst eine gemeinsame Ausgabe der Wohngemeinschaft. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Ein Mitglied hat einen Einkauf oder eine gemeinsame Ausgabe bezahlt. |
 | Vorbedingung | Der Benutzer ist Mitglied einer Wohngemeinschaft. |
 | Nachbedingung | Die Ausgabe wurde gespeichert und steht für die Kostenaufteilung zur Verfügung. |
@@ -490,7 +490,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-12 |
 | Name | Ausgabe bearbeiten |
 | Ziel | Ein Mitglied ändert die Informationen einer bestehenden Ausgabe. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Fehlerhafte oder unvollständige Angaben einer Ausgabe sollen korrigiert werden. |
 | Vorbedingung | Die Ausgabe existiert und kann bearbeitet werden. |
 | Nachbedingung | Die Ausgabe wurde aktualisiert und die Änderungen sind gespeichert. |
@@ -527,7 +527,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-13 |
 | Name | Kosten aufteilen |
 | Ziel | Eine gemeinsame Ausgabe wird auf alle oder ausgewählte Mitglieder der Wohngemeinschaft verteilt. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Eine Ausgabe wurde erfasst und soll auf die beteiligten Mitglieder aufgeteilt werden. |
 | Vorbedingung | Eine Ausgabe existiert. |
 | Nachbedingung | Die Kostenanteile wurden berechnet und gespeichert. |
@@ -573,7 +573,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-14 |
 | Name | Schulden anzeigen |
 | Ziel | Ein Mitglied zeigt seine offenen und bereits beglichenen Schulden innerhalb der Wohngemeinschaft an. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Das Mitglied möchte seine Verbindlichkeiten und Forderungen prüfen. |
 | Vorbedingung | Mindestens eine Kostenaufteilung existiert. |
 | Nachbedingung | Die Schuldenübersicht wird angezeigt. |
@@ -617,7 +617,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-15 |
 | Name | Schuld als bezahlt markieren |
 | Ziel | Ein Mitglied markiert eine offene Schuld als beglichen. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Die offene Schuld wurde außerhalb des Systems beglichen. |
 | Vorbedingung | Eine offene Schuld existiert. |
 | Nachbedingung | Die Schuld besitzt den Status „Bezahlt“ und wird entsprechend angezeigt. |
@@ -664,7 +664,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-16 |
 | Name | Kostenübersicht anzeigen |
 | Ziel | Ein Mitglied betrachtet die finanzielle Situation der Wohngemeinschaft. |
-| Akteur | WG-Mitglied |
+| Akteur | Benutzer |
 | Auslöser | Das Mitglied möchte Ausgaben, Kostenanteile und Salden prüfen. |
 | Vorbedingung | Mindestens eine Ausgabe existiert. |
 | Nachbedingung | Die Kostenübersicht wird angezeigt. |
