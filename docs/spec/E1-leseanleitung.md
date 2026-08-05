@@ -59,6 +59,27 @@ Enthält zusätzliche Informationen zum Verständnis der Spezifikation.
 
 ---
 
+---
+<br>
+
+## Nicht Bestandteil des Projekts
+
+Die folgenden Funktionen und Aspekte sind nicht Bestandteil von WG-ShopSync und werden im Rahmen des Projekts nicht umgesetzt:
+
+- Direkte Online-Zahlungen innerhalb der Anwendung
+- Integration externer Bezahldienste (z. B. PayPal, Kreditkarten oder Online-Banking)
+- Chat- oder Nachrichtensystem zwischen Mitgliedern
+- Barcode-Scanner zur Produkterfassung
+- Automatische Produkterkennung
+- Öffentliche Freigabe von Einkaufslisten außerhalb einer WG
+- Erweiterte Statistik- und Reportingfunktionen
+- Verwaltung mehrerer Berechtigungsstufen innerhalb einer WG
+- Veröffentlichung der Anwendung in App Stores
+
+Diese Funktionen können Gegenstand zukünftiger Erweiterungen sein, gehören jedoch nicht zum aktuellen Projektumfang.
+
+---
+
 ## Verwendung der Spezifikation
 
 Die Spezifikation dient als gemeinsame Grundlage für Entwicklung, Test und Abnahme von WG‑ShopSync.
