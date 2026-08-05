@@ -36,26 +36,6 @@ Die Autorisierung regelt den Zugriff auf Funktionen und Daten innerhalb einer WG
 
 Die Rechte eines Benutzers ergeben sich aus seiner Membership innerhalb der jeweiligen WG.
 
-## Rollen
-
-### admin
-
-Darf:
-
-- Mitglieder verwalten
-- die WG verwalten
-- Einladungscodes erzeugen
-- die WG auflösen
-
-### member
-
-Darf:
-
-- Artikel verwalten
-- Ausgaben verwalten
-- Schulden einsehen
-- Schulden als bezahlt markieren
-
 ## Regeln
 
 - Jeder Benutzer besitzt pro WG genau eine Rolle.
@@ -90,80 +70,17 @@ Bereits geladene Daten werden lokal zwischengespeichert.
 
 ---
 
-# N2.4 Synchronisation
-
-Die Synchronisation gleicht lokale und serverseitige Datenstände ab.
-
-Sie stellt sicher, dass alle Mitglieder derselben WG dieselben Informationen sehen.
-
-## Regeln
-
-- Änderungen werden nach Wiederherstellung einer Internetverbindung synchronisiert.
-- Neue Einträge werden an alle Mitglieder verteilt.
-- Statusänderungen werden synchronisiert.
-- Ausgaben und Schulden werden synchronisiert.
-
-## Konfliktbehandlung
-
-Bei konkurrierenden Änderungen gilt:
-
-```text
-Server gewinnt
-```
-
-Der serverseitige Datenstand besitzt Vorrang.
-
-## Verwendet von
-
-- UC-06 Artikel hinzufügen
-- UC-07 Artikel bearbeiten
-- UC-08 Artikel löschen
-- UC-09 Artikel als gekauft markieren
-- UC-11 Daten synchronisieren
-
----
-
 # N2.5 Fehlerbehandlung
 
-Fehler sollen dem Benutzer verständlich dargestellt werden.
-
-Technische Details werden nicht angezeigt.
-
-## Arten von Fehlern
-
-### Validierungsfehler
-
-Beispiele:
-
-- Pflichtfeld leer
-- Ungültige E-Mail-Adresse
-- Ungültiger Betrag
-
-### Authentifizierungsfehler
-
-Beispiele:
-
-- Falsches Passwort
-- Ungültige Zugangsdaten
-
-### Netzwerkfehler
-
-Beispiele:
-
-- Keine Internetverbindung
-- Server nicht erreichbar
-
-### Synchronisationsfehler
-
-Beispiele:
-
-- Konflikt zwischen lokalem und serverseitigem Datenstand
+Fehler werden systemweit einheitlich behandelt.
 
 ## Regeln
 
-- Fehlermeldungen müssen verständlich sein.
+- Fehlermeldungen müssen verständlich und eindeutig formuliert sein.
+- Technische Details werden Benutzern nicht angezeigt.
+- Der Benutzer erhält Hinweise zur möglichen Fehlerbehebung.
 - Daten dürfen durch Fehler nicht verloren gehen.
-- Der Benutzer erhält einen Hinweis zur Fehlerursache.
+- Fehler werden innerhalb der Anwendung konsistent behandelt.
 
 ---
 
@@ -218,6 +135,7 @@ Diese Daten müssen vor unberechtigtem Zugriff geschützt werden.
 
 - Benutzer dürfen nur Daten ihrer eigenen WG sehen.
 - Fremde WG-Daten dürfen nicht angezeigt werden.
+- Die Autorisierung stellt sicher, dass Benutzer ausschließlich auf Daten zugreifen können, für die sie berechtigt sind
 - Persönliche Daten werden ausschließlich für die Nutzung der Anwendung verwendet.
 
 ## Verwendet von
@@ -227,37 +145,5 @@ Diese Daten müssen vor unberechtigtem Zugriff geschützt werden.
 - Alle WG-bezogenen Anwendungsfälle
 
 ---
-
-# N2.8 Sitzungsverwaltung
-
-Nach erfolgreicher Anmeldung erhält der Benutzer eine aktive Sitzung.
-
-Während einer aktiven Sitzung muss sich der Benutzer nicht erneut anmelden.
-
-## Regeln
-
-- Geschützte Funktionen erfordern eine aktive Sitzung.
-- Nach dem Abmelden wird die Sitzung beendet.
-- Ungültige Sitzungen werden automatisch verworfen.
-
-## Verwendet von
-
-- UC-02 Einloggen
-- Alle nachfolgenden Anwendungsfälle
-
----
-
-# N2.9 Zusammenfassung
-
-Die Querschnittskonzepte definieren:
-
-- Authentifizierung
-- Autorisierung
-- Offline-Modus
-- Synchronisation
-- Fehlerbehandlung
-- Datenvalidierung
-- Datenschutz
-- Sitzungsverwaltung
 
 Diese Konzepte gelten systemweit und unterstützen die Umsetzung der funktionalen Anforderungen aus F1 bis F3 sowie die Datenmodelle aus D1 und D2.
