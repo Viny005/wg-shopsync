@@ -29,6 +29,14 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 
 ---
 
+## Use-Case-Diagramm
+
+![Use-Case-Diagramm von WG-ShopSync](images/anwendungsfaelle-diagramm.png)
+
+Das Use-Case-Diagramm visualisiert die Akteure und die in diesem Kapitel beschriebenen Anwendungsfälle. Die detaillierten Beschreibungen der Anwendungsfälle UC-01 bis UC-16 befinden sich in den folgenden Abschnitten dieses Dokuments.
+
+---
+
 # F2.2 Benutzer und Authentifizierung
 
 ### UC-01 – Registrieren
@@ -114,7 +122,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 | ID | UC-03 |
 | Name | WG erstellen |
 | Ziel | Ein angemeldeter Benutzer erstellt eine neue Wohngemeinschaft. |
-| Akteur | Benutzer (WG-Ersteller) |
+| Akteur | Benutzer |
 | Auslöser | Der Benutzer möchte eine neue WG anlegen. |
 | Vorbedingung | Der Benutzer ist angemeldet. |
 | Nachbedingung | Die WG wurde erstellt, der Benutzer ist Mitglied der WG und besitzt die Rolle „WG-Ersteller“. |
