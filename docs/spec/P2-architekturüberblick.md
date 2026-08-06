@@ -18,6 +18,21 @@ Das Backend übernimmt die Verwaltung von Benutzerkonten, die Verarbeitung von A
 
 Die zentrale Datenhaltung speichert alle Informationen zu Benutzern, Wohngemeinschaften, Einkaufslisten und Ausgaben.
 
+```mermaid
+graph LR
+
+    Benutzer["Benutzer"]
+
+    Client["WG-ShopSync Client<br/>(Flutter-App)"]
+
+    FirebaseAuth["Firebase Authentication"]
+    Firestore["Cloud Firestore"]
+
+    Benutzer <--> Client
+
+    Client <--> FirebaseAuth
+    Client <--> Firestore
+```
 
 ---
 
@@ -27,16 +42,14 @@ Vollständige Übersicht aller Systeme, mit denen WG-ShopSync kommuniziert.
 
 | ID | System | Rolle | Richtung | Kopplung |
 |----|---------|---------|-----------|-----------|
-| NB-01 | Benutzer | Verwendet die Anwendung zur Organisation von Einkäufen und Ausgaben | Bidirektional | Direkt |
-| NB-02 | WG-ShopSync Client | Benutzeroberfläche auf Smartphone, Tablet oder Webbrowser | Bidirektional | Direkt |
-| NB-03 | Backend-System | Verarbeitung von Anfragen, Authentifizierung und Geschäftslogik | Bidirektional | Direkt |
-| NB-04 | Cloud-Datenhaltung | Speicherung und Synchronisation aller Daten | Bidirektional | Direkt |
+| NB-01 |Firebase Authentication | Registrierung und Anmeldung von Benutzern | Bidirektional | Direkt |
+| NB-02 |Cloud Firestore | Speicherung und Synchronisation von Anwendungsdaten | Bidirektional | Direkt |
 
 ---
 
 ## Hinweise
 
-- Die konkrete Technologie der Cloud-Datenhaltung wird im Architekturteil festgelegt.
-- Die genaue API-Struktur wird im Architekturentwurf beschrieben.
+- Firebase Authentication wird für die Benutzeranmeldung verwendet.
+- Cloud Firestore dient als zentrale Datenhaltung.
 - Schnittstellen und Kommunikationsdetails werden im Baustein S1 behandelt.
 - Das System ist als Greenfield-Projekt konzipiert und besitzt keine Altsysteme.
