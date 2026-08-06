@@ -95,6 +95,41 @@ Der Benutzer ist angemeldet.
 - Falsche Zugangsdaten.
 - Keine Internetverbindung.
 
+### Aktivitätsdiagramm – UC-02 Einloggen
+
+```mermaid
+flowchart TD
+
+    A([Start])
+    B[Login-Seite öffnen]
+    C[E-Mail und Passwort eingeben]
+    D[Anmelden auswählen]
+    E{Zugangsdaten gültig?}
+    F[Benutzer anmelden]
+    G[WG-Übersicht anzeigen]
+    H([Ende])
+
+    I[Fehlermeldung anzeigen]
+    J[Eingaben korrigieren]
+    K[Erneut anmelden]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+
+    E -->|Ja| F
+    F --> G
+    G --> H
+
+    E -->|Nein| I
+    I --> J
+    J --> K
+    K --> E
+```
+
+*Abbildung F2-2: Aktivitätsdiagramm für UC-02 Einloggen*
+
 ---
 
 # F2.3 WG-Verwaltung
@@ -156,6 +191,46 @@ Der Benutzer ist Mitglied der WG.
 
 - Einladungscode ungültig.
 - Einladungscode nicht vorhanden.
+
+### Aktivitätsdiagramm – UC-04 WG beitreten
+
+```mermaid
+flowchart TD
+
+    A([Start])
+    B[Funktion WG beitreten öffnen]
+    C[Einladungscode eingeben]
+    D[Einladungscode prüfen]
+
+    E{Code gültig?}
+
+    F[WG anzeigen]
+    G[Beitritt bestätigen]
+    H[Benutzer zur WG hinzufügen]
+    I[WG-Übersicht anzeigen]
+    J([Ende])
+
+    K[Fehlermeldung anzeigen]
+    L[Neuen Code eingeben]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+
+    E -->|Ja| F
+    F --> G
+    G --> H
+    H --> I
+    I --> J
+
+    E -->|Nein| K
+    K --> L
+    L --> C
+```
+
+*Abbildung F2-3: Aktivitätsdiagramm für UC-04 WG beitreten*
+```
 
 ---
 
@@ -398,6 +473,57 @@ Kostenanteile wurden berechnet.
 3. System berechnet die Anteile.
 4. System speichert die Aufteilung.
 5. System aktualisiert die Salden.
+
+### Aktivitätsdiagramm – UC-13 Kosten aufteilen
+
+```mermaid
+flowchart TD
+
+    A([Start])
+    B[Vorhandene Ausgabe öffnen]
+    C[Beteiligte Mitglieder auswählen]
+
+    D{Mitglieder ausgewählt?}
+
+    E[Fehlermeldung anzeigen]
+    F[Mitglieder auswählen]
+
+    G[Kostenaufteilung bestätigen]
+
+    H{Aufteilung gültig?}
+
+    I[Fehlermeldung anzeigen]
+    J[Eingaben korrigieren]
+
+    K[Kostenanteile berechnen]
+    L[Aufteilung speichern]
+    M[Salden aktualisieren]
+    N[Kostenübersicht anzeigen]
+    O([Ende])
+
+    A --> B
+    B --> C
+    C --> D
+
+    D -->|Nein| E
+    E --> F
+    F --> C
+
+    D -->|Ja| G
+    G --> H
+
+    H -->|Nein| I
+    I --> J
+    J --> G
+
+    H -->|Ja| K
+    K --> L
+    L --> M
+    M --> N
+    N --> O
+```
+
+*Abbildung F2-4: Aktivitätsdiagramm für UC-13 Kosten aufteilen*
 
 ---
 
