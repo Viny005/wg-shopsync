@@ -190,24 +190,6 @@ Beschreibt den Zahlungsstatus einer Schuld zwischen zwei Mitgliedern.
 
 ---
 
-## Passwort-Hash
-
-Verschlüsselte Repräsentation eines Benutzerpassworts.
-
-| Eigenschaft | Beschreibung |
-|---------------|--------------|
-| Speicherung | Wird ausschließlich in gehashter Form gespeichert |
-| Sichtbarkeit | Wird niemals angezeigt |
-| Verwendung | User.passwordHash |
-
-### Regeln
-
-- Passwörter werden niemals im Klartext gespeichert.
-- Der Passwort-Hash dient ausschließlich der Authentifizierung.
-- Aus einem gespeicherten Passwort-Hash kann das ursprüngliche Passwort nicht rekonstruiert werden.
-
----
-
 ## Saldo
 
 Berechnete Differenz zwischen den Ausgaben, die ein Mitglied bezahlt hat, und seinen eigenen Kostenanteilen.
@@ -234,17 +216,14 @@ Das folgende Diagramm zeigt, welche Entität aus D1 welchen fachlichen Datentyp 
 
 ```mermaid
 graph LR
-    User -->|"1"| PasswortHash["Passwort-Hash"]
     WG -->|"1"| InviteCode["Invite-Code"]
     ShoppingItem -->|"0..1"| Kategorie["Kategorie"]
     ShoppingItem -->|"1"| Artikelstatus["Artikelstatus"]
     Membership -->|"1"| Mitgliedsrolle["Mitgliedsrolle"]
     Debt -->|"1"| Kostenstatus["Kostenstatus"]
-
-    User -.->|"abgeleitet"| Saldo["Saldo"]
+    User -.->|"abgeleitet, nicht gespeichert"| Saldo["Saldo"]
     Expense -.->|"Grundlage für"| Saldo
     ExpenseShare -.->|"Grundlage für"| Saldo
-    Debt -.->|"Grundlage für"| Saldo
 ```
 
 *Hinweis: Die gestrichelten Kanten zum Saldo zeigen, dass es sich um einen abgeleiteten Wert handelt, der nicht als eigenes Attribut in D1 gespeichert wird, sondern aus mehreren Entitäten berechnet wird.*
