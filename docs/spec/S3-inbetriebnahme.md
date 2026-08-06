@@ -8,6 +8,27 @@ Die Anwendung wird als mobile Flutter-Anwendung für Android- und iOS-Geräte be
 
 ---
 
+## Infrastruktur
+
+Für den Betrieb von WG-ShopSync werden folgende Infrastrukturbestandteile benötigt. Die Beschreibung bleibt bewusst einfach gehalten, da eine detaillierte technische Architektur nicht Bestandteil dieses Kapitels ist.
+
+### Server-Komponenten
+
+- **App-Server**: Verarbeitet Anfragen der Client-Anwendung und stellt die Geschäftslogik bereit.
+- **Authentifizierungsdienst**: Verwaltet Registrierung, Anmeldung und Benutzersitzungen.
+
+### Datenbank-Infrastruktur
+
+- **Cloud-Datenbank**: Speichert alle Anwendungsdaten (Benutzer, WGs, Einkaufslisten, Ausgaben) zentral und ermöglicht die Synchronisation zwischen den Geräten der Mitglieder.
+
+### Hardware-Anforderungen
+
+- Es wird keine eigene physische Server-Hardware benötigt.
+- Server-Komponenten und Datenbank werden über einen Cloud-Anbieter bereitgestellt und skalieren automatisch mit der Nutzerzahl.
+- Auf Nutzerseite wird lediglich ein internetfähiges Smartphone, Tablet oder ein Computer mit Webbrowser benötigt.
+
+---
+
 ## Deployment-Schritte
 
 1. Die Cloud-Datenbank wird eingerichtet und konfiguriert.
