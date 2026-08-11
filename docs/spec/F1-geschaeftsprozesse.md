@@ -18,8 +18,7 @@ WG-Mitglieder organisieren gemeinsam ihre Einkäufe über eine zentrale Einkaufs
 
 | Akteur | Typ | Rolle |
 |---------|---------|---------|
-| WG-Mitglied | Mensch | Fügt Artikel hinzu, kauft Produkte und erfasst Ausgaben. |
-| Weitere WG-Mitglieder | Menschen | Sehen Änderungen an der Einkaufsliste in Echtzeit und beteiligen sich an Einkäufen und Ausgaben. |
+| WG-Mitglied | Mensch | Einziger Akteur (konsistent mit dem Anwendungsfalldiagramm F2.1). Plant gemeinsame Einkäufe, erfasst gemeinsame Ausgaben und kann eine WG erstellen oder einer bestehenden beitreten. |
 | WG-ShopSync | IT-System | Verwaltet Einkaufslisten, Ausgaben, Schulden und Synchronisation. |
 
 ---
