@@ -26,8 +26,7 @@ Ziel ist es, typische Probleme im WG-Alltag wie Doppelkäufe, vergessene Einkäu
 
 | Rolle | Beschreibung | Interaktion mit WG-ShopSync |
 |---------|-------------|-----------------------------|
-| WG-Mitglied | Primärer Benutzer der Anwendung. | Verwalten von Einkaufslisten, Erfassen von Ausgaben und Verfolgen eigener Kostenanteile. |
-| WG-Ersteller | Erstellt und verwaltet eine Wohngemeinschaft. | Erstellt die WG, verwaltet den Einladungscode und nutzt alle regulären Funktionen der Anwendung. |
+| WG-Mitbewohner | Einziger menschlicher Akteur/Primärer Benutzer der Anwendung. | Verwalten von Einkaufslisten, Erfassen von Ausgaben, Verfolgen eigener Kostenanteile sowie erstellt die WG, verwaltet den Einladungscode und nutzt alle regulären Funktionen der Anwendung.|
 | Wohngemeinschaft | Hauptzielgruppe der Anwendung. | Gemeinsame Organisation von Einkäufen und Ausgaben. |
 | Entwicklerteam | Verantwortlich für Entwicklung und Wartung des Systems. | Entwicklung, Test und Weiterentwicklung der Anwendung. |
 | Betreuer (Prof. Dr. Carsten Lucke) | Fachlicher Begleiter des Projekts. | Bewertung und Feedback im Rahmen des Moduls WK_1106. |
@@ -63,7 +62,7 @@ Die erste Version von WG-ShopSync umfasst folgende Funktionen:
 | NG-03 | Preisvergleich | Nicht Bestandteil der Einkaufsorganisation. |
 | NG-04 | Anbindung an Supermarkt- oder Online-Shop-APIs | Außerhalb des Projektumfangs. |
 | NG-05 | Automatische Bon-Erkennung | Nicht Bestandteil des MVP. |
-| NG-06 | Komplexes Rollen- und Berechtigungssystem | WG-Ersteller und WG-Mitglied reichen aus. |
+| NG-06 | Komplexes Rollen- und Berechtigungssystem | Ein einziger Akteur "Mitbewohner" |
 | NG-07 | Push-Benachrichtigungen | Geplante Erweiterung für spätere Versionen. |
 | NG-08 | Mehrere WGs pro Benutzer | In der ersten Version ist nur eine WG pro Benutzer vorgesehen. |
 | NG-09 | Private Einkaufslisten | Geplante Erweiterung für spätere Versionen. |
@@ -113,9 +112,6 @@ Detaillierte Projektbeschränkungen werden im Dokument
 
 | ID | Risiko | Gegenmaßnahme |
 |----|---------|---------------|
-| R-01 | Gleichzeitige Änderungen durch mehrere Benutzer können zu Synchronisationskonflikten führen. | Last-Write-Wins-Strategie im MVP. |
-| R-02 | Eine fehlende Internetverbindung verhindert den sofortigen Datenaustausch. | Lokale Speicherung und spätere Synchronisation. |
-| R-03 | Fehler bei der Synchronisation können zu unterschiedlichen Listenständen führen. | Regelmäßige Synchronisation und zentrale Datenhaltung. |
-| R-04 | Der Ersteller einer WG verlässt die WG. | Automatische Übergabe der Erstellerrolle an ein anderes Mitglied. |
-| R-05 | Benutzer erfassen Ausgaben oder Artikel unvollständig oder fehlerhaft. | Einfache Benutzeroberfläche und Eingabevalidierung. |
-| R-06 | Eine geringe Nutzerakzeptanz kann den Nutzen der Anwendung einschränken. | Fokus auf einfache und intuitive Bedienbarkeit. |
+| R-01 | Als studentisches Team mit begrenzter Zeit über ein Semester (CON-3g-01) kann der geplante Funktionsumfang nicht vollständig fertiggestellt werden. | Priorisierung nach MVP (siehe F2.1-Priorität "Hoch (MVP)"), Fokus auf CON-3g-02 (Kernfunktionen zuerst), Bonus-Funktionen (z. B. Kostenverwaltung) werden zuletzt umgesetzt. |
+| R-02 | Ungleiche Auslastung oder Ausfall einzelner Teammitglieder (z. B. durch andere Prüfungen) gefährdet Meilensteine. | Frühzeitige Aufgabenverteilung, Wissensteilung im Team, regelmäßige Abstimmung. |
+| R-03 | Uneinheitliches Verständnis der fachlichen Anforderungen im sechsköpfigen Team kann zu Inkonsistenzen zwischen Spezifikation und Umsetzung führen. | Gemeinsame Reviews der Spezifikation, zentrale Ablage im Repository (CON-05), Abstimmung mit dem Betreuer. |
