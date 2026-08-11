@@ -18,21 +18,9 @@ Das Backend übernimmt die Verwaltung von Benutzerkonten, die Verarbeitung von A
 
 Die zentrale Datenhaltung speichert alle Informationen zu Benutzern, Wohngemeinschaften, Einkaufslisten und Ausgaben.
 
-```mermaid
-graph LR
-
-    Benutzer["Benutzer"]
-
-    Client["WG-ShopSync Client<br/>(Flutter-App)"]
-
-    FirebaseAuth["Firebase Authentication"]
-    Firestore["Cloud Firestore"]
-
-    Benutzer <--> Client
-
-    Client <--> FirebaseAuth
-    Client <--> Firestore
-```
+<p align="center">
+  <img src="./images/wg-shopsync-Architektur.png" alt="wg-shopsync-Architektur" width="800">
+</p>
 
 ---
 
