@@ -2,7 +2,7 @@
 
 | Begriff | Beschreibung |
 |----------|----------|
-| Benutzer | Registrierter Nutzer der Anwendung WG‑ShopSync. |
+| Benutzer | Registrierter Nutzer der Anwendung WG‑ShopSync. Ein Benutzer kann Mitglied einer Wohngemeinschaft sein und nimmt dabei genau eine der Rollen WG-Ersteller oder WG-Mitglied ein |
 | WG | Wohngemeinschaft, deren Mitglieder gemeinsame Einkaufslisten und Ausgaben verwalten. |
 | Invite-Code | Eindeutiger Code zum Beitritt zu einer WG. |
 | Membership | Zugehörigkeit eines Benutzers zu einer bestimmten WG. |

@@ -50,8 +50,7 @@ Die Anwendung dient der Organisation und Transparenz gemeinsamer Ausgaben.
 
 Das System unterscheidet lediglich zwischen:
 
-- WG-Ersteller
-- WG-Mitglied
+-Mitbewohner
 
 Weitere Rollen oder komplexe Berechtigungskonzepte sind nicht vorgesehen.
 

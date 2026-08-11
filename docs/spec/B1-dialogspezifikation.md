@@ -31,7 +31,7 @@ Anmeldung eines bereits registrierten Nutzers.
 
 ## Bezug zu UC
 
-UC-02 – Benutzer einloggen
+[UC-02 – Einloggen](F2-anwendungsfaelle.md#uc-02--einloggen)
 
 ## Vorbedingungen
 
@@ -55,6 +55,12 @@ UC-02 – Benutzer einloggen
 
 - Ungültige Zugangsdaten → Meldung „E-Mail oder Passwort falsch“
 - Keine Verbindung, aber gültige lokale Sitzung vorhanden → automatischer Offline-Start
+
+## Mockup
+
+<p align="center">
+  <img src="./images/mockups/screen-1-login.png" alt="Mockup Screen 1 – Login" width="260">
+</p>
 
 ## Navigation
 
@@ -92,11 +98,18 @@ UC-01 – Benutzer registrieren
 - Ungültige Eingaben
 - Keine Internetverbindung
 
+
+## Mockup
+
+<p align="center">
+  <img src="./images/mockups/screen-2-registrierung.png" alt="Mockup Screen 2 – Registrierung" width="260">
+</p>
+
 ## Navigation
 
 - Erfolgreiche Registrierung → Screen 5
 - Zurück → Screen 1
-
+- 
 ---
 
 # B1.4 Screen 3 – WG erstellen
@@ -107,7 +120,7 @@ Erstellung einer neuen Wohngemeinschaft.
 
 ## Bezug zu UC
 
-UC-03 – WG erstellen
+[UC-03 – WG erstellen](F2-anwendungsfaelle.md#uc-03--wg-erstellen)
 
 ## Vorbedingungen
 
@@ -138,7 +151,7 @@ Beitritt zu einer bestehenden Wohngemeinschaft.
 
 ## Bezug zu UC
 
-UC-04 – WG beitreten
+[UC-04 – WG beitreten](F2-anwendungsfaelle.md#uc-04--wg-beitreten)
 
 ## Vorbedingungen
 
@@ -170,7 +183,9 @@ Zentrale Startseite des Nutzers.
 
 ## Bezug zu UC
 
-UC-03, UC-04, UC-05
+- [UC-03 – WG erstellen](F2-anwendungsfaelle.md#uc-03--wg-erstellen)
+- [UC-04 – WG beitreten](F2-anwendungsfaelle.md#uc-04--wg-beitreten)
+- [UC-05 – WG verlassen](F2-anwendungsfaelle.md#uc-05--wg-verlassen)
 
 ## Vorbedingungen
 
@@ -187,6 +202,12 @@ UC-03, UC-04, UC-05
 ## Fehlerfälle
 
 - Nutzer gehört keiner WG an → Leerzustand mit Direktzugriff auf Screen 3 und Screen 4
+
+## Mockup
+
+<p align="center">
+  <img src="./images/mockups/screen-3-wg-uebersicht.png" alt="Mockup Screen 3 – WG-Übersicht" width="260">
+</p>
 
 ## Navigation
 
@@ -206,8 +227,12 @@ Verwaltung gemeinsamer Einkaufsartikel innerhalb einer WG.
 
 ## Bezug zu UC
 
-UC-06 bis UC-12
-
+- [UC-06 – Artikel hinzufügen](F2-anwendungsfaelle.md#uc-06--artikel-hinzufugen)
+- [UC-07 – Artikel bearbeiten](F2-anwendungsfaelle.md#uc-07--artikel-bearbeiten)
+- [UC-08 – Artikel löschen](F2-anwendungsfaelle.md#uc-08--artikel-loschen)
+- [UC-09 – Artikel als gekauft markieren](F2-anwendungsfaelle.md#uc-09--artikel-als-gekauft-markieren)
+- [UC-10 – Einkaufsliste anzeigen](F2-anwendungsfaelle.md#uc-10--einkaufsliste-anzeigen)
+- 
 ## Vorbedingungen
 
 - Nutzer ist Mitglied der WG.
@@ -243,7 +268,8 @@ Anlegen oder Bearbeiten von Einkaufsartikeln.
 
 ## Bezug zu UC
 
-UC-06 und UC-07
+- [UC-06 – Artikel hinzufügen](F2-anwendungsfaelle.md#uc-06--artikel-hinzufugen)
+- [UC-07 – Artikel bearbeiten](F2-anwendungsfaelle.md#uc-07--artikel-bearbeiten)
 
 ## Vorbedingungen
 
@@ -262,6 +288,12 @@ UC-06 und UC-07
 - Artikelname leer
 - Synchronisierungskonflikte
 
+## Mockup
+
+<p align="center">
+  <img src="./images/mockups/screen-4-artikel-bearbeiten.png" alt="Mockup Screen 4 – Artikel hinzufügen/bearbeiten" width="260">
+</p>
+
 ## Navigation
 
 - Speichern → Screen 6
@@ -277,7 +309,12 @@ Verwaltung gemeinsamer Ausgaben und Anzeige offener Salden.
 
 ## Bezug zu UC
 
-UC-13, UC-14, UC-15
+- [UC-11 – Ausgabe erfassen](F2-anwendungsfaelle.md#uc-11--ausgabe-erfassen)
+- [UC-12 – Ausgabe bearbeiten](F2-anwendungsfaelle.md#uc-12--ausgabe-bearbeiten)
+- [UC-13 – Kosten aufteilen](F2-anwendungsfaelle.md#uc-13--kosten-aufteilen)
+- [UC-14 – Schulden anzeigen](F2-anwendungsfaelle.md#uc-14--schulden-anzeigen)
+- [UC-15 – Schuld als bezahlt markieren](F2-anwendungsfaelle.md#uc-15--schuld-als-bezahlt-markieren)
+- [UC-16 – Kostenübersicht anzeigen](F2-anwendungsfaelle.md#uc-16--kostenubersicht-anzeigen)
 
 ## Vorbedingungen
 
@@ -303,6 +340,12 @@ UC-13, UC-14, UC-15
 - Betrag kleiner oder gleich 0
 - Keine Ausgaben vorhanden
 
+## Mockup
+
+<p align="center">
+  <img src="./images/mockups/screen-5-kostenuebersicht.png" alt="Mockup Screen 5 – Kostenübersicht" width="260">
+</p>
+
 ## Navigation
 
 - Zurück → Screen 5
@@ -317,7 +360,7 @@ Verwaltung des Benutzerkontos.
 
 ## Bezug zu UC
 
-UC-05 – WG verlassen
+[UC-05 – WG verlassen](F2-anwendungsfaelle.md#uc-05--wg-verlassen)
 
 ## Vorbedingungen
 
@@ -403,6 +446,11 @@ Screen 6 (Einkaufsliste) stellt die zentrale Funktion der Anwendung dar. Von dor
 Screen 8 dient der Verwaltung gemeinsamer Ausgaben und der Anzeige von Salden innerhalb einer Wohngemeinschaft.
 
 Screen 9 ermöglicht die Verwaltung des Benutzerkontos, den Logout sowie das Verlassen einer Wohngemeinschaft.
+
+<p align="center">
+  <img src="./images/navigationsdiagramm.png" alt="Navigationsdiagramm" width="800">
+</p>
+Abbildung B1-1: Navigationsdiagramm der Benutzerschnittstelle von WG-ShopSync
 
 Das Diagramm beschreibt ausschließlich die Navigation auf Ebene der Benutzerschnittstelle. Die fachlichen Abläufe werden separat in F1 (Geschäftsprozesse) und F2 (Anwendungsfälle) beschrieben.
 ---

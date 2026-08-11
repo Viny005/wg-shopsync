@@ -4,40 +4,44 @@
 
 | ID | Nachbarsystem | Zweck | Richtung |
 |----|---------------|-------|----------|
-| NB-01 | Cloud-Datenbank | Persistenz und Synchronisation | bidirektional |
-| NB-02 | Push-Notification-Dienst (z. B. Firebase Cloud Messaging) | Benachrichtigungen über Änderungen | ausgehend |
+| NB-01 | Firebase Authentication | Registrierung und Anmeldung von Benutzern | bidirektional |
 
 ---
 
-## NB-01 – Cloud-Datenbank
+## NB-01 – Firebase Authentication
 
 ### Zweck
 
-Speicherung und Synchronisation aller Anwendungsdaten.
+Firebase Authentication ist ein externes Nachbarsystem von WG-ShopSync.
+
+Es stellt Funktionen zur Registrierung, Anmeldung und Verwaltung von Benutzerkonten bereit.
 
 ### Verwendet von
 
 - UC-01 Registrieren
 - UC-02 Einloggen
-- UC-03 bis UC-15
+
+### Ausgetauschte Informationen
+
+- E-Mail-Adresse
+- Passwort bzw. Authentifizierungsdaten
+- Benutzer-ID
+- Authentifizierungsstatus
 
 ### Schnittstelle
 
-- REST API oder Firebase SDK
+- Firebase Authentication SDK
 
 ---
 
-## NB-02 – Push-Notification-Dienst
+## Nachbarsystem-Diagramm
 
-### Zweck
-
-Versand von Benachrichtigungen bei relevanten Änderungen.
-
-### Verwendet von
-
-- UC-06 bis UC-11 Einkaufsliste
-- UC-13 bis UC-15 Kostenverwaltung
-
-### Schnittstelle
-
-- Firebase Cloud Messaging (FCM)
+​```text
+Benutzer
+    │
+    ▼
+WG-ShopSync
+    │
+    ▼
+Firebase Authentication
+​```
