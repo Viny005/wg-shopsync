@@ -29,7 +29,7 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Eingaben | Gesamtbetrag einer Ausgabe, beteiligte Mitglieder |
 | Ausgaben | Kostenanteile pro Mitglied |
 | Regeln | - Der Gesamtbetrag wird gleichmäßig verteilt.<br>- Die Aufteilung kann auf alle Mitglieder oder nur auf ausgewählte Mitglieder erfolgen.<br>- Die Summe aller Anteile entspricht dem Gesamtbetrag.<br>- Rundungsdifferenzen werden automatisch ausgeglichen. |
-| Verwendet von | UC-11 Ausgabe erfassen, UC-12 Ausgabe bearbeiten, UC-14 Kosten aufteilen |
+| Verwendet von | UC-11 Ausgabe erfassen, UC-12 Ausgabe bearbeiten, UC-13 Kosten aufteilen |
 
 ---
 
@@ -76,8 +76,8 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Zweck | Aktualisiert den Status einer bestehenden Schuld. |
 | Eingaben | Schuld, Benutzeraktion „Als bezahlt markieren“ |
 | Ausgaben | Aktualisierte Schuld |
-| Regeln | - Nur bestehende Schulden können aktualisiert werden.<br>- Der Status wechselt von „Offen“ zu „Bezahlt“.<br>- Das Zahlungsdatum wird gespeichert.<br>- Der ursprüngliche Betrag bleibt unverändert. |
-| Verwendet von | UC-15 Schulden anzeigen, UC-16 Schuld als bezahlt markieren |
+| Regeln | - Nur bestehende Schulden können aktualisiert werden.<br>- Der gespeicherte Status wechselt von `open` zu `paid` (Anzeige: Offen zu Bezahlt).<br>- Das Zahlungsdatum wird gespeichert.<br>- Der ursprüngliche Betrag bleibt unverändert. |
+| Verwendet von | UC-14 Schulden anzeigen, UC-15 Schuld als bezahlt markieren |
 
 ---
 
@@ -86,10 +86,10 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Rubrik | Inhalt |
 |---------|---------|
 | Zweck | Berechnet Forderungen und Verbindlichkeiten zwischen Mitgliedern einer Wohngemeinschaft. |
-| Eingaben | Ausgaben, Kostenanteile, Zahlungsstatus |
+| Eingaben | Ausgaben, Kostenanteile und persistierte Schulden mit Zahlungsstatus |
 | Ausgaben | Aktuelle Salden der Mitglieder |
-| Regeln | - Für jede Ausgabe werden Kostenanteile berücksichtigt.<br>- Bereits bezahlte Schulden werden nicht mehr als offen berücksichtigt.<br>- Der Saldo zeigt, wer Geld erhält und wer Geld schuldet. |
-| Verwendet von | UC-14 Kosten aufteilen, UC-15 Schulden anzeigen, UC-17 Kostenübersicht anzeigen |
+| Regeln | - Für jede Ausgabe werden Kostenanteile berücksichtigt.<br>- Bei der Kostenaufteilung werden die berechneten Schulden gespeichert oder aktualisiert.<br>- Bereits bezahlte Schulden werden nicht mehr als offen berücksichtigt.<br>- Der Saldo zeigt, wer Geld erhält und wer Geld schuldet. |
+| Verwendet von | UC-14 Schulden anzeigen, UC-16 Kostenübersicht anzeigen |
 
 ---
 

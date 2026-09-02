@@ -2,7 +2,7 @@
 
 | Begriff | Beschreibung |
 |----------|----------|
-| Benutzer | Registrierter Nutzer der Anwendung WG‑ShopSync. Ein Benutzer kann Mitglied einer Wohngemeinschaft sein und nimmt dabei genau eine der Rollen WG-Ersteller oder WG-Mitglied ein |
+| Benutzer | Registrierter Nutzer der Anwendung WG-ShopSync. Ein Benutzer kann in der ersten Version höchstens Mitglied einer Wohngemeinschaft sein und besitzt dort die Rolle `admin` oder `member`. |
 | WG | Wohngemeinschaft, deren Mitglieder gemeinsame Einkaufslisten und Ausgaben verwalten. |
 | Invite-Code | Eindeutiger Code zum Beitritt zu einer WG. |
 | Membership | Zugehörigkeit eines Benutzers zu einer bestimmten WG. |
@@ -10,7 +10,7 @@
 | Artikel | Eintrag auf der Einkaufsliste. |
 | Kategorie | Einordnung eines Artikels in eine bestimmte Warengruppe. |
 | Ausgabe | Von einem Mitglied erfasste gemeinsame Kosten. |
-| Käufer (Buyer) | Mitglied, das eine Ausgabe zunächst bezahlt hat. |
+| Zahlender | Mitglied, das eine Ausgabe zunächst bezahlt hat (`Expense.paidBy`). |
 | Saldo | Berechnete Differenz zwischen Ausgaben und Kostenanteilen eines Mitglieds. |
 | Synchronisation | Abgleich lokaler und serverseitiger Daten. |
 | Offline-Modus | Nutzung der Anwendung ohne aktive Internetverbindung. |

@@ -12,7 +12,7 @@ Beschreibt die fachlichen Anforderungen an das System.
 
 - F1: Geschäftsprozesse
 - F2: Anwendungsfälle
-- F3: Geschäftsregeln
+- F3: Anwendungsfunktionen
 
 Die fachlichen Anforderungen definieren, welche Funktionen das System bereitstellt und welche Abläufe durch die Anwendung unterstützt werden.
 
@@ -50,12 +50,22 @@ Dieser Block enthält die Beschreibung der einzelnen Screens, ihrer Navigation s
 
 ---
 
-### Block 7 – Ergänzendes
+### Block 5 – Systemumgebung
+
+Beschreibt Nachbarsysteme und Inbetriebnahme.
+
+- S1: Nachbarsysteme
+- S3: Inbetriebnahme
+
+---
+
+### Block 6 – Ergänzende Dokumente
 
 Enthält zusätzliche Informationen zum Verständnis der Spezifikation.
 
 - E1: Leseanleitung
 - E2: Glossar
+- E3: Eingesetzte KI-Werkzeuge
 
 ---
 

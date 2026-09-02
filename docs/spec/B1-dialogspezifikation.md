@@ -14,11 +14,11 @@ Jeder Screen realisiert einen oder mehrere Anwendungsfälle aus F2 und greift au
 | 1 – Login | Anmeldung | E-Mail, Passwort, Login-Button | → 5, → 2 | UC-02 |
 | 2 – Registrierung | Kontoerstellung | Name, E-Mail, Passwort, Passwort-Wiederholung | → 5, → 1 | UC-01 |
 | 3 – WG erstellen | Neue WG anlegen | WG-Name, Erstellen-Button | → 5 | UC-03 |
-| 4 – WG beitreten | WG über Invite-Code beitreten | Invite-Code, Beitreten-Button | → 6 | UC-04 |
+| 4 – WG beitreten | WG über Invite-Code beitreten | Invite-Code, Beitreten-Button | → 5 | UC-04 |
 | 5 – WG-Übersicht | Zentrale Startseite | WG-Liste, Mitgliederliste, Invite-Code | → 6, → 8, → 9, → 3, → 4 | UC-03, UC-04, UC-05 |
-| 6 – Einkaufsliste | Gemeinsame Einkaufsliste | Artikelliste, Checkboxen, FAB | → 7 | UC-06 bis UC-12 |
+| 6 – Einkaufsliste | Gemeinsame Einkaufsliste | Artikelliste, Checkboxen, FAB | → 7 | UC-06 bis UC-10 |
 | 7 – Artikel hinzufügen/bearbeiten | Artikel erfassen oder ändern | Name, Menge, Kategorie | → 6 | UC-06, UC-07 |
-| 8 – Kostenübersicht | Ausgaben und Salden | Ausgabenliste, Saldenanzeige | → 5 | UC-13 bis UC-15 |
+| 8 – Kostenübersicht | Ausgaben und Salden | Ausgabenliste, Saldenanzeige | → 5 | UC-11 bis UC-16 |
 | 9 – Benutzerprofil | Kontoverwaltung | Nutzerdaten, Logout, WG verlassen | → 5 | UC-05 |
 
 ---
@@ -77,7 +77,7 @@ Anlage eines neuen Benutzerkontos.
 
 ## Bezug zu UC
 
-UC-01 – Benutzer registrieren
+[UC-01 – Registrieren](F2-anwendungsfaelle.md#uc-01--registrieren)
 
 ## Vorbedingungen
 
@@ -171,7 +171,7 @@ Beitritt zu einer bestehenden Wohngemeinschaft.
 
 ## Navigation
 
-- Erfolgreich → Screen 6
+- Erfolgreich → Screen 5
 
 ---
 
@@ -193,7 +193,7 @@ Zentrale Startseite des Nutzers.
 
 ## Kernelemente
 
-- Liste aller WGs
+- Anzeige der eigenen WG
 - Mitgliederliste
 - Anzeige des Invite-Codes
 - Teilen-Funktion
@@ -279,8 +279,9 @@ Anlegen oder Bearbeiten von Einkaufsartikeln.
 
 | Feld | Typ | Pflicht | Validierung |
 |----------|----------|----------|----------|
-| Name | String (1–100) | Ja | nicht leer |
-| Menge | Integer | Nein | ≥ 1 |
+| Name | String (1–100) | Ja | 1–100 Zeichen |
+| Beschreibung | String (0–500) | Nein | höchstens 500 Zeichen |
+| Menge | positive Ganzzahl | Nein | bei Angabe mindestens 1 |
 | Kategorie | Enum | Nein | Kategorie aus D2 |
 
 ## Fehlerfälle
@@ -326,7 +327,7 @@ Verwaltung gemeinsamer Ausgaben und Anzeige offener Salden.
 |----------|----------|----------|----------|
 | Betrag | Decimal(10,2) | Ja | > 0 |
 | Beschreibung | String | Ja | nicht leer |
-| Käufer | Auswahl Mitglied | Ja | gültiges Mitglied |
+| Zahlender | Auswahl Mitglied | Ja | gültiges Mitglied |
 | Beteiligte Mitglieder | Mehrfachauswahl | Ja | mindestens ein Mitglied |
 
 ## Kernelemente
@@ -370,7 +371,7 @@ Verwaltung des Benutzerkontos.
 
 - Anzeige des Namens
 - Anzeige der E-Mail-Adresse
-- Liste der eigenen WGs
+- Anzeige der eigenen WG
 - Logout
 - WG verlassen
 

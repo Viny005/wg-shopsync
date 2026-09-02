@@ -5,6 +5,7 @@
 | ID | Nachbarsystem | Zweck | Richtung |
 |----|---------------|-------|----------|
 | NB-01 | Firebase Authentication | Registrierung und Anmeldung von Benutzern | bidirektional |
+| NB-02 | Cloud Firestore | Speicherung und Echtzeit-Synchronisation der WG-Daten | bidirektional |
 
 ---
 
@@ -34,14 +35,38 @@ Es stellt Funktionen zur Registrierung, Anmeldung und Verwaltung von Benutzerkon
 
 ---
 
+## NB-02 – Cloud Firestore
+
+### Zweck
+
+Cloud Firestore ist das externe Nachbarsystem für die zentrale Speicherung und Synchronisation der Anwendungsdaten.
+
+### Verwendet von
+
+- UC-03 bis UC-16
+- AF-01 bis AF-06
+- N2.3 Offline-Modus
+- N2.4 Synchronisation
+
+### Ausgetauschte Informationen
+
+- WG- und Mitgliedschaftsdaten
+- Einkaufslistenartikel
+- Ausgaben und Kostenanteile
+- Schulden und Zahlungsstatus
+
+### Schnittstelle
+
+- Firebase Cloud Firestore SDK
+- Firestore Security Rules zur Zugriffskontrolle
+
+---
+
 ## Nachbarsystem-Diagramm
 
-​```text
-Benutzer
-    │
-    ▼
-WG-ShopSync
-    │
-    ▼
-Firebase Authentication
-​```
+```mermaid
+flowchart LR
+    U[WG-Mitglied] --> A[WG-ShopSync Flutter-App]
+    A <--> AUTH[Firebase Authentication]
+    A <--> DB[Cloud Firestore]
+```

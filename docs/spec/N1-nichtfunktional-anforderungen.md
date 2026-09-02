@@ -82,7 +82,7 @@ Sämtliche Datenübertragungen erfolgen ausschließlich über HTTPS.
 
 ## N1.3-01: Plattformunterstützung
 
-Die Anwendung muss sowohl auf Android- als auch auf iOS-Geräten lauffähig sein.
+Die Anwendung muss auf Android- und iOS-Geräten sowie im Webbrowser lauffähig sein.
 
 ### Fit Criterion
 

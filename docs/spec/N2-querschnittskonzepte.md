@@ -42,10 +42,8 @@ Die Rechte eines Benutzers ergeben sich aus seiner Membership innerhalb der jewe
 
 Darf:
 
-- Mitglieder verwalten
-- die WG verwalten
-- Einladungscodes erzeugen
-- die WG auflösen
+- den Einladungscode anzeigen
+- die WG im Rahmen der beschriebenen Use Cases verwalten
 
 ### member
 
@@ -54,7 +52,7 @@ Darf:
 - Artikel verwalten
 - Ausgaben verwalten
 - Schulden einsehen
-- Schulden als bezahlt markieren
+- eigene Schulden als bezahlt markieren
 
 ## Regeln
 
@@ -79,14 +77,13 @@ Bereits geladene Daten werden lokal zwischengespeichert.
 ## Regeln
 
 - Die zuletzt synchronisierte Einkaufsliste bleibt verfügbar.
-- Offline erfasste Änderungen werden lokal gespeichert.
+- Offline erfasste Änderungen an Einkaufslisten werden lokal gespeichert.
 - Nach Wiederherstellung der Verbindung erfolgt eine Synchronisation.
 - Der Benutzer wird über den Offline-Modus informiert.
 
 ## Verwendet von
 
-- UC-10 Einkaufsliste anzeigen
-- UC-11 Daten synchronisieren
+- UC-06 bis UC-10 Einkaufsliste
 
 ---
 
@@ -111,7 +108,7 @@ Bei konkurrierenden Änderungen gilt:
 Server gewinnt
 ```
 
-Der serverseitige Datenstand besitzt Vorrang.
+Der serverseitige Datenstand besitzt Vorrang. Eine verworfene lokale Änderung bleibt als Konflikthinweis erhalten und kann erneut angewendet werden.
 
 ## Verwendet von
 
@@ -119,7 +116,7 @@ Der serverseitige Datenstand besitzt Vorrang.
 - UC-07 Artikel bearbeiten
 - UC-08 Artikel löschen
 - UC-09 Artikel als gekauft markieren
-- UC-11 Daten synchronisieren
+- UC-06 bis UC-10 Einkaufsliste sowie UC-11 bis UC-16 Kostenverwaltung
 
 ---
 
@@ -178,6 +175,7 @@ Nur gültige Daten dürfen dauerhaft gespeichert werden.
 ### Benutzer
 
 - Name darf nicht leer sein.
+- Der Name ist 2 bis 50 Zeichen lang.
 - E-Mail-Adresse muss gültig sein.
 - Passwort muss den Sicherheitsanforderungen entsprechen.
 
@@ -189,7 +187,9 @@ Nur gültige Daten dürfen dauerhaft gespeichert werden.
 ### Einkaufsliste
 
 - Der Artikelname darf nicht leer sein.
-- Mengenangaben müssen positiv sein.
+- Der Artikelname ist 1 bis 100 Zeichen lang.
+- Eine Beschreibung ist optional und höchstens 500 Zeichen lang.
+- Mengenangaben müssen positive Ganzzahlen sein.
 
 ### Ausgaben
 

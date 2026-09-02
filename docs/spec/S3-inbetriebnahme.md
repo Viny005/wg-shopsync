@@ -4,7 +4,7 @@
 
 Dieses Kapitel beschreibt die erstmalige Bereitstellung und Inbetriebnahme von WG‑ShopSync.
 
-Die Anwendung wird als mobile Flutter-Anwendung für Android- und iOS-Geräte bereitgestellt und verwendet eine Cloud-Datenbank zur Speicherung und Synchronisation der Daten.
+Die Anwendung wird als Flutter-Anwendung für Android, iOS und Webbrowser bereitgestellt und verwendet Firebase Authentication sowie Cloud Firestore zur Speicherung und Synchronisation der Daten.
 
 ---
 
@@ -14,17 +14,17 @@ Für den Betrieb von WG-ShopSync werden folgende Infrastrukturbestandteile benö
 
 ### Server-Komponenten
 
-- **App-Server**: Verarbeitet Anfragen der Client-Anwendung und stellt die Geschäftslogik bereit.
-- **Authentifizierungsdienst**: Verwaltet Registrierung, Anmeldung und Benutzersitzungen.
+- **Firebase Authentication**: Verwaltet Registrierung, Anmeldung und Benutzersitzungen.
+- **Cloud Firestore**: Speichert WG-Daten und stellt Echtzeit-Synchronisation sowie Offline-Persistenz bereit.
 
 ### Datenbank-Infrastruktur
 
-- **Cloud-Datenbank**: Speichert alle Anwendungsdaten (Benutzer, WGs, Einkaufslisten, Ausgaben) zentral und ermöglicht die Synchronisation zwischen den Geräten der Mitglieder.
+- **Cloud-Datenbank**: Cloud Firestore speichert alle Anwendungsdaten (Benutzer, WGs, Einkaufslisten, Ausgaben und Schulden) zentral und ermöglicht die Synchronisation zwischen den Geräten der Mitglieder.
 
 ### Hardware-Anforderungen
 
 - Es wird keine eigene physische Server-Hardware benötigt.
-- Server-Komponenten und Datenbank werden über einen Cloud-Anbieter bereitgestellt und skalieren automatisch mit der Nutzerzahl.
+- Firebase Authentication und Cloud Firestore werden über einen Cloud-Anbieter bereitgestellt.
 - Auf Nutzerseite wird lediglich ein internetfähiges Smartphone, Tablet oder ein Computer mit Webbrowser benötigt.
 
 ---
@@ -32,9 +32,9 @@ Für den Betrieb von WG-ShopSync werden folgende Infrastrukturbestandteile benö
 ## Deployment-Schritte
 
 1. Die Cloud-Datenbank wird eingerichtet und konfiguriert.
-2. Der Authentifizierungsdienst wird konfiguriert.
+2. Firebase Authentication wird konfiguriert.
 3. Die erforderlichen Umgebungsvariablen werden gesetzt.
-4. Die Flutter-Anwendung wird erstellt und für die Zielplattformen bereitgestellt.
+4. Die Flutter-Anwendung wird erstellt und für Android, iOS und Web bereitgestellt.
 5. Die Anwendung wird mit der produktiven Datenbank verbunden.
 6. Abschließende Funktionstests werden durchgeführt.
 
@@ -68,3 +68,5 @@ Die Inbetriebnahme gilt als erfolgreich, wenn:
 - Einkaufslisten erstellt und synchronisiert werden können.
 - Ausgaben gespeichert und angezeigt werden können.
 - Die Synchronisation zwischen mehreren Geräten funktioniert.
+- Kostenaufteilung, Schuldenanzeige und das Markieren einer Schuld als bezahlt funktionieren.
+- Ein Zugriff auf Daten einer fremden WG wird verhindert.

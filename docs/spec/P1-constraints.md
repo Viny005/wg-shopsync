@@ -48,9 +48,10 @@ Die Anwendung dient der Organisation und Transparenz gemeinsamer Ausgaben.
 
 ## CON-3a-04: Einfache Rollenstruktur
 
-Das System unterscheidet lediglich zwischen:
+Das System unterscheidet lediglich zwischen den Rollen:
 
--Mitbewohner
+- `admin`: WG-Ersteller mit Verwaltungsrechten
+- `member`: reguläres WG-Mitglied
 
 Weitere Rollen oder komplexe Berechtigungskonzepte sind nicht vorgesehen.
 
@@ -82,7 +83,7 @@ Mitglieder einer WG nutzen unterschiedliche Geräte.
 
 Wichtige Kernfunktionen sollen auch ohne aktive Internetverbindung nutzbar sein.
 
-Datenänderungen können lokal gespeichert und später synchronisiert werden.
+Datenänderungen an bereits synchronisierten Einkaufslisten können lokal gespeichert und später synchronisiert werden. Registrierung, Login ohne lokale Sitzung, WG-Erstellung und WG-Beitritt benötigen eine Verbindung.
 
 **Begründung:**
 
@@ -92,7 +93,7 @@ Eine stabile Internetverbindung kann nicht jederzeit vorausgesetzt werden.
 
 ## CON-3b-03: Echtzeit-Synchronisation
 
-Änderungen an Einkaufslisten und Ausgaben sollen für alle Mitglieder möglichst zeitnah sichtbar sein.
+Änderungen an Einkaufslisten sollen für alle Mitglieder möglichst zeitnah sichtbar sein. Ausgaben werden ebenfalls synchronisiert, sobald eine Verbindung besteht.
 
 **Begründung:**
 
@@ -106,7 +107,7 @@ Die Vermeidung von Doppelkäufen setzt aktuelle Daten voraus.
 
 Das System benötigt eine zentrale Cloud-Datenhaltung für die Synchronisation zwischen den Mitgliedern einer WG.
 
-Die konkrete Technologie wird im Rahmen der Architekturentscheidung festgelegt.
+Die zentrale Datensynchronisation erfolgt über Cloud Firestore.
 
 **Begründung:**
 
@@ -147,6 +148,10 @@ Die Projektplanung wird durch die Lehrveranstaltung bestimmt.
 ## CON-3g-01: Entwicklung durch ein studentisches Team
 
 Das Projekt wird von sechs Studierenden innerhalb eines Semesters umgesetzt.
+
+## CON-3f-02: Dokumentation im Repository
+
+Spezifikation und Architekturdokumentation werden als Markdown-Dateien im Repository geführt.
 
 **Begründung:**
 

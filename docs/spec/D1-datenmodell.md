@@ -51,7 +51,7 @@ Repräsentiert einen registrierten Benutzer der Anwendung.
 
 ### Beziehungen
 
-- Ein User kann Mitglied mehrerer WGs sein.
+- Ein User kann in der ersten Version Mitglied höchstens einer WG sein.
 - Ein User kann mehrere ShoppingItems erstellen.
 - Ein User kann mehrere Ausgaben bezahlen.
 - Ein User kann Gläubiger oder Schuldner einer Debt sein.
@@ -122,6 +122,7 @@ Repräsentiert einen Eintrag auf der gemeinsamen Einkaufsliste.
 - name
 - quantity
 - category
+- description
 - status
 - createdBy
 - createdAt
@@ -146,6 +147,7 @@ Repräsentiert eine Ausgabe innerhalb einer Wohngemeinschaft.
 - amount
 - description
 - paidBy
+- shoppingItemId
 - receiptUrl
 - createdAt
 
@@ -181,6 +183,7 @@ Repräsentiert eine Forderung zwischen zwei Mitgliedern.
 ### Attribute
 
 - id
+- wgId
 - creditorId
 - debtorId
 - amount

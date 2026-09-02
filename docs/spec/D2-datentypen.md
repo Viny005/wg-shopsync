@@ -49,7 +49,8 @@ Triviale, allgemeine Datentypen wie Text, Integer, Boolean, Email, Timestamp, UR
 | id | Identifier | 1 | Eindeutige Artikel-ID |
 | wgId | Identifier | 1 | Zugehörige WG |
 | name | Text | 1 | Name des Artikels |
-| quantity | Integer | 0..1 | Gewünschte Menge |
+| description | Text | 0..1 | Optionale Beschreibung des Artikels |
+| quantity | PositiveInteger | 0..1 | Gewünschte Menge, bei Angabe mindestens 1 |
 | category | **Kategorie** | 0..1 | Warengruppe des Artikels (siehe D2.8) |
 | status | **Artikelstatus** | 1 | Status des Artikels (siehe D2.8) |
 | createdBy | Identifier | 1 | Benutzer, der den Artikel erstellt hat |
@@ -67,6 +68,7 @@ Triviale, allgemeine Datentypen wie Text, Integer, Boolean, Email, Timestamp, UR
 | amount | Decimal | 1 | Gesamtbetrag der Ausgabe |
 | description | Text | 1 | Beschreibung der Ausgabe |
 | paidBy | Identifier | 1 | Mitglied, das bezahlt hat |
+| shoppingItemId | Identifier | 0..1 | Optional verknüpfter Einkaufsartikel |
 | receiptUrl | URL | 0..1 | Optionaler Beleg |
 | createdAt | Timestamp | 1 | Zeitpunkt der Erfassung |
 
@@ -88,9 +90,10 @@ Triviale, allgemeine Datentypen wie Text, Integer, Boolean, Email, Timestamp, UR
 | Attribut | Typ | Kard. | Beschreibung |
 |-----------|------|--------|--------------|
 | id | Identifier | 1 | Eindeutige ID der Schuld |
+| wgId | Identifier | 1 | Zugehörige WG |
 | creditorId | Identifier | 1 | Gläubiger |
 | debtorId | Identifier | 1 | Schuldner |
-| amount | Decimal | 1 | Offener Betrag |
+| amount | Decimal | 1 | Betrag der Forderung |
 | status | **Kostenstatus** | 1 | Status der Schuld (siehe D2.8) |
 | paidAt | Timestamp | 0..1 | Zeitpunkt der Bezahlung |
 | createdAt | Timestamp | 1 | Zeitpunkt der Erstellung |
@@ -145,14 +148,14 @@ Beschreibt den Bearbeitungsstatus eines Einkaufslistenartikels.
 
 | Wert | Bedeutung |
 |---------|-----------|
-| open | Artikel wurde noch nicht gekauft |
-| bought | Artikel wurde gekauft |
+| open | Artikel wurde noch nicht gekauft; Anzeige: Offen |
+| bought | Artikel wurde gekauft; Anzeige: Gekauft |
 
 ### Regeln
 
 - Jeder Artikel besitzt zu jedem Zeitpunkt genau einen Status.
-- Ein neuer Artikel erhält automatisch den Status „open".
-- Der Statuswechsel zu „bought" erfolgt über UC-09.
+- Ein neuer Artikel erhält automatisch den gespeicherten Status `open`.
+- Der Statuswechsel zu `bought` erfolgt über UC-09; in der Oberfläche wird „Gekauft“ angezeigt.
 
 ---
 
@@ -179,13 +182,13 @@ Beschreibt den Zahlungsstatus einer Schuld zwischen zwei Mitgliedern.
 
 | Wert | Bedeutung |
 |---------|-----------|
-| open | Schuld ist offen |
-| paid | Schuld wurde bezahlt |
+| open | Schuld ist offen; Anzeige: Offen |
+| paid | Schuld wurde bezahlt; Anzeige: Bezahlt |
 
 ### Regeln
 
 - Jede Schuld besitzt zu jedem Zeitpunkt genau einen Kostenstatus.
-- Beim Wechsel zu „paid" wird das Zahlungsdatum (Debt.paidAt) gespeichert (siehe UC-15, AF-05).
+- Beim Wechsel zu `paid` wird das Zahlungsdatum (Debt.paidAt) gespeichert; in der Oberfläche wird „Bezahlt“ angezeigt (siehe UC-15, AF-05).
 - Der ursprüngliche Betrag bleibt beim Statuswechsel unverändert.
 
 ---

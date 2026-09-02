@@ -8,7 +8,7 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 
 ## F2.1 Übersicht
 
-Die folgende Tabelle ist konsistent mit dem Anwendungsfalldiagramm (`images/anwendungsfaelle-diagramm.png`) – beide verwenden dieselben 16 Anwendungsfälle mit identischen IDs und Titeln.
+Die folgende Tabelle ist die normative Übersicht der 16 Anwendungsfälle mit identischen IDs und Titeln. Das vorhandene Bild `images/anwendungsfaelle-diagramm.png` ist im aktuellen Repository ein Datenmodell und wird deshalb nicht als Use-Case-Diagramm referenziert.
 
 | ID | Anwendungsfall | Gruppe | Priorität |
 |----|---------------|----------|----------|
@@ -22,12 +22,12 @@ Die folgende Tabelle ist konsistent mit dem Anwendungsfalldiagramm (`images/anwe
 | UC-08 | Artikel löschen | Einkaufsliste | Mittel |
 | UC-09 | Artikel als gekauft markieren | Einkaufsliste | Hoch (MVP) |
 | UC-10 | Einkaufsliste anzeigen | Einkaufsliste | Hoch (MVP) |
-| UC-11 | Ausgabe erfassen | Kostenverwaltung | Hoch (Bonus) |
-| UC-12 | Ausgabe bearbeiten | Kostenverwaltung | Mittel |
-| UC-13 | Kosten aufteilen | Kostenverwaltung | Hoch (Bonus) |
-| UC-14 | Schulden anzeigen | Kostenverwaltung | Hoch (Bonus) |
-| UC-15 | Schuld als bezahlt markieren | Kostenverwaltung | Hoch (Bonus) |
-| UC-16 | Kostenübersicht anzeigen | Kostenverwaltung | Hoch (Bonus) |
+| UC-11 | Ausgabe erfassen | Kostenverwaltung | Hoch (MVP) |
+| UC-12 | Ausgabe bearbeiten | Kostenverwaltung | Hoch (MVP) |
+| UC-13 | Kosten aufteilen | Kostenverwaltung | Hoch (MVP) |
+| UC-14 | Schulden anzeigen | Kostenverwaltung | Hoch (MVP) |
+| UC-15 | Schuld als bezahlt markieren | Kostenverwaltung | Hoch (MVP) |
+| UC-16 | Kostenübersicht anzeigen | Kostenverwaltung | Hoch (MVP) |
 
 ---
 
@@ -407,7 +407,7 @@ Mitglied kann den Ladevorgang erneut starten.
 | Akteur | Benutzer |
 | Auslöser | Ein Mitglied hat einen Einkauf oder eine gemeinsame Ausgabe bezahlt. |
 | Vorbedingung | Der Benutzer ist Mitglied einer Wohngemeinschaft. |
-| Nachbedingung | Die Ausgabe wurde gespeichert und steht für die Kostenaufteilung zur Verfügung. |
+| Nachbedingung | Die Ausgabe und die ausgewählten ExpenseShares wurden gespeichert und stehen für die Kostenaufteilung zur Verfügung. |
 
 ### Hauptszenario
 
@@ -467,7 +467,7 @@ Mitglied kann die Bearbeitung erneut durchführen.
 | Ziel | Eine gemeinsame Ausgabe wird auf alle oder ausgewählte Mitglieder der Wohngemeinschaft verteilt. |
 | Akteur | Benutzer |
 | Auslöser | Eine Ausgabe wurde erfasst und soll auf die beteiligten Mitglieder aufgeteilt werden. |
-| Vorbedingung | Eine Ausgabe existiert. |
+| Vorbedingung | Eine Ausgabe existiert und der Benutzer ist Mitglied der betreffenden WG. |
 | Nachbedingung | Die Kostenanteile wurden berechnet und gespeichert. |
 
 ### Hauptszenario
@@ -567,7 +567,7 @@ Mitglied kann den Ladevorgang erneut starten.
 1. Mitglied öffnet die Schuldenübersicht.
 2. Mitglied wählt eine Schuld aus.
 3. Mitglied tippt auf „Als bezahlt markieren“.
-4. System setzt den Status auf „Bezahlt“.
+4. System setzt den gespeicherten Status auf `paid` und zeigt „Bezahlt“ an.
 5. System speichert das Zahlungsdatum.
 
 ### Ausnahmeszenarien
@@ -608,7 +608,6 @@ Die aktuelle Schuldenübersicht wird angezeigt.
 4. System zeigt offene und bezahlte Schulden an.
 5. Mitglied kann Detailinformationen aufrufen.
 
-6. 
 ### Ausnahmeszenarien
 
 #### A1 – Keine Ausgaben vorhanden
@@ -636,7 +635,7 @@ Die folgenden Ausnahmeszenarien gelten grundsätzlich für alle Anwendungsfälle
 1. Der Benutzer startet einen Anwendungsfall.
 2. Das System erkennt die fehlende Internetverbindung.
 3. Das System informiert den Benutzer über die fehlende Verbindung.
-4. Änderungen werden lokal gespeichert oder nach Wiederherstellung der Verbindung synchronisiert.
+4. Bei bereits synchronisierten Einkaufslistendaten werden Änderungen lokal gespeichert und nach Wiederherstellung der Verbindung synchronisiert. Für Authentifizierung, WG-Erstellung und WG-Beitritt ist eine Verbindung erforderlich.
 
 ### A-G02 – Technischer Fehler
 

@@ -10,17 +10,20 @@ Detaillierte Architekturentscheidungen, interne Komponenten, APIs oder Datenbank
 
 ## P2.1 Systemkontext
 
-WG-ShopSync besteht aus einer plattformübergreifenden Client-Anwendung, einem Backend-System und einer zentralen Cloud-Datenhaltung.
+WG-ShopSync besteht aus einer plattformübergreifenden Client-Anwendung und den direkt angebundenen Firebase-Diensten.
 
 Benutzer greifen über Smartphone, Tablet oder Webbrowser auf die Anwendung zu.
 
-Das Backend übernimmt die Verwaltung von Benutzerkonten, die Verarbeitung von Anfragen sowie die Kommunikation mit der zentralen Datenhaltung.
+Die Flutter-Anwendung verwendet das Firebase Authentication SDK für Benutzerkonten und das Cloud-Firestore-SDK für Datenzugriff, Echtzeit-Listener und Offline-Persistenz.
 
 Die zentrale Datenhaltung speichert alle Informationen zu Benutzern, Wohngemeinschaften, Einkaufslisten und Ausgaben.
 
-<p align="center">
-  <img src="./images/wg-shopsync-Architektur.png" alt="wg-shopsync-Architektur" width="800">
-</p>
+```mermaid
+flowchart LR
+    U[WG-Mitglied] --> A[WG-ShopSync Flutter-App]
+    A <--> AUTH[Firebase Authentication]
+    A <--> DB[Cloud Firestore]
+```
 
 ---
 

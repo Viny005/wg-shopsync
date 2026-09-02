@@ -26,7 +26,7 @@ Ziel ist es, typische Probleme im WG-Alltag wie Doppelkäufe, vergessene Einkäu
 
 | Rolle | Beschreibung | Interaktion mit WG-ShopSync |
 |---------|-------------|-----------------------------|
-| WG-Mitbewohner | Einziger menschlicher Akteur/Primärer Benutzer der Anwendung. | Verwalten von Einkaufslisten, Erfassen von Ausgaben, Verfolgen eigener Kostenanteile sowie erstellt die WG, verwaltet den Einladungscode und nutzt alle regulären Funktionen der Anwendung.|
+| WG-Mitbewohner | Primärer menschlicher Benutzer der Anwendung. | Verwalten von Einkaufslisten, Erfassen von Ausgaben und Verfolgen von Kostenanteilen gemäß der Rolle `admin` oder `member`. |
 | Wohngemeinschaft | Hauptzielgruppe der Anwendung. | Gemeinsame Organisation von Einkäufen und Ausgaben. |
 | Entwicklerteam | Verantwortlich für Entwicklung und Wartung des Systems. | Entwicklung, Test und Weiterentwicklung der Anwendung. |
 | Betreuer (Prof. Dr. Carsten Lucke) | Fachlicher Begleiter des Projekts. | Bewertung und Feedback im Rahmen des Moduls WK_1106. |
@@ -62,7 +62,7 @@ Die erste Version von WG-ShopSync umfasst folgende Funktionen:
 | NG-03 | Preisvergleich | Nicht Bestandteil der Einkaufsorganisation. |
 | NG-04 | Anbindung an Supermarkt- oder Online-Shop-APIs | Außerhalb des Projektumfangs. |
 | NG-05 | Automatische Bon-Erkennung | Nicht Bestandteil des MVP. |
-| NG-06 | Komplexes Rollen- und Berechtigungssystem | Ein einziger Akteur "Mitbewohner" |
+| NG-06 | Komplexes Rollen- und Berechtigungssystem | Es gibt nur die einfachen Rollen `admin` und `member`. |
 | NG-07 | Push-Benachrichtigungen | Geplante Erweiterung für spätere Versionen. |
 | NG-08 | Mehrere WGs pro Benutzer | In der ersten Version ist nur eine WG pro Benutzer vorgesehen. |
 | NG-09 | Private Einkaufslisten | Geplante Erweiterung für spätere Versionen. |
@@ -74,15 +74,16 @@ Detaillierte Projektbeschränkungen werden im Dokument
 
 | ID | Rahmenbedingung |
 |----|-----------------|
-| CON-01 | Projekt im Rahmen des Moduls WK_1106 |
-| CON-02 | Entwicklung durch ein Team aus sechs Studierenden |
-| CON-03 | Plattformübergreifende Entwicklung mit Unterstützung von Smartphones, Tablets und Webbrowsern |
-| CON-04 | Gemeinsame Nutzung innerhalb von Wohngemeinschaften |
-| CON-05 | Eine Benutzerin bzw. ein Benutzer kann gleichzeitig nur einer WG angehören |
-| CON-06 | Kostenaufteilung ohne integrierte Zahlungsabwicklung |
-| CON-07 | Zentrale Cloud-Datenhaltung für die Synchronisation erforderlich |
-| CON-08 | Offline-Nutzung wichtiger Kernfunktionen soll unterstützt werden |
-| CON-09 | Spezifikation und Architekturdokumentation werden als Markdown-Dateien im Repository geführt |
+| CON-3f-01 | Projekt im Rahmen des Moduls WK_1106 |
+| CON-3g-01 | Entwicklung durch ein Team aus sechs Studierenden |
+| CON-3g-02 | Konzentration der ersten Version auf die definierten Kernfunktionen |
+| CON-3b-01 | Plattformübergreifende Entwicklung mit Unterstützung von Smartphones, Tablets und Webbrowsern |
+| CON-3e-01 | Gemeinsame Nutzung innerhalb von Wohngemeinschaften |
+| CON-3a-01 | Eine Benutzerin bzw. ein Benutzer kann gleichzeitig nur einer WG angehören |
+| CON-3a-03 | Kostenaufteilung ohne integrierte Zahlungsabwicklung |
+| CON-3c-01 | Zentrale Cloud-Datenhaltung für die Synchronisation erforderlich |
+| CON-3b-02 | Offline-Nutzung synchronisierter Einkaufslistendaten soll unterstützt werden |
+| CON-3f-02 | Spezifikation und Architekturdokumentation werden als Markdown-Dateien im Repository geführt |
 
 ## P1.6 Erfolgskriterien
 
@@ -112,6 +113,6 @@ Detaillierte Projektbeschränkungen werden im Dokument
 
 | ID | Risiko | Gegenmaßnahme |
 |----|---------|---------------|
-| R-01 | Als studentisches Team mit begrenzter Zeit über ein Semester (CON-3g-01) kann der geplante Funktionsumfang nicht vollständig fertiggestellt werden. | Priorisierung nach MVP (siehe F2.1-Priorität "Hoch (MVP)"), Fokus auf CON-3g-02 (Kernfunktionen zuerst), Bonus-Funktionen (z. B. Kostenverwaltung) werden zuletzt umgesetzt. |
+| R-01 | Als studentisches Team mit begrenzter Zeit über ein Semester (CON-3g-01) kann der geplante Funktionsumfang nicht vollständig fertiggestellt werden. | Priorisierung der Use Cases nach MVP, zuerst Authentifizierung, WG-Verwaltung, Einkaufsliste und Kostenverwaltung. |
 | R-02 | Ungleiche Auslastung oder Ausfall einzelner Teammitglieder (z. B. durch andere Prüfungen) gefährdet Meilensteine. | Frühzeitige Aufgabenverteilung, Wissensteilung im Team, regelmäßige Abstimmung. |
-| R-03 | Uneinheitliches Verständnis der fachlichen Anforderungen im sechsköpfigen Team kann zu Inkonsistenzen zwischen Spezifikation und Umsetzung führen. | Gemeinsame Reviews der Spezifikation, zentrale Ablage im Repository (CON-05), Abstimmung mit dem Betreuer. |
+| R-03 | Uneinheitliches Verständnis der fachlichen Anforderungen im sechsköpfigen Team kann zu Inkonsistenzen zwischen Spezifikation und Umsetzung führen. | Gemeinsame Reviews der Spezifikation, zentrale Ablage im Repository (CON-3f-01), Abstimmung mit dem Betreuer. |
