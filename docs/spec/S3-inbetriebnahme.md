@@ -4,7 +4,7 @@
 
 Dieses Kapitel beschreibt die erstmalige Bereitstellung und Inbetriebnahme von WG‑ShopSync.
 
-Die Anwendung wird als Flutter-Anwendung für Android, iOS und Webbrowser bereitgestellt und verwendet Firebase Authentication sowie Cloud Firestore zur Speicherung und Synchronisation der Daten.
+Die Anwendung wird als responsive Webanwendung für moderne Desktop- und mobile Webbrowser bereitgestellt und verwendet Firebase Authentication sowie Cloud Firestore zur Speicherung und Synchronisation der Daten.
 
 ---
 
@@ -12,20 +12,20 @@ Die Anwendung wird als Flutter-Anwendung für Android, iOS und Webbrowser bereit
 
 Für den Betrieb von WG-ShopSync werden folgende Infrastrukturbestandteile benötigt. Die Beschreibung bleibt bewusst einfach gehalten, da eine detaillierte technische Architektur nicht Bestandteil dieses Kapitels ist.
 
-### Server-Komponenten
+### Verwaltete Cloud-Dienste
 
 - **Firebase Authentication**: Verwaltet Registrierung, Anmeldung und Benutzersitzungen.
 - **Cloud Firestore**: Speichert WG-Daten und stellt Echtzeit-Synchronisation sowie Offline-Persistenz bereit.
 
 ### Datenbank-Infrastruktur
 
-- **Cloud-Datenbank**: Cloud Firestore speichert alle Anwendungsdaten (Benutzer, WGs, Einkaufslisten, Ausgaben und Schulden) zentral und ermöglicht die Synchronisation zwischen den Geräten der Mitglieder.
+- **Cloud-Datenbank**: Cloud Firestore speichert alle Anwendungsdaten (Benutzer, WGs, Einkaufslisten, Ausgaben und Schulden) zentral und ermöglicht die Synchronisation zwischen den Browsern der Mitglieder.
 
 ### Hardware-Anforderungen
 
 - Es wird keine eigene physische Server-Hardware benötigt.
 - Firebase Authentication und Cloud Firestore werden über einen Cloud-Anbieter bereitgestellt.
-- Auf Nutzerseite wird lediglich ein internetfähiges Smartphone, Tablet oder ein Computer mit Webbrowser benötigt.
+- Auf Nutzerseite wird lediglich ein Computer oder mobiles Endgerät mit einem modernen Webbrowser benötigt.
 
 ---
 
@@ -34,7 +34,7 @@ Für den Betrieb von WG-ShopSync werden folgende Infrastrukturbestandteile benö
 1. Die Cloud-Datenbank wird eingerichtet und konfiguriert.
 2. Firebase Authentication wird konfiguriert.
 3. Die erforderlichen Umgebungsvariablen werden gesetzt.
-4. Die Flutter-Anwendung wird erstellt und für Android, iOS und Web bereitgestellt.
+4. Die Webanwendung wird erstellt und für den produktiven Webserver bereitgestellt.
 5. Die Anwendung wird mit der produktiven Datenbank verbunden.
 6. Abschließende Funktionstests werden durchgeführt.
 
@@ -43,7 +43,7 @@ Für den Betrieb von WG-ShopSync werden folgende Infrastrukturbestandteile benö
 ## Voraussetzungen
 
 - Flutter SDK installiert
-- Android Studio oder Xcode installiert
+- Ein moderner Webbrowser für die Nutzung und ein Entwicklungsrechner für den Web-Build
 - Zugriff auf die Cloud-Datenbank
 - Internetverbindung
 - Konfigurierte Umgebungsvariablen

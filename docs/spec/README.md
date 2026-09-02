@@ -2,11 +2,11 @@
 
 ## 1. Zweck und Geltungsbereich
 
-WG-ShopSync ist eine plattformübergreifende Anwendung zur Organisation gemeinsamer Einkäufe und Ausgaben in Wohngemeinschaften. Diese Spezifikation beschreibt die fachlichen Anforderungen, die Benutzeroberfläche, das Datenmodell, die Systemumgebung und die Qualitätsanforderungen. Sie ist die verbindliche Grundlage für Architektur, Implementierung, Tests und Abnahme im Projekt WK_1106.
+WG-ShopSync ist eine browserbasierte Webanwendung zur Organisation gemeinsamer Einkäufe und Ausgaben in Wohngemeinschaften. Diese Spezifikation beschreibt die fachlichen Anforderungen, die Benutzeroberfläche, das Datenmodell, die Systemumgebung und die Qualitätsanforderungen. Sie ist die verbindliche Grundlage für Architektur, Implementierung, Tests und Abnahme im Projekt WK_1106.
 
 **Projekt:** WG-ShopSync  
 **Technologien:** Flutter, Firebase Authentication, Cloud Firestore  
-**Zielplattformen:** Android, iOS und Webbrowser  
+**Zielplattform:** Moderne Desktop- und mobile Webbrowser
 **Status:** Arbeitsgrundlage für Entwicklung und Test
 
 ## 2. Produktvision
@@ -85,12 +85,12 @@ Validierungs-, Authentifizierungs-, Netzwerk- und Synchronisationsfehler werden 
 
 ```mermaid
 flowchart LR
-    U[WG-Mitglied] --> A[WG-ShopSync Flutter-App]
+    U[WG-Mitglied] --> A[WG-ShopSync Webanwendung]
     A <--> AUTH[Firebase Authentication]
     A <--> DB[Cloud Firestore]
 ```
 
-Die Flutter-App bildet die Benutzerschnittstelle und die lokale Offline-Nutzung ab. Firebase Authentication verwaltet Konten und Sitzungen. Cloud Firestore speichert WG-Daten und synchronisiert Änderungen. Der tatsächliche Einkauf und die tatsächliche Geldzahlung liegen außerhalb der Systemgrenze.
+Die Webanwendung bildet die Benutzerschnittstelle und die lokale Offline-Nutzung ab. Firebase Authentication verwaltet Konten und Sitzungen. Cloud Firestore speichert WG-Daten und synchronisiert Änderungen. Der tatsächliche Einkauf und die tatsächliche Geldzahlung liegen außerhalb der Systemgrenze.
 
 ## 8. Dokumentübersicht
 
@@ -153,7 +153,7 @@ Die Flutter-App bildet die Benutzerschnittstelle und die lokale Offline-Nutzung 
 - Änderungen der Einkaufsliste werden bei bestehender Verbindung innerhalb von zwei Sekunden sichtbar.
 - Anmeldung und Speichern erfolgen ohne unnötige Verzögerung; die Zielwerte stehen in [N1](N1-nichtfunktional-anforderungen.md).
 - Nur authentifizierte WG-Mitglieder können geschützte Daten lesen oder verändern.
-- Android, iOS und Webbrowser unterstützen die Kernfunktionen.
+- Moderne Desktop- und mobile Webbrowser unterstützen die Kernfunktionen.
 - Offline verfügbare Daten und lokale Änderungen werden nach einer Wiederverbindung synchronisiert.
 - Fehlermeldungen sind verständlich und enthalten eine Handlungsempfehlung.
 

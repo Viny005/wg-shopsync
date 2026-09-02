@@ -52,9 +52,9 @@ Dieser Block enthält die Beschreibung der einzelnen Screens, ihrer Navigation s
 
 ### Block 5 – Systemumgebung
 
-Beschreibt Nachbarsysteme und Inbetriebnahme.
+Beschreibt die technische Infrastruktur und Inbetriebnahme.
 
-- S1: Nachbarsysteme
+- S1: Technische Infrastruktur
 - S3: Inbetriebnahme
 
 ---
@@ -76,3 +76,7 @@ Die Spezifikation dient als gemeinsame Grundlage für Entwicklung, Test und Abna
 Die funktionalen Anforderungen beschreiben das gewünschte Verhalten des Systems. Die Datenmodelle definieren die verwendeten Informationen. Die nichtfunktionalen Anforderungen legen Qualitätsziele fest. Die Dialogspezifikation beschreibt die Benutzeroberfläche und die Interaktion mit dem System.
 
 Alle Kapitel sind durch Querverweise miteinander verbunden und sollten für ein vollständiges Verständnis gemeinsam betrachtet werden.
+
+## Abgrenzung
+
+Nicht Bestandteil der Spezifikation sind eine tatsächliche Zahlungsabwicklung, Bank- oder Finanzdienstleisterintegrationen, Preisvergleiche, Online-Shop-APIs, automatische Bon-Erkennung, Push-Benachrichtigungen, private Einkaufslisten und die Verwaltung mehrerer WGs pro Benutzer. Diese Punkte sind in P1.4 als Out of Scope abgegrenzt.

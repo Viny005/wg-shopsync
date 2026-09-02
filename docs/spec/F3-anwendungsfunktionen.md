@@ -89,7 +89,7 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Eingaben | Ausgaben, Kostenanteile und persistierte Schulden mit Zahlungsstatus |
 | Ausgaben | Aktuelle Salden der Mitglieder |
 | Regeln | - Für jede Ausgabe werden Kostenanteile berücksichtigt.<br>- Bei der Kostenaufteilung werden die berechneten Schulden gespeichert oder aktualisiert.<br>- Bereits bezahlte Schulden werden nicht mehr als offen berücksichtigt.<br>- Der Saldo zeigt, wer Geld erhält und wer Geld schuldet. |
-| Verwendet von | UC-14 Schulden anzeigen, UC-16 Kostenübersicht anzeigen |
+| Verwendet von | [UC-14 Schulden anzeigen](F2-anwendungsfaelle.md#uc-14--schulden-anzeigen), [UC-15 Schuld als bezahlt markieren](F2-anwendungsfaelle.md#uc-15--schuld-als-bezahlt-markieren), [UC-16 Kostenübersicht anzeigen](F2-anwendungsfaelle.md#uc-16--kostenubersicht-anzeigen) |
 
 ---
 

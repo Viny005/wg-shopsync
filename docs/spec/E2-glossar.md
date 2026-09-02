@@ -14,7 +14,11 @@
 | Saldo | Berechnete Differenz zwischen Ausgaben und Kostenanteilen eines Mitglieds. |
 | Synchronisation | Abgleich lokaler und serverseitiger Daten. |
 | Offline-Modus | Nutzung der Anwendung ohne aktive Internetverbindung. |
-| Authentifizierung | Überprüfung der Identität eines Benutzers beim Login. |
-| Autorisierung | Kontrolle, ob ein Benutzer auf bestimmte Daten oder Funktionen zugreifen darf. |
 | HTTPS | Verschlüsselte Kommunikation zwischen Anwendung und Server. |
-| Passwort-Hash | Verschlüsselte Darstellung eines Passworts zur sicheren Speicherung. |
+| Kostenanteil | Der gleichmäßig berechnete Anteil eines Mitglieds an einer gemeinsamen Ausgabe. |
+| Schuld | Aus einer Kostenaufteilung resultierende offene oder bereits bezahlte Forderung zwischen zwei Mitgliedern. |
+| Kostenstatus | Fachlicher Status einer Schuld: `open` oder `paid`. |
+| Artikelstatus | Fachlicher Status eines Einkaufsartikels: `open` oder `bought`. |
+| Mitgliedsrolle | Rolle eines Benutzers innerhalb einer WG: `admin` oder `member`. |
+| Kostenübersicht | Ansicht der Ausgaben, Kostenanteile, Salden und Schulden einer WG. |
+| Konflikthinweis | Anzeige, dass eine lokale Änderung wegen eines aktuelleren serverseitigen Datenstands nicht übernommen wurde. |

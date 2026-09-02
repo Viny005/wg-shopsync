@@ -12,6 +12,8 @@ WG-ShopSync unterstützt die gemeinsame Organisation von Einkäufen sowie die Ve
 
 WG-Mitglieder organisieren gemeinsam ihre Einkäufe über eine zentrale Einkaufsliste. Fehlende Produkte werden erfasst, Einkäufe koordiniert und die dabei entstehenden Kosten transparent auf die beteiligten Mitglieder verteilt.
 
+Der Prozess beginnt damit, dass ein Benutzer eine WG erstellt oder einer bestehenden WG beitritt. Anschließend pflegen die Mitglieder gemeinsam die Einkaufsliste, kaufen benötigte Artikel außerhalb der Anwendung ein und dokumentieren danach die Ausgabe und die Kostenaufteilung.
+
 ---
 
 ### F1.1.1 Akteure
@@ -29,16 +31,17 @@ WG-Mitglieder organisieren gemeinsam ihre Einkäufe über eine zentrale Einkaufs
 |------|------------|------------|------------|
 | A1 | Ein WG-Mitglied stellt fest, dass ein Produkt benötigt wird. | manuell | Außerhalb des Systems. |
 | A2 | Das Mitglied öffnet WG-ShopSync. | Benutzer → App | Einstieg in den Prozess. |
-| A3 | Das Mitglied fügt den Artikel zur gemeinsamen Einkaufsliste hinzu. | WG-ShopSync | Artikelname, Menge, Kategorie und optionale Beschreibung werden erfasst. |
-| A4 | Alle Mitglieder sehen den neuen Artikel auf der Einkaufsliste. | WG-ShopSync | Synchronisation in nahezu Echtzeit. |
-| A5 | Ein Mitglied kauft den Artikel. | manuell | Kauf erfolgt außerhalb des Systems. |
-| A6 | Der Artikel wird als „gekauft“ markiert. | WG-ShopSync | Statuswechsel von „Offen“ zu „Gekauft“. |
-| A7 | Optional wird eine Ausgabe zum Kauf erfasst. | WG-ShopSync | Kauf kann mit einer Ausgabe verknüpft werden. |
-| A8 | Das Mitglied gibt Betrag und beteiligte Personen an. | WG-ShopSync | Alternativ kann eine Ausgabe unabhängig vom Einkauf erfasst werden. |
-| A9 | Das System berechnet die Kostenanteile der beteiligten Mitglieder. | WG-ShopSync | Gleichmäßige Verteilung der Kosten. |
-| A10 | Mitglieder sehen ihre Kostenanteile und offenen Schulden. | WG-ShopSync | Jeder Benutzer sieht nur die eigenen Schulden. |
-| A11 | Schulden können als bezahlt markiert werden. | WG-ShopSync | Keine tatsächliche Zahlungsabwicklung. |
-| A12 | Der Geschäftsprozess ist abgeschlossen. | manuell | Einkauf und Kostenaufteilung sind dokumentiert. |
+| A3 | Ein Benutzer erstellt eine WG oder tritt ihr über einen Einladungscode bei. | WG-ShopSync | Der Benutzer erhält die Rolle `admin` oder `member`. |
+| A4 | Das Mitglied fügt den Artikel zur gemeinsamen Einkaufsliste hinzu. | WG-ShopSync | Artikelname, Menge, Kategorie und optionale Beschreibung werden erfasst. |
+| A5 | Alle Mitglieder sehen den neuen Artikel auf der Einkaufsliste. | WG-ShopSync | Synchronisation in nahezu Echtzeit. |
+| A6 | Ein Mitglied kauft den Artikel. | manuell | Kauf erfolgt außerhalb des Systems. |
+| A7 | Der Artikel wird als „gekauft“ markiert. | WG-ShopSync | Statuswechsel von „Offen“ zu „Gekauft“. |
+| A8 | Optional wird eine Ausgabe zum Kauf erfasst. | WG-ShopSync | Kauf kann mit einer Ausgabe verknüpft werden. |
+| A9 | Das Mitglied gibt Betrag und beteiligte Personen an. | WG-ShopSync | Alternativ kann eine Ausgabe unabhängig vom Einkauf erfasst werden. |
+| A10 | Das System berechnet die Kostenanteile der beteiligten Mitglieder. | WG-ShopSync | Gleichmäßige Verteilung der Kosten. |
+| A11 | Mitglieder sehen ihre Kostenanteile und offenen Schulden. | WG-ShopSync | Jeder Benutzer sieht nur die eigenen Schulden. |
+| A12 | Schulden können als bezahlt markiert werden. | WG-ShopSync | Keine tatsächliche Zahlungsabwicklung. |
+| A13 | Der Geschäftsprozess ist abgeschlossen. | manuell | Einkauf und Kostenaufteilung sind dokumentiert. |
 
 ---
 

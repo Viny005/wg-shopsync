@@ -6,13 +6,13 @@ Nichtfunktionale Anforderungen beschreiben die Qualitätsmerkmale von WG-ShopSyn
 
 # N1.1 Performance-Anforderungen
 
-## N1.1-01: Echtzeit-Synchronisation
+## N1.1-01: Echtzeit-Synchronisation für relevante Anwendungsfälle
 
-Änderungen an der gemeinsamen Einkaufsliste müssen für alle Mitglieder einer WG nahezu in Echtzeit sichtbar sein.
+Änderungen an gemeinsam genutzten Daten müssen für alle berechtigten Mitglieder einer WG nahezu in Echtzeit sichtbar sein. Dies betrifft insbesondere das Hinzufügen, Bearbeiten, Löschen und Kaufen-Markieren von Artikeln sowie Änderungen an Ausgaben und Kostenaufteilungen.
 
 ### Fit Criterion
 
-Änderungen an der Einkaufsliste werden innerhalb von 2 Sekunden auf den Geräten aller verbundenen WG-Mitglieder angezeigt.
+Änderungen werden innerhalb von 2 Sekunden auf den Geräten aller verbundenen und berechtigten WG-Mitglieder angezeigt. Die Zeit gilt für jeden Anwendungsfall, der eine gemeinsame Datenänderung synchronisiert.
 
 ---
 
@@ -70,7 +70,7 @@ Alle Passwörter werden ausschließlich als kryptografische Hashwerte gespeicher
 
 ## N1.2-04: Sichere Kommunikation
 
-Die Kommunikation zwischen der mobilen Anwendung und dem Server muss verschlüsselt erfolgen.
+Die Kommunikation zwischen der Webanwendung und den Firebase-Diensten muss verschlüsselt erfolgen.
 
 ### Fit Criterion
 
@@ -82,11 +82,11 @@ Sämtliche Datenübertragungen erfolgen ausschließlich über HTTPS.
 
 ## N1.3-01: Plattformunterstützung
 
-Die Anwendung muss auf Android- und iOS-Geräten sowie im Webbrowser lauffähig sein.
+Die Anwendung muss in modernen Desktop- und mobilen Webbrowsern lauffähig sein.
 
 ### Fit Criterion
 
-Alle Kernfunktionen stehen auf beiden Betriebssystemen zur Verfügung.
+Alle Kernfunktionen stehen im unterstützten Webbrowser zur Verfügung.
 
 ---
 

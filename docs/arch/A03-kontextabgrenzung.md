@@ -1,0 +1,39 @@
+# A03 – Kontextabgrenzung
+
+## 1. Fachlicher Kontext
+
+```mermaid
+flowchart LR
+    U[Benutzer] --> APP[WG-ShopSync]
+    APP --> LIST[Einkaufsliste]
+    APP --> COST[Ausgaben und Kostenaufteilung]
+    LIST --> BUY[Tatsächlicher Einkauf außerhalb der Anwendung]
+    COST --> PAY[Tatsächliche Zahlung außerhalb der Anwendung]
+```
+
+WG-ShopSync unterstützt die Planung und Dokumentation. Der tatsächliche Einkauf und die Rückzahlung von Geld liegen außerhalb der Systemgrenze.
+
+## 2. Technischer Kontext
+
+```mermaid
+flowchart LR
+    U[Benutzer]
+    APP[WG-ShopSync Webanwendung]
+    AUTH[Firebase Authentication]
+    DB[Cloud Firestore]
+    U --> APP
+    APP <--> AUTH
+    APP <--> DB
+```
+
+### Firebase Authentication
+
+Verwaltet Benutzerkonto, Login, Authentifizierungsstatus und Benutzer-ID.
+
+### Cloud Firestore
+
+Cloud Firestore speichert die in [D1 – Datenmodell](../spec/D1-datenmodell.md) definierten Entitäten sowie die in [D2 – Datentypen](../spec/D2-datentypen.md) beschriebenen fachlichen Datentypen. Dazu gehören Benutzerprofile, WGs, Memberships, Einkaufsartikel, Ausgaben, Kostenanteile und Schulden. Echtzeit-Listener verteilen Änderungen an verbundene Browser.
+
+## 3. Externe Schnittstellen
+
+Die Anwendung kommuniziert ausschließlich mit den Firebase-Diensten Firebase Authentication und Cloud Firestore. Weitere externe Schnittstellen, wie Bankdienste, Online-Shops, Preisvergleichsdienste oder Zahlungsanbieter, werden in der ersten Version nicht unterstützt.

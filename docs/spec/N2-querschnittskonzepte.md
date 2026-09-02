@@ -23,13 +23,6 @@ Die Authentifizierung wird von den Anwendungsfällen UC-01 (Registrieren) und UC
 - Erfolgreiche Anmeldungen erzeugen eine Benutzersitzung.
 - Nicht authentifizierte Benutzer können keine WG-Daten abrufen.
 
-## Verwendet von
-
-- UC-01 Registrieren
-- UC-02 Einloggen
-
----
-
 # N2.2 Autorisierung
 
 Die Autorisierung regelt den Zugriff auf Funktionen und Daten innerhalb einer WG.
@@ -60,14 +53,6 @@ Darf:
 - Die Rolle wird in Membership.role gespeichert.
 - Ein Benutzer darf nur Funktionen ausführen, für die er berechtigt ist.
 
-## Verwendet von
-
-- UC-03 WG erstellen
-- UC-04 WG beitreten
-- UC-05 WG verlassen
-
----
-
 # N2.3 Offline-Modus
 
 WG-ShopSync soll auch bei fehlender Internetverbindung eingeschränkt nutzbar bleiben.
@@ -81,13 +66,7 @@ Bereits geladene Daten werden lokal zwischengespeichert.
 - Nach Wiederherstellung der Verbindung erfolgt eine Synchronisation.
 - Der Benutzer wird über den Offline-Modus informiert.
 
-## Verwendet von
-
-- UC-06 bis UC-10 Einkaufsliste
-
----
-
-# N2.4 Synchronisation
+# N2.4 Synchronisationsanforderungen
 
 Die Synchronisation gleicht lokale und serverseitige Datenstände ab.
 
@@ -109,16 +88,6 @@ Server gewinnt
 ```
 
 Der serverseitige Datenstand besitzt Vorrang. Eine verworfene lokale Änderung bleibt als Konflikthinweis erhalten und kann erneut angewendet werden.
-
-## Verwendet von
-
-- UC-06 Artikel hinzufügen
-- UC-07 Artikel bearbeiten
-- UC-08 Artikel löschen
-- UC-09 Artikel als gekauft markieren
-- UC-06 bis UC-10 Einkaufsliste sowie UC-11 bis UC-16 Kostenverwaltung
-
----
 
 # N2.5 Fehlerbehandlung
 
@@ -195,6 +164,7 @@ Nur gültige Daten dürfen dauerhaft gespeichert werden.
 
 - Betrag muss größer als 0 sein.
 - Beschreibung darf nicht leer sein.
+- Mindestens ein Kostenbeteiligter muss ausgewählt sein.
 
 ### Schulden
 
@@ -220,14 +190,6 @@ Diese Daten müssen vor unberechtigtem Zugriff geschützt werden.
 - Fremde WG-Daten dürfen nicht angezeigt werden.
 - Persönliche Daten werden ausschließlich für die Nutzung der Anwendung verwendet.
 
-## Verwendet von
-
-- UC-01 Registrieren
-- UC-02 Einloggen
-- Alle WG-bezogenen Anwendungsfälle
-
----
-
 # N2.8 Sitzungsverwaltung
 
 Nach erfolgreicher Anmeldung erhält der Benutzer eine aktive Sitzung.
@@ -239,13 +201,6 @@ Während einer aktiven Sitzung muss sich der Benutzer nicht erneut anmelden.
 - Geschützte Funktionen erfordern eine aktive Sitzung.
 - Nach dem Abmelden wird die Sitzung beendet.
 - Ungültige Sitzungen werden automatisch verworfen.
-
-## Verwendet von
-
-- UC-02 Einloggen
-- Alle nachfolgenden Anwendungsfälle
-
----
 
 # N2.9 Zusammenfassung
 
