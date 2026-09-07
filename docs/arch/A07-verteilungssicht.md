@@ -19,13 +19,13 @@ flowchart LR
 |---|---|
 | Browser auf Desktop oder mobilem Endgerät | Webanwendung und browserabhängiger lokaler Cache |
 | GitHub Repository | Versionierter Quellcode und Web-Build-Artefakte |
-| Web-Deployment (Firebase Hosting) | Flutter-Web-Build, ausgeliefert über Firebase Hosting. Firebase Hosting ist in das bestehende Firebase-Projekt integrierbar, stellt HTTPS bereit und liefert die statischen Web-Artefakte aus. GitHub Pages bleibt eine mögliche Alternative, falls keine Firebase-spezifischen Redirect-Regeln benötigt werden. |
+| Web-Deployment (Firebase Hosting) | Flutter-Web-Build, ausgeliefert über Firebase Hosting. Firebase Hosting ist bevorzugt, da es im bestehenden Firebase-Projekt integriert ist, HTTPS ohne Zusatzkonfiguration bereitstellt und den Flutter-Web-Build als statische Artefakte direkt aus dem Repository deployen kann. Als Alternative käme GitHub Pages in Betracht, sofern keine Firebase-spezifischen Redirect-Regeln benötigt werden. |
 | Firebase Authentication | Verwaltet Konten und Sitzungen |
 | Cloud Firestore | Zentrale Datenhaltung, Streams und Security Rules |
 
 ## 3. Betrieb
 
-Es wird kein eigener App-Server betrieben. Firebase-Dienste werden als verwaltete Cloud-Dienste genutzt. Die Webanwendung wird bevorzugt über Firebase Hosting ausgeliefert; das Deployment erfolgt über den Flutter-Web-Build-Prozess aus dem GitHub Repository. Konfigurationsdaten und Firebase-Zugänge werden nicht fest in den Quellcode eingebettet.
+Es wird kein eigener App-Server betrieben. Firebase-Dienste werden als verwaltete Cloud-Dienste genutzt. Konfigurationsdaten und Firebase-Zugänge werden nicht fest in den Quellcode eingebettet. Die Webanwendung wird über Firebase Hosting ausgeliefert; das Deployment erfolgt über den Flutter-Web-Build-Prozess aus dem GitHub Repository.
 
 ## 4. Inbetriebnahme und Konfiguration
 
