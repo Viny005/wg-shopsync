@@ -5,17 +5,39 @@
 ```mermaid
 flowchart TB
     UI[Presentation / Web UI]
+    NAV[Navigation]
+
     APP[Application Services]
-    AUTH[Authentication Adapter]
-    DATA[Firestore Repository]
+    AUTH[AuthService]
+    WG[WGService]
+    SHOP[ShoppingListService]
+    EXP[ExpenseService]
+    VAL[Validation]
+    OFF[Offline & Error Handling]
+
+    ADAPTER[Authentication Adapter]
+    REPO[FirestoreRepository]
     LOCAL[Offline Cache]
     FIREBASE[Firebase-Dienste]
-    UI --> APP
+
+    UI --> NAV
+    NAV --> APP
+
     APP --> AUTH
-    APP --> DATA
-    DATA --> LOCAL
-    AUTH --> FIREBASE
-    DATA --> FIREBASE
+    APP --> WG
+    APP --> SHOP
+    APP --> EXP
+    APP --> VAL
+    APP --> OFF
+
+    AUTH --> ADAPTER
+    ADAPTER --> FIREBASE
+
+    WG --> REPO
+    SHOP --> REPO
+    EXP --> REPO
+    REPO --> LOCAL
+    REPO --> FIREBASE
 ```
 
 ![Bausteinsicht von WG-ShopSync](images/a05-bausteine.svg)
@@ -29,7 +51,7 @@ flowchart TB
 | AuthService | Registrierung, Login, Logout und Beobachtung der Sitzung. | UC-01, UC-02 |
 | WGService | Erstellen, Beitreten, Anzeigen und Verlassen einer WG. | UC-03, UC-04, UC-05 |
 | ShoppingListService | CRUD-Operationen und Statusänderungen für ShoppingItems. | UC-06 bis UC-10 |
-| ExpenseService | Ausgaben, ExpenseShares, Schulden und Salden. | UC-11 bis UC-16 |
+| ExpenseService | Verwaltung von Ausgaben, ExpenseShares, Schulden und Salden. | UC-11 bis UC-16 |
 | Validation | Prüfung von Eingaben und fachlichen Regeln vor dem Speichern. | UC-01, UC-03, UC-04, UC-06, UC-11, UC-13 |
 | FirestoreRepository | Lesen, Schreiben, Streams und Transaktionen gegen Firestore. | UC-03 bis UC-16 |
 | Offline & Error Handling | Offline-Status, Konflikthinweise und verständliche Fehler. | UC-02, UC-06 bis UC-16 |
@@ -50,4 +72,4 @@ Ein `Expense` gehört genau einer WG und besitzt einen oder mehrere `ExpenseShar
 
 ## 4. Abhängigkeiten
 
-Die UI verwendet Application Services. Application Services verwenden Validierung und Repositories. Nur Repositories und AuthService greifen direkt auf Firebase zu. Dadurch bleibt die fachliche Logik von konkreten Screens isoliert.
+Die UI verwendet die Navigation und Application Services. Die Application Services verwenden Validierung und das FirestoreRepository. Der AuthService verwendet den Authentication Adapter für den Zugriff auf Firebase Authentication. Die fachlichen Services greifen über das FirestoreRepository auf Cloud Firestore zu. Das Repository kapselt Persistenz, Streams und den lokalen Offline-Cache. Dadurch bleibt die fachliche Logik von konkreten Screens und der technischen Datenhaltung isoliert.
