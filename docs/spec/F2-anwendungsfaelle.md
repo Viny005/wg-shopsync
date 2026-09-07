@@ -8,7 +8,26 @@ Systeminterne Schritte ohne direkten Entscheidungspunkt des Benutzers, wie beisp
 
 ## F2.1 Übersicht
 
-Die folgende Tabelle ist die normative Übersicht der 16 Anwendungsfälle mit identischen IDs und Titeln. Das vorhandene Bild `images/anwendungsfaelle-diagramm.png` ist im aktuellen Repository ein Datenmodell und wird deshalb nicht als Use-Case-Diagramm referenziert.
+Die folgende Tabelle ist die normative Übersicht der 16 Anwendungsfälle mit identischen IDs und Titeln. Das Use-Case-Diagramm stellt den einzigen fachlichen Akteur `WG-Mitglied` dar. `admin` und `member` sind Rollen desselben Akteurs und keine zusätzlichen Akteure.
+
+### Use-Case-Diagramm
+
+```mermaid
+flowchart LR
+    U[WG-Mitglied]
+    subgraph W[WG-ShopSync]
+        AUTH[Registrieren und Einloggen]
+        WG[WG erstellen, beitreten und verlassen]
+        LIST[Einkaufsliste verwalten]
+        COST[Ausgaben, Kosten und Schulden verwalten]
+    end
+    U --> AUTH
+    U --> WG
+    U --> LIST
+    U --> COST
+```
+
+`admin` und `member` werden innerhalb der jeweiligen Anwendungsfälle als Berechtigungsrollen behandelt. Das Diagramm zeigt keine technischen Dienste wie Firebase Authentication oder Cloud Firestore als fachliche Akteure.
 
 | ID | Anwendungsfall | Gruppe | Priorität |
 |----|---------------|----------|----------|
@@ -92,6 +111,20 @@ Die folgende Tabelle ist die normative Übersicht der 16 Anwendungsfälle mit id
 3 System zeigt eine Fehlermeldung an.
 4 Benutzer kann die Eingaben korrigieren.
 5 Benutzer versucht erneut, sich anzumelden.
+
+### Aktivitätsdiagramm – UC-02 Einloggen
+
+```mermaid
+flowchart TD
+    A[Benutzer öffnet Login-Seite] --> B[Benutzer gibt E-Mail und Passwort ein]
+    B --> C[Benutzer bestätigt Login]
+    C --> D{Zugangsdaten gültig?}
+    D -- Nein --> E[Fehlermeldung anzeigen]
+    E --> B
+    D -- Ja --> F[Benutzer anmelden]
+    F --> G[WG-Daten laden]
+    G --> H[WG-Übersicht anzeigen]
+```
 
 ---
 

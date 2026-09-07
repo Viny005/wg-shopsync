@@ -2,7 +2,7 @@
 
 ## P1.1 Mission
 
-WG-ShopSync ist eine plattformübergreifende Anwendung zur Organisation gemeinsamer Einkäufe in Wohngemeinschaften.
+WG-ShopSync ist eine browserbasierte Webanwendung zur Organisation gemeinsamer Einkäufe in Wohngemeinschaften.
 
 Die Anwendung ermöglicht es Mitgliedern einer Wohngemeinschaft, eine gemeinsame Einkaufsliste zu verwalten, Einkäufe zu koordinieren und gemeinsame Ausgaben transparent aufzuteilen.
 
@@ -19,7 +19,7 @@ Ziel ist es, typische Probleme im WG-Alltag wie Doppelkäufe, vergessene Einkäu
 | G-05 | Gemeinsame Ausgaben nachvollziehbar und automatisch auf beteiligte Mitglieder aufteilen. |
 | G-06 | Schulden zwischen WG-Mitgliedern nachvollziehbar darstellen. |
 | G-07 | Änderungen an Einkaufslisten für alle Mitglieder nahezu in Echtzeit bereitstellen. |
-| G-08 | Die Anwendung auf Smartphones, Tablets und im Web nutzbar machen. |
+| G-08 | Die Anwendung als responsive Webanwendung im Browser nutzbar machen. |
 | G-09 | Wichtige Funktionen auch bei temporär fehlender Internetverbindung nutzbar machen. |
 
 ## P1.3 Stakeholder und Benutzer
@@ -50,7 +50,7 @@ Die erste Version von WG-ShopSync umfasst folgende Funktionen:
 - Erfassung gemeinsamer Ausgaben
 - Automatische Kostenaufteilung auf alle oder ausgewählte Mitglieder
 - Darstellung von Schulden zwischen Mitgliedern
-- Nutzung auf Smartphones, Tablets und im Webbrowser
+- Nutzung als responsive Webanwendung im Desktop- und mobilen Browser
 - Offline-Nutzung wichtiger Kernfunktionen mit späterer Synchronisation
 
 ### Out of Scope
@@ -76,10 +76,7 @@ Detaillierte Projektbeschränkungen werden im Dokument
 |----|-----------------|
 | CON-3f-01 | Projekt im Rahmen des Moduls WK_1106 |
 | CON-3g-01 | Entwicklung durch ein Team aus sechs Studierenden |
-| CON-3g-02 | Konzentration der ersten Version auf die definierten Kernfunktionen |
-| CON-3b-01 | Plattformübergreifende Entwicklung mit Unterstützung von Smartphones, Tablets und Webbrowsern |
-| CON-3e-01 | Gemeinsame Nutzung innerhalb von Wohngemeinschaften |
-| CON-3a-01 | Eine Benutzerin bzw. ein Benutzer kann gleichzeitig nur einer WG angehören |
+| CON-3b-01 | Entwicklung als responsive Webanwendung für moderne Webbrowser |
 | CON-3a-03 | Kostenaufteilung ohne integrierte Zahlungsabwicklung |
 | CON-3c-01 | Zentrale Cloud-Datenhaltung für die Synchronisation erforderlich |
 | CON-3b-02 | Offline-Nutzung synchronisierter Einkaufslistendaten soll unterstützt werden |
@@ -96,13 +93,13 @@ Detaillierte Projektbeschränkungen werden im Dokument
 | SC-05 | Das System berechnet Schulden zwischen WG-Mitgliedern korrekt. |
 | SC-06 | Mitglieder sehen ihre eigenen Kostenanteile und offenen Schulden. |
 | SC-07 | Änderungen werden für alle Mitglieder nahezu in Echtzeit synchronisiert. |
-| SC-08 | Die Anwendung funktioniert auf Smartphones, Tablets und im Webbrowser. |
+| SC-08 | Die Anwendung funktioniert als responsive Webanwendung in modernen Desktop- und mobilen Browsern. |
 
 ## P1.7 Annahmen
 
 | ID | Annahme |
 |----|----------|
-| AS-01 | Benutzer verfügen über ein internetfähiges Endgerät (Smartphone, Tablet oder Computer). |
+| AS-01 | Benutzer verfügen über einen Computer oder ein mobiles Endgerät mit einem modernen Webbrowser. |
 | AS-02 | Für Registrierung, Anmeldung und Erstellung einer WG ist eine Internetverbindung erforderlich. |
 | AS-03 | Mitglieder einer WG verwenden dieselbe gemeinsame Einkaufsliste innerhalb der App. |
 | AS-04 | Die Kostenaufteilung dient ausschließlich der Übersicht und ersetzt keine tatsächliche Zahlungsabwicklung. |
@@ -113,6 +110,5 @@ Detaillierte Projektbeschränkungen werden im Dokument
 
 | ID | Risiko | Gegenmaßnahme |
 |----|---------|---------------|
-| R-01 | Als studentisches Team mit begrenzter Zeit über ein Semester (CON-3g-01) kann der geplante Funktionsumfang nicht vollständig fertiggestellt werden. | Priorisierung der Use Cases nach MVP, zuerst Authentifizierung, WG-Verwaltung, Einkaufsliste und Kostenverwaltung. |
-| R-02 | Ungleiche Auslastung oder Ausfall einzelner Teammitglieder (z. B. durch andere Prüfungen) gefährdet Meilensteine. | Frühzeitige Aufgabenverteilung, Wissensteilung im Team, regelmäßige Abstimmung. |
-| R-03 | Uneinheitliches Verständnis der fachlichen Anforderungen im sechsköpfigen Team kann zu Inkonsistenzen zwischen Spezifikation und Umsetzung führen. | Gemeinsame Reviews der Spezifikation, zentrale Ablage im Repository (CON-3f-01), Abstimmung mit dem Betreuer. |
+| R-01 | Ungleiche Auslastung oder Ausfall einzelner Teammitglieder (z. B. durch andere Prüfungen) gefährdet Meilensteine. | Frühzeitige Aufgabenverteilung, Wissensteilung im Team, regelmäßige Abstimmung. |
+| R-02 | Uneinheitliches Verständnis der fachlichen Anforderungen im sechsköpfigen Team kann zu Inkonsistenzen zwischen Spezifikation und Umsetzung führen. | Gemeinsame Reviews der Spezifikation, zentrale Ablage im Repository (CON-3f-01), Abstimmung mit dem Betreuer. |

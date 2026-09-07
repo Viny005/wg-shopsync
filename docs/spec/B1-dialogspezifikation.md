@@ -5,6 +5,32 @@ Die Dialogspezifikation beschreibt die Benutzeroberfläche von WG-ShopSync sowie
 
 Jeder Screen realisiert einen oder mehrere Anwendungsfälle aus F2 und greift auf die im Datenmodell D1 definierten Entitäten sowie die in D2 beschriebenen Datentypen und Validierungsregeln zu.
 
+## B1.0 Statische und dynamische GUI
+
+Die statische GUI beschreibt die dauerhaft sichtbare Struktur der Screens: Navigation, Eingabefelder, Listenbereiche, Aktionen und Zustände. Die dynamische GUI beschreibt Reaktionen auf Benutzeraktionen und Systemereignisse, beispielsweise Validierungsfehler, Ladezustände, leere Listen, Offline-Modus, Synchronisationskonflikte und Statuswechsel.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Login
+  Login --> WGOverview: erfolgreich angemeldet
+  Login --> LoginError: Zugangsdaten ungültig
+  LoginError --> Login: erneut versuchen
+  WGOverview --> ShoppingList: Einkaufsliste öffnen
+  ShoppingList --> ItemEditor: Artikel hinzufügen oder bearbeiten
+  ItemEditor --> ShoppingList: speichern
+  WGOverview --> Expenses: Kostenübersicht öffnen
+  Expenses --> DebtPaid: eigene Schuld bezahlen
+  DebtPaid --> Expenses: Status aktualisiert
+```
+
+Die Screens verwenden die Entitäten aus [D1 – Datenmodell](D1-datenmodell.md). Feldtypen, Kardinalitäten und fachliche Validierungsregeln werden aus [D2 – Datentypen](D2-datentypen.md) übernommen und nicht separat in der GUI neu definiert.
+
+### Mockups und Zustände
+
+Die vorhandenen Mockups befinden sich unter [`images/mockups/`](images/mockups/README.md) und zeigen die zentralen Zustände für Login, Registrierung, WG-Übersicht, Artikelerfassung und Kostenübersicht. Für die übrigen Screens wird die Darstellung aus den beschriebenen statischen Elementen und den dynamischen Zuständen abgeleitet.
+
+Jeder relevante Screen berücksichtigt mindestens den Normalzustand, einen Ladezustand, einen Leerzustand, einen Validierungsfehler und den Offline- beziehungsweise Synchronisationszustand, sofern dieser für den Screen relevant ist. Diese Zustände sind Teil der GUI-Spezifikation und keine zusätzlichen Anwendungsfälle.
+
 ---
 
 # B1.1 Übersicht
@@ -431,6 +457,23 @@ Beispiele:
 # B1.12 Navigationsdiagramm
 
 ./images/navigationsdiagramm.png
+
+```mermaid
+flowchart LR
+  S1[1 Login] -->|Registrieren| S2[2 Registrierung]
+  S2 -->|Konto erstellt| S5[5 WG-Übersicht]
+  S1 -->|Anmelden| S5
+  S5 -->|WG erstellen| S3[3 WG erstellen]
+  S5 -->|WG beitreten| S4[4 WG beitreten]
+  S3 -->|WG erstellt| S5
+  S4 -->|Beitritt bestätigt| S5
+  S5 -->|Einkaufsliste| S6[6 Einkaufsliste]
+  S6 -->|Artikel hinzufügen oder bearbeiten| S7[7 Artikel bearbeiten]
+  S7 -->|Speichern oder abbrechen| S6
+  S5 -->|Kostenübersicht| S8[8 Kostenübersicht]
+  S5 -->|Profil| S9[9 Benutzerprofil]
+  S9 -->|Logout| S1
+```
 
 *Abbildung B1-1: Navigationsdiagramm der Benutzerschnittstelle von WG-ShopSync*
 

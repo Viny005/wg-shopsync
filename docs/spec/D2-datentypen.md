@@ -213,7 +213,7 @@ Berechnete Differenz zwischen den Ausgaben, die ein Mitglied bezahlt hat, und se
 
 ---
 
-# D2.9 Diagramm – Kardinalitäten und Konsistenz zu D1
+# D2.9 Diagramm – Fachliche Datentypen und Kardinalitäten
 
 Das folgende Diagramm zeigt, welche Entität aus D1 welchen fachlichen Datentyp in welcher Kardinalität verwendet. Die Kardinalitäten entsprechen den Angaben in den Attributtabellen (D2.1 bis D2.7) und stehen damit in Konsistenz zum Datenmodell aus D1.
 
@@ -230,3 +230,23 @@ graph LR
 ```
 
 *Hinweis: Die gestrichelten Kanten zum Saldo zeigen, dass es sich um einen abgeleiteten Wert handelt, der nicht als eigenes Attribut in D1 gespeichert wird, sondern aus mehreren Entitäten berechnet wird.*
+
+## Beziehungen der Entitäten
+
+Die folgende Übersicht ergänzt die Datentyp-Kardinalitäten um die fachlichen Beziehungen des Datenmodells:
+
+```mermaid
+erDiagram
+    USER ||--o| MEMBERSHIP : besitzt
+    WG ||--|{ MEMBERSHIP : hat
+    WG ||--o{ SHOPPING_ITEM : enthaelt
+    WG ||--o{ EXPENSE : hat
+    EXPENSE ||--|{ EXPENSE_SHARE : verteilt
+    WG ||--o{ DEBT : fuehrt
+    USER ||--o{ EXPENSE : bezahlt
+    USER ||--o{ EXPENSE_SHARE : traegt
+    USER ||--o{ DEBT : glaeubiger
+    USER ||--o{ DEBT : schuldner
+```
+
+Die Kardinalitäten entsprechen den Beziehungen aus D1. Ein Benutzer gehört in der ersten Version höchstens einer WG an; eine Ausgabe besitzt mindestens einen Kostenanteil. Die technischen Entitätsnamen dienen hier nur zur eindeutigen Zuordnung zu D1, während die fachlich bedeutsamen Datentypen in den Abschnitten D2.8 und D2.9 erklärt werden.

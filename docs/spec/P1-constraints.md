@@ -63,19 +63,15 @@ Die vorgesehene Zielgruppe benötigt keine komplexe Rechteverwaltung.
 
 # 3b. Technische Rahmenbedingungen
 
-## CON-3b-01: Plattformübergreifende Nutzung
+## CON-3b-01: Nutzung als Webanwendung
 
-Die Anwendung soll auf folgenden Plattformen nutzbar sein:
-
-- Smartphone
-- Tablet
-- Webbrowser
+Die Anwendung wird ausschließlich als responsive Webanwendung bereitgestellt und in modernen Webbrowsern genutzt. Eine native Android-, iOS- oder Tablet-Anwendung ist nicht Bestandteil des Projekts.
 
 Die konkrete technische Umsetzung wird im Architekturteil festgelegt.
 
 **Begründung:**
 
-Mitglieder einer WG nutzen unterschiedliche Geräte.
+Eine browserbasierte Anwendung ermöglicht den Zugriff ohne separate Installation und deckt Desktop- sowie mobile Browser ab.
 
 ---
 

@@ -1,19 +1,19 @@
-# S1 – Nachbarsysteme
+# S1 – Technische Infrastruktur
 
 ## Übersicht
 
-| ID | Nachbarsystem | Zweck | Richtung |
+| ID | Infrastrukturbaustein | Zweck | Richtung |
 |----|---------------|-------|----------|
-| NB-01 | Firebase Authentication | Registrierung und Anmeldung von Benutzern | bidirektional |
-| NB-02 | Cloud Firestore | Speicherung und Echtzeit-Synchronisation der WG-Daten | bidirektional |
+| INF-01 | Firebase Authentication | Registrierung und Anmeldung von Benutzern | bidirektional |
+| INF-02 | Cloud Firestore | Speicherung und Echtzeit-Synchronisation der WG-Daten | bidirektional |
 
 ---
 
-## NB-01 – Firebase Authentication
+## INF-01 – Firebase Authentication
 
 ### Zweck
 
-Firebase Authentication ist ein externes Nachbarsystem von WG-ShopSync.
+Firebase Authentication ist ein verwalteter technischer Dienst und kein fachliches Nachbarsystem.
 
 Es stellt Funktionen zur Registrierung, Anmeldung und Verwaltung von Benutzerkonten bereit.
 
@@ -35,11 +35,11 @@ Es stellt Funktionen zur Registrierung, Anmeldung und Verwaltung von Benutzerkon
 
 ---
 
-## NB-02 – Cloud Firestore
+## INF-02 – Cloud Firestore
 
 ### Zweck
 
-Cloud Firestore ist das externe Nachbarsystem für die zentrale Speicherung und Synchronisation der Anwendungsdaten.
+Cloud Firestore ist ein verwalteter technischer Dienst für die zentrale Speicherung und Synchronisation der Anwendungsdaten.
 
 ### Verwendet von
 
@@ -62,11 +62,13 @@ Cloud Firestore ist das externe Nachbarsystem für die zentrale Speicherung und 
 
 ---
 
-## Nachbarsystem-Diagramm
+## Infrastruktur-Diagramm
 
 ```mermaid
 flowchart LR
-    U[WG-Mitglied] --> A[WG-ShopSync Flutter-App]
+    U[WG-Mitglied] --> A[WG-ShopSync Webanwendung]
     A <--> AUTH[Firebase Authentication]
     A <--> DB[Cloud Firestore]
 ```
+
+Ein fachliches Nachbarsystem wie ein Online-Shop, eine Bank oder ein Zahlungsdienst ist im aktuellen Projektumfang nicht vorhanden. Diese Systeme gehören ausdrücklich zum Out of Scope.
