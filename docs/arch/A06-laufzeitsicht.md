@@ -30,6 +30,8 @@ sequenceDiagram
     UI-->>U: Aktualisierte Liste anzeigen
 ```
 
+![Uebersicht der Laufzeitszenarien](images/a06-laufzeit.svg)
+
 ## 3. Kosten aufteilen
 
 ### Aktivitätsdiagramm – Kosten aufteilen

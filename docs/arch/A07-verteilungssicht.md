@@ -11,6 +11,8 @@ flowchart LR
     WEB --> FS[Cloud Firestore]
 ```
 
+![Verteilungssicht von WG-ShopSync](images/a07-verteilung.svg)
+
 ## 2. Knoten
 
 | Knoten | Inhalt |

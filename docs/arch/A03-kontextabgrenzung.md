@@ -26,6 +26,8 @@ flowchart LR
     APP <--> DB
 ```
 
+![Systemkontext von WG-ShopSync](images/a03-kontext.svg)
+
 ### Firebase Authentication
 
 Verwaltet Benutzerkonto, Login, Authentifizierungsstatus und Benutzer-ID.

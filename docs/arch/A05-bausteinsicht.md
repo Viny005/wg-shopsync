@@ -18,6 +18,8 @@ flowchart TB
     DATA --> FIREBASE
 ```
 
+![Bausteinsicht von WG-ShopSync](images/a05-bausteine.svg)
+
 ## 2. Bausteine
 
 | Baustein | Verantwortung | Zugehörige Use Cases |
