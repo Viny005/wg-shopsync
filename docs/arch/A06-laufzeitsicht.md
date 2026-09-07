@@ -1,6 +1,25 @@
 # A06 – Laufzeitsicht
 
-## 1. Login
+## 1. Registrierung
+
+```mermaid
+sequenceDiagram
+    actor U as Benutzer
+    participant UI as Web UI
+    participant Auth as Firebase Authentication
+    participant F as Cloud Firestore
+    U->>UI: E-Mail, Passwort und Benutzername eingeben
+    UI->>UI: Eingaben validieren
+    UI->>Auth: createUserWithEmailAndPassword
+    Auth-->>UI: Benutzer-ID (UID)
+    UI->>F: Benutzerprofil anlegen (uid, name, email)
+    F-->>UI: Schreibbestätigung
+    UI-->>U: Weiterleitung zur WG-Auswahl
+```
+
+Der `AuthService` legt nach erfolgreicher Registrierung bei Firebase Authentication ein Benutzerprofil in Firestore an. Ist die E-Mail bereits vergeben oder das Passwort ungültig, gibt Firebase Authentication einen Fehler zurück, der dem Benutzer als verständliche Fehlermeldung angezeigt wird. Ohne Verbindung ist die Registrierung nicht möglich.
+
+## 2. Login
 
 ```mermaid
 sequenceDiagram
@@ -14,7 +33,7 @@ sequenceDiagram
     UI-->>U: WG-Übersicht anzeigen
 ```
 
-## 2. Artikel hinzufügen
+## 3. Artikel hinzufügen
 
 ```mermaid
 sequenceDiagram
@@ -32,7 +51,7 @@ sequenceDiagram
 
 ![Uebersicht der Laufzeitszenarien](images/a06-laufzeit.svg)
 
-## 3. Kosten aufteilen
+## 4. Kosten aufteilen
 
 ### Aktivitätsdiagramm – Kosten aufteilen
 
@@ -53,11 +72,11 @@ flowchart TD
 
 Der `ExpenseService` prüft vor der Berechnung die WG-Zugehörigkeit, den Betrag und mindestens ein beteiligtes Mitglied. Cent-Rundungen werden ausgeglichen, sodass die Summe der `ExpenseShares` exakt dem Ausgabebetrag entspricht.
 
-## 4. Offline-Änderung
+## 5. Offline-Änderung
 
 Firestore stellt den letzten lokalen Stand bereit. Eine Änderung an einer zuvor synchronisierten Einkaufsliste wird lokal vorgemerkt und nach Wiederherstellung der Verbindung an Firestore übertragen. Bei einem Konflikt bleibt der Serverstand gültig und die lokale Änderung wird als Konflikthinweis angezeigt.
 
-## 5. WG erstellen und beitreten
+## 6. WG erstellen und beitreten
 
 ### Aktivitätsdiagramm – WG erstellen oder beitreten
 
@@ -84,14 +103,14 @@ flowchart TD
 
 Beim Verlassen einer WG prüft der `WGService`, ob das Mitglied der letzte `admin` ist. In diesem Fall wird das Verlassen abgelehnt; andernfalls wird die Membership entfernt.
 
-## 6. Ausgabe bearbeiten und Kostenübersicht
+## 7. Ausgabe bearbeiten und Kostenübersicht
 
 1. Das Mitglied öffnet eine bestehende Ausgabe; der `ExpenseService` prüft WG-Zugehörigkeit, Betrag und Beteiligte.
 2. Die bestehenden `ExpenseShare`- und `Debt`-Einträge werden anhand der neuen Daten aktualisiert.
 3. Der Saldo berücksichtigt offene Schulden und ignoriert Schulden mit Status `paid`.
 4. Die Kostenübersicht zeigt dem angemeldeten Mitglied nur die eigenen Kostenanteile, Forderungen und Verbindlichkeiten.
 
-## 7. Schuld bezahlen und WG verlassen
+## 8. Schuld bezahlen und WG verlassen
 
 1. Das Mitglied markiert eine eigene offene Schuld als bezahlt.
 2. Der Service setzt den Status auf `paid`, speichert das Zahlungsdatum und lässt den ursprünglichen Betrag unverändert.
