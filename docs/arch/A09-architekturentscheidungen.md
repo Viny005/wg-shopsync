@@ -1,6 +1,25 @@
 # A09 – Architekturentscheidungen
 
+Die folgenden ADRs dokumentieren die verbindlichen Architekturentscheidungen für den aktuellen Web-MVP. Alle Entscheidungen haben den Status `accepted` und gelten für die erste Version von WG-ShopSync.
+
+## ADR-Index
+
+| ID | Entscheidung | Status | Datum |
+|---|---|---|---|
+| ADR-01 | Responsive Webanwendung mit Flutter Web | accepted | 2026-09-07 |
+| ADR-02 | Firebase Authentication | accepted | 2026-09-07 |
+| ADR-03 | Cloud Firestore | accepted | 2026-09-07 |
+| ADR-04 | Kein eigener App-Server | accepted | 2026-09-07 |
+| ADR-05 | Server gewinnt bei Konflikten | accepted | 2026-09-07 |
+| ADR-06 | Einfache Rollenstruktur | accepted | 2026-09-07 |
+
+Die Entscheidungen beziehen sich auf die fachlichen Anforderungen in `docs/spec/` und die Baustein-, Laufzeit- und Verteilungssichten in A05 bis A08. Es gibt aktuell keine separate Implementierung oder Ticket-ID, auf die verlinkt werden könnte; die Spezifikation und Architektur sind die verbindlichen Projektartefakte.
+
 ## ADR-01: Responsive Webanwendung mit Flutter Web
+
+**Status:** accepted
+**Datum:** 2026-09-07
+**Autoren:** Entwicklerteam WG-ShopSync
 
 ### Kontext
 
@@ -26,7 +45,13 @@ Flutter Web ermöglicht eine einheitliche Benutzeroberfläche und gemeinsame Fac
 - Die Oberfläche muss für Desktop- und mobile Browser responsiv gestaltet werden.
 - Die Anwendung setzt einen modernen, JavaScript-fähigen Browser voraus.
 
+**Bekannte Einschränkungen und Review-Kriterien:** Flutter Web kann größere initiale Bundles, zusätzliche Ladezeit und Unterschiede bei Browser-Zugänglichkeit oder Safari-Kompatibilität verursachen. Die Entscheidung wird überprüft, wenn der initiale Ladevorgang im Zielbrowser dauerhaft mehr als 3 Sekunden benötigt, zentrale WCAG-relevante Bedienungen nicht umsetzbar sind oder ein unterstützter Browser eine Kernfunktion nicht zuverlässig ausführt.
+
 ## ADR-02: Firebase Authentication
+
+**Status:** accepted
+**Datum:** 2026-09-07
+**Autoren:** Entwicklerteam WG-ShopSync
 
 ### Kontext
 
@@ -55,6 +80,10 @@ Firebase Authentication stellt Registrierung, Login und Sitzungsverwaltung als v
 
 ## ADR-03: Cloud Firestore
 
+**Status:** accepted
+**Datum:** 2026-09-07
+**Autoren:** Entwicklerteam WG-ShopSync
+
 ### Kontext
 
 Die gemeinsame Einkaufsliste, Ausgaben und Schulden müssen zentral gespeichert und für berechtigte Mitglieder synchronisiert werden. Bereits synchronisierte Einkaufslistendaten sollen außerdem offline verfügbar bleiben.
@@ -82,6 +111,10 @@ Firestore unterstützt dokumentenbasierte Daten, Realtime-Listener und Offline-P
 
 ## ADR-04: Kein eigener App-Server
 
+**Status:** accepted
+**Datum:** 2026-09-07
+**Autoren:** Entwicklerteam WG-ShopSync
+
 ### Kontext
 
 WG-ShopSync benötigt für den definierten MVP keinen eigenen zentralen Server. Authentifizierung, Datenhaltung und Synchronisation werden durch Firebase-Dienste bereitgestellt.
@@ -106,7 +139,13 @@ Die Anforderungen können mit der Webanwendung und den Firebase-SDKs umgesetzt w
 - Es gibt keine eigene REST-API für externe Clients.
 - Komplexe serverseitige Funktionen sind im MVP nicht vorgesehen.
 
+**Zukünftige Alternative:** Falls später privilegierte serverseitige Logik, geplante Aufgaben oder komplexe Transaktionen erforderlich werden, kann der Datenzugriff um Firebase Cloud Functions beziehungsweise eine vergleichbare serverlose Funktionsebene erweitert werden. Das würde eine neue ADR und eine Prüfung der Security Rules erfordern.
+
 ## ADR-05: Server gewinnt bei Konflikten
+
+**Status:** accepted
+**Datum:** 2026-09-07
+**Autoren:** Entwicklerteam WG-ShopSync
 
 ### Kontext
 
@@ -133,6 +172,10 @@ Alle Mitglieder einer WG sollen einen eindeutigen gemeinsamen Datenstand sehen. 
 - Der Benutzer kann die lokale Änderung nach Prüfung erneut anwenden.
 
 ## ADR-06: Einfache Rollenstruktur
+
+**Status:** accepted
+**Datum:** 2026-09-07
+**Autoren:** Entwicklerteam WG-ShopSync
 
 ### Kontext
 

@@ -24,4 +24,46 @@ Die Anwendung wird in folgende Verantwortungsbereiche gegliedert:
 
 ## 4. Sicherheitsstrategie
 
-Authentifizierung erfolgt über Firebase Authentication. Jede Firestore-Operation prüft die Zugehörigkeit des Benutzers zur betreffenden WG. Rollen werden in `Membership.role` gespeichert. Der letzte `admin` darf eine WG nicht verlassen, solange kein anderer `admin` vorhanden ist.
+Die Webanwendung unterstützt im MVP die Anmeldung mit E-Mail-Adresse und Passwort über Firebase Authentication. Weitere Provider wie Google, GitHub oder Apple sind nicht Bestandteil der aktuellen Spezifikation. Firebase verwaltet Sitzungen, ID-Token und deren Erneuerung über das Web-SDK; die Anwendung speichert keine Passwörter selbst.
+
+Jede Firestore-Operation wird serverseitig durch Security Rules auf die authentifizierte Benutzer-ID und die Membership der adressierten WG begrenzt. Rollen werden in `Membership.role` gespeichert. `admin` und `member` besitzen die in N2 und D2 beschriebenen Rechte. Der letzte `admin` darf eine WG nicht verlassen, solange kein anderer `admin` vorhanden ist.
+
+Die Webauslieferung erfolgt über HTTPS. Für die produktive Webumgebung werden zusätzlich eine restriktive Content-Security-Policy, `frame-ancestors` beziehungsweise `X-Frame-Options` und eine Whitelist der benötigten Firebase-Endpunkte vorgesehen. CORS wird nur für tatsächlich getrennte Ursprünge konfiguriert; bei einer gemeinsam ausgelieferten Webanwendung sind keine offenen Wildcard-Ursprünge erlaubt.
+
+### Beispielhafte Firestore Security Rules
+
+Die folgenden Regeln sind ein fachlicher Ausschnitt und müssen bei der Implementierung an die konkrete Collection-Struktur angepasst werden:
+
+```text
+function signedIn() {
+	return request.auth != null;
+}
+
+function isMember(wgId) {
+	return signedIn()
+		&& exists(/databases/$(database)/documents/wgs/$(wgId)/memberships/$(request.auth.uid));
+}
+
+match /wgs/{wgId} {
+	allow read: if isMember(wgId);
+	allow update: if isMember(wgId);
+}
+
+match /wgs/{wgId}/shoppingItems/{itemId} {
+	allow read, write: if isMember(wgId);
+}
+```
+
+Die Regel verhindert den Zugriff auf Daten einer fremden WG. Fachliche Regeln wie die Gleichverteilung von Kostenanteilen, Rundung und Saldenberechnung bleiben in der Anwendungslogik.
+
+## 5. Offline- und Konfliktstrategie
+
+Offline unterstützt werden ausschließlich bereits synchronisierte Einkaufslistendaten und deren lokale Bearbeitung. Registrierung, Login ohne vorhandene Sitzung, WG-Erstellung, WG-Beitritt sowie erstmaliges Laden nicht synchronisierter Daten benötigen eine Verbindung. Ausgaben und Schulden werden im MVP nicht als eigenständiger Offline-Workflow versprochen.
+
+Nach dem Reconnect synchronisiert Firestore lokale Änderungen. Bei konkurrierenden Änderungen gilt der Serverstand. Die Weboberfläche zeigt einen Konflikthinweis mit dem betroffenen Artikel und bietet eine erneute Aktion wie „Lokale Änderung erneut anwenden“ an. Eine lokale Änderung darf nicht als erfolgreich angezeigt werden, wenn sie vom Serverstand verworfen wurde.
+
+## 6. Architekturübersicht
+
+Das folgende Diagramm ergänzt die Detailansichten in A05 und A07. Die SVG-Datei ist als druckbare Abbildung unter `images/architektur-komponenten.svg` versioniert.
+
+![Komponentenübersicht der Webarchitektur](images/architektur-komponenten.svg)
