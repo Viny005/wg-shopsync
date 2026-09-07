@@ -16,6 +16,7 @@ Für den Betrieb von WG-ShopSync werden folgende Infrastrukturbestandteile benö
 
 - **Firebase Authentication**: Verwaltet Registrierung, Anmeldung und Benutzersitzungen.
 - **Cloud Firestore**: Speichert WG-Daten und stellt Echtzeit-Synchronisation sowie Offline-Persistenz bereit.
+- **Firebase Hosting**: Liefert den Flutter-Web-Build als statische Webanwendung über HTTPS aus.
 
 ### Datenbank-Infrastruktur
 
@@ -34,7 +35,7 @@ Für den Betrieb von WG-ShopSync werden folgende Infrastrukturbestandteile benö
 1. Die Cloud-Datenbank wird eingerichtet und konfiguriert.
 2. Firebase Authentication wird konfiguriert.
 3. Die erforderlichen Umgebungsvariablen werden gesetzt.
-4. Die Webanwendung wird erstellt und für den produktiven Webserver bereitgestellt.
+4. Die Webanwendung wird als Flutter-Web-Build erstellt und über Firebase Hosting bereitgestellt.
 5. Die Anwendung wird mit der produktiven Datenbank verbunden.
 6. Abschließende Funktionstests werden durchgeführt.
 
