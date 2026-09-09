@@ -9,7 +9,7 @@ class Validators {
     if (value == null || value.trim().isEmpty) {
       return 'Bitte gib eine E-Mail-Adresse ein.';
     }
-    if (!value.contains('@')) {
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(value.trim())) {
       return 'Bitte gib eine gueltige E-Mail-Adresse ein.';
     }
     return null;

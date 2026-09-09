@@ -58,6 +58,11 @@ class _SignUpPageState extends State<SignUpPage> {
           ? 'Diese E-Mail-Adresse ist bereits registriert.'
           : error.message ?? 'Registrierung fehlgeschlagen.';
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registrierung fehlgeschlagen. Bitte versuche es erneut.')),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -73,12 +78,13 @@ class _SignUpPageState extends State<SignUpPage> {
           constraints: const BoxConstraints(maxWidth: 420),
           child: Padding(
             padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+            child: SingleChildScrollView(
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   Text(
                     'Konto erstellen',
                     style: Theme.of(context).textTheme.headlineMedium,
@@ -132,7 +138,8 @@ class _SignUpPageState extends State<SignUpPage> {
                     onPressed: () => Navigator.of(context).pop(),
                     child: const Text('Zurueck zum Login'),
                   ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

@@ -72,6 +72,11 @@ class _SignInPageState extends State<SignInPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error.message ?? 'Anmeldung fehlgeschlagen.')),
       );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Anmeldung fehlgeschlagen. Bitte versuche es erneut.')),
+      );
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
