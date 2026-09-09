@@ -60,11 +60,11 @@ Ein Benutzer kann weder Einkaufslisten noch Ausgaben anderer Wohngemeinschaften 
 
 ## N1.2-03: Passwortschutz
 
-Benutzerpasswörter dürfen nicht im Klartext gespeichert werden.
+Benutzerpasswörter dürfen nicht durch WG-ShopSync selbst gespeichert werden.
 
 ### Fit Criterion
 
-Alle Passwörter werden ausschließlich als kryptografische Hashwerte gespeichert.
+Die Verwaltung der Benutzerpasswörter erfolgt vollständig durch Firebase Authentication. WG-ShopSync speichert weder Klartextpasswörter noch Passwort-Hashes in Cloud Firestore.
 
 ---
 

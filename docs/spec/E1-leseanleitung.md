@@ -45,6 +45,8 @@ Dieser Block definiert unter anderem Anforderungen an Sicherheit, Performance, V
 Beschreibt die Interaktion zwischen Benutzer und System.
 
 - B1: Dialogspezifikation
+- B2: Batch (nicht anwendbar)
+- B3: Druckausgaben (nicht anwendbar)
 
 Dieser Block enthält die Beschreibung der einzelnen Screens, ihrer Navigation sowie der Benutzerinteraktionen.
 
@@ -55,6 +57,7 @@ Dieser Block enthält die Beschreibung der einzelnen Screens, ihrer Navigation s
 Beschreibt die technische Infrastruktur und Inbetriebnahme.
 
 - S1: Technische Infrastruktur
+- S2: Datenmigration (nicht anwendbar)
 - S3: Inbetriebnahme
 
 ---

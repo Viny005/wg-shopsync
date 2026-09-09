@@ -10,7 +10,7 @@ Die Anwendung reduziert typische Probleme im WG-Alltag wie Doppelkäufe, vergess
 
 WG-ShopSync ist kein Online-Shop und ersetzt keine Zahlung. Die Anwendung dokumentiert organisatorische und finanzielle Informationen, berechnet Kostenanteile und stellt Schuldenübersichten dar. Eine tatsächliche Zahlungsabwicklung findet außerhalb des Systems statt.
 
-Die fachlichen Ziele und der Projektumfang sind in [P1 – Ziele und Rahmenbedingungen](../spec/P1-ziele-rahmenbedingungen.md) beschrieben. Die relevanten Anwendungsfälle und Funktionen befinden sich in [F2 – Anwendungsfälle](../spec/F2-anwendungsfaelle.md) und [F3 – Anwendungsfunktionen](../spec/F3-anwendungsfunktionen.md).
+Die fachlichen Ziele und der Projektumfang sind in [P1 – Ziele und Rahmenbedingungen](../spec/P1-ziele-rahmenbedingungen.md) beschrieben. Die relevanten Anwendungsfälle und Funktionen befinden sich in [F2 – Anwendungsfälle](../spec/F2-anwendungsfaelle.md) und [F3 – Anwendungsfunktionen](../spec/F3-anwendungsfunktionen.md). Die bei Architektur und Entwicklung eingesetzten KI-Werkzeuge sind in [A13 – Eingesetzte KI-Werkzeuge](A13-ki-werkzeuge.md) dokumentiert.
 
 ### Fachliche Hauptziele
 

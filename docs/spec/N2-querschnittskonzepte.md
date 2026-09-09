@@ -180,8 +180,8 @@ Diese Daten müssen vor unberechtigtem Zugriff geschützt werden.
 
 ## Passwortschutz
 
-- Passwörter werden niemals im Klartext gespeichert.
-- Es wird ausschließlich ein Passwort-Hash gespeichert.
+- Passwörter werden vollständig durch Firebase Authentication verwaltet.
+- WG-ShopSync speichert weder Klartextpasswörter noch Passwort-Hashes in Cloud Firestore.
 - Passwörter werden niemals angezeigt.
 
 ## Datenschutz

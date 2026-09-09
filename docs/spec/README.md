@@ -109,6 +109,8 @@ Die Webanwendung bildet die Benutzerschnittstelle und die lokale Offline-Nutzung
 ### Benutzerschnittstelle
 
 - [B1 – Dialogspezifikation](B1-dialogspezifikation.md)
+- [B2 – Batch](B2-batch.md)
+- [B3 – Druckausgaben](B3-druckausgaben.md)
 
 ### Daten
 
@@ -118,6 +120,7 @@ Die Webanwendung bildet die Benutzerschnittstelle und die lokale Offline-Nutzung
 ### Systemumgebung und Qualität
 
 - [S1 – Nachbarsysteme](S1-nachbarsysteme.md)
+- [S2 – Datenmigration](S2-datenmigration.md)
 - [S3 – Inbetriebnahme](S3-inbetriebnahme.md)
 - [N1 – Nichtfunktionale Anforderungen](N1-nichtfunktional-anforderungen.md)
 - [N2 – Querschnittskonzepte](N2-querschnittskonzepte.md)
@@ -147,6 +150,12 @@ Die Webanwendung bildet die Benutzerschnittstelle und die lokale Offline-Nutzung
 | Datenschutz und Zugriff | N1.2; N2.2, N2.7 | Autorisierungs- und Security-Rules-Test |
 | Offline und Synchronisation | BR-13; N1.3-03; N2.3, N2.4 | Offline-/Reconnect- und Konflikttest |
 | Bedienbarkeit | N1.4 | Usability-Test mit typischen WG-Szenarien |
+
+### Teststatus Authentifizierung
+
+Die Unit- und Widget-Tests für UC-01 Registrierung und UC-02 Einloggen decken Eingabevalidierung, erfolgreiche Repository-Aufrufe, Ladezustände sowie Authentifizierungsfehler ab. Sie verwenden ein Fake `AuthRepository` und sind ohne echte Firebase-Verbindung ausführbar.
+
+Echte Firebase-Registrierung und -Anmeldung, Auth-State, persistente Sitzung, Navigation zu Screen 5 mit realem Auth-State sowie optionale Emulator-Tests bleiben offen, bis die FlutterFire-Konfiguration verfügbar ist.
 
 ## 11. Qualitätsziele
 
