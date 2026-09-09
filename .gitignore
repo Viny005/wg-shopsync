@@ -1,0 +1,23 @@
+# Flutter and Dart tooling
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+
+# Local Flutter SDK checkout (not part of the project deliverable)
+/flutter/
+
+# IDE files
+.idea/
+.vscode/
+
+# Firebase CLI cache and local emulator data
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Local environment files and credentials
+.env
+.env.*
+*.keystore
