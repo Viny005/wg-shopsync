@@ -4,74 +4,60 @@ import 'package:flutter/material.dart';
 import '../../../core/validation/validators.dart';
 import '../data/firebase_auth_repository.dart';
 import '../domain/auth_repository.dart';
-import 'sign_up_page.dart';
 
-class SignInPage extends StatefulWidget {
-  const SignInPage({super.key, AuthRepository? authRepository})
-      : _authRepository = authRepository ?? const _LazyFirebaseAuthRepository();
+/// Screen 2 – Registrierung (siehe B1.3, UC-01).
+class SignUpPage extends StatefulWidget {
+  const SignUpPage({super.key, AuthRepository? authRepository})
+      : _authRepository = authRepository;
 
-  final AuthRepository _authRepository;
+  final AuthRepository? _authRepository;
 
   @override
-  State<SignInPage> createState() => _SignInPageState();
+  State<SignUpPage> createState() => _SignUpPageState();
 }
 
-/// Erzeugt das FirebaseAuthRepository erst bei Bedarf, damit das Widget
-/// auch instanziiert werden kann, bevor Firebase initialisiert wurde.
-class _LazyFirebaseAuthRepository implements AuthRepository {
-  const _LazyFirebaseAuthRepository();
-
-  AuthRepository get _delegate => FirebaseAuthRepository();
-
-  @override
-  Stream<String?> authStateChanges() => _delegate.authStateChanges();
-
-  @override
-  Future<void> signIn({required String email, required String password}) {
-    return _delegate.signIn(email: email, password: password);
-  }
-
-  @override
-  Future<void> signUp({
-    required String name,
-    required String email,
-    required String password,
-  }) {
-    return _delegate.signUp(name: name, email: email, password: password);
-  }
-
-  @override
-  Future<void> signOut() => _delegate.signOut();
-}
-
-class _SignInPageState extends State<SignInPage> {
+class _SignUpPageState extends State<SignUpPage> {
   final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _passwordConfirmationController = TextEditingController();
   bool _isSubmitting = false;
+
+  late final AuthRepository _authRepository =
+      widget._authRepository ?? FirebaseAuthRepository();
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _passwordConfirmationController.dispose();
     super.dispose();
   }
 
-  Future<void> _submitSignIn() async {
+  Future<void> _submitSignUp() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
     setState(() => _isSubmitting = true);
     try {
-      await widget._authRepository.signIn(
+      await _authRepository.signUp(
+        name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-    } on FirebaseAuthException catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message ?? 'Anmeldung fehlgeschlagen.')),
+        const SnackBar(content: Text('Konto erstellt. Bitte melde dich an.')),
       );
+      Navigator.of(context).pop();
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      final message = error.code == 'email-already-in-use'
+          ? 'Diese E-Mail-Adresse ist bereits registriert.'
+          : error.message ?? 'Registrierung fehlgeschlagen.';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) {
         setState(() => _isSubmitting = false);
@@ -94,15 +80,21 @@ class _SignInPageState extends State<SignInPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
-                    'WG-ShopSync',
+                    'Konto erstellen',
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Melde dich an, um deine gemeinsame Einkaufsliste zu verwalten.',
+                    'Registriere dich, um einer WG beizutreten oder eine WG zu erstellen.',
                     style: Theme.of(context).textTheme.bodyLarge,
                   ),
                   const SizedBox(height: 32),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                    validator: Validators.userName,
+                  ),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -114,24 +106,31 @@ class _SignInPageState extends State<SignInPage> {
                     controller: _passwordController,
                     obscureText: true,
                     decoration: const InputDecoration(labelText: 'Passwort'),
-                    validator: Validators.password,
+                    validator: Validators.newPassword,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordConfirmationController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Passwort bestaetigen'),
+                    validator: (value) => Validators.passwordConfirmation(
+                      _passwordController.text,
+                    )(value),
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
-                    onPressed: _isSubmitting ? null : _submitSignIn,
+                    onPressed: _isSubmitting ? null : _submitSignUp,
                     child: _isSubmitting
                         ? const SizedBox(
                             height: 16,
                             width: 16,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text('Einloggen'),
+                        : const Text('Registrieren'),
                   ),
                   TextButton(
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SignUpPage()),
-                    ),
-                    child: const Text('Noch kein Konto? Registrieren'),
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Zurueck zum Login'),
                   ),
                 ],
               ),

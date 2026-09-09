@@ -1,3 +1,5 @@
+import '../../core/utils/firestore_converters.dart';
+
 /// Warengruppe eines Einkaufslistenartikels (siehe D2.8 Kategorie).
 enum ShoppingItemCategory {
   lebensmittel,
@@ -66,8 +68,8 @@ class ShoppingItem {
           : ShoppingItemCategory.fromValue(data['category'] as String),
       status: ShoppingItemStatus.fromValue(data['status'] as String),
       createdBy: data['createdBy'] as String,
-      createdAt: data['createdAt'] as DateTime,
-      updatedAt: data['updatedAt'] as DateTime,
+      createdAt: dateTimeFromFirestore(data['createdAt']),
+      updatedAt: dateTimeFromFirestore(data['updatedAt']),
     );
   }
 

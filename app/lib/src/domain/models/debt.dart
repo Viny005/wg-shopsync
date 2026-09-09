@@ -1,3 +1,5 @@
+import '../../core/utils/firestore_converters.dart';
+
 /// Zahlungsstatus einer Schuld zwischen zwei Mitgliedern (siehe D2.8 Kostenstatus).
 enum DebtStatus {
   open,
@@ -43,8 +45,8 @@ class Debt {
       debtorId: data['debtorId'] as String,
       amount: (data['amount'] as num).toDouble(),
       status: DebtStatus.fromValue(data['status'] as String),
-      paidAt: data['paidAt'] as DateTime?,
-      createdAt: data['createdAt'] as DateTime,
+      paidAt: dateTimeFromFirestoreOrNull(data['paidAt']),
+      createdAt: dateTimeFromFirestore(data['createdAt']),
     );
   }
 

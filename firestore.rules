@@ -16,6 +16,16 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/wgs/$(wgId)/memberships/$(request.auth.uid)).data.role == 'admin';
     }
 
+    function createsOwnWgAdminMembership(wgId, userId) {
+      return request.auth.uid == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.wgId == wgId
+        && request.resource.data.role == 'admin'
+        && !exists(/databases/$(database)/documents/wgs/$(wgId))
+        && existsAfter(/databases/$(database)/documents/wgs/$(wgId))
+        && getAfter(/databases/$(database)/documents/wgs/$(wgId)).data.createdBy == request.auth.uid;
+    }
+
     match /users/{userId} {
       allow read, update: if signedIn() && request.auth.uid == userId;
       allow create: if signedIn() && request.auth.uid == userId;
@@ -30,7 +40,10 @@ service cloud.firestore {
 
     match /wgs/{wgId}/memberships/{userId} {
       allow read: if isMember(wgId);
-      allow create: if signedIn() && request.auth.uid == userId;
+      // Joining an existing WG must be performed by a trusted backend after
+      // validating its invitation code. The initial admin is created atomically
+      // with a new WG.
+      allow create: if signedIn() && createsOwnWgAdminMembership(wgId, userId);
       allow update: if isAdmin(wgId) && userId != request.auth.uid;
       allow delete: if signedIn() && request.auth.uid == userId;
     }

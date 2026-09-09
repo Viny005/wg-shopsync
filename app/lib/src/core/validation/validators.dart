@@ -22,6 +22,30 @@ class Validators {
     return null;
   }
 
+  /// Neues Passwort bei der Registrierung: mindestens 8 Zeichen (siehe B1.3).
+  static String? newPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Bitte gib ein Passwort ein.';
+    }
+    if (value.length < 8) {
+      return 'Das Passwort muss mindestens 8 Zeichen lang sein.';
+    }
+    return null;
+  }
+
+  /// Passwort-Bestätigung: muss mit [password] übereinstimmen.
+  static String? Function(String?) passwordConfirmation(String password) {
+    return (value) {
+      if (value == null || value.isEmpty) {
+        return 'Bitte bestaetige dein Passwort.';
+      }
+      if (value != password) {
+        return 'Die Passwoerter stimmen nicht ueberein.';
+      }
+      return null;
+    };
+  }
+
   /// Benutzername: 2 bis 50 Zeichen, nicht leer.
   static String? userName(String? value) {
     final trimmed = value?.trim() ?? '';

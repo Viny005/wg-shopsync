@@ -1,3 +1,5 @@
+import '../../core/utils/firestore_converters.dart';
+
 /// Ein registrierter Benutzer der Anwendung (siehe D1.2 / D2.1).
 class User {
   const User({
@@ -17,7 +19,7 @@ class User {
       id: id,
       name: data['name'] as String,
       email: data['email'] as String,
-      createdAt: data['createdAt'] as DateTime,
+      createdAt: dateTimeFromFirestore(data['createdAt']),
     );
   }
 

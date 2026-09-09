@@ -1,3 +1,5 @@
+import '../../core/utils/firestore_converters.dart';
+
 /// Eine Ausgabe, die von einem Mitglied für die WG getätigt wurde (siehe D1.6 / D2.5).
 class Expense {
   const Expense({
@@ -33,7 +35,7 @@ class Expense {
       paidBy: data['paidBy'] as String,
       shoppingItemId: data['shoppingItemId'] as String?,
       receiptUrl: data['receiptUrl'] as String?,
-      createdAt: data['createdAt'] as DateTime,
+      createdAt: dateTimeFromFirestore(data['createdAt']),
     );
   }
 

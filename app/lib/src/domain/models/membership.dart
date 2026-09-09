@@ -1,3 +1,5 @@
+import '../../core/utils/firestore_converters.dart';
+
 /// Rolle eines Mitglieds innerhalb einer WG (siehe D2.8 Mitgliedsrolle).
 enum MembershipRole {
   admin,
@@ -33,7 +35,7 @@ class Membership {
       userId: data['userId'] as String,
       wgId: data['wgId'] as String,
       role: MembershipRole.fromValue(data['role'] as String),
-      joinedAt: (data['joinedAt'] as DateTime),
+      joinedAt: dateTimeFromFirestore(data['joinedAt']),
     );
   }
 

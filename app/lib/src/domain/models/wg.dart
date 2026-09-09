@@ -1,3 +1,5 @@
+import '../../core/utils/firestore_converters.dart';
+
 /// Eine Wohngemeinschaft mit gemeinsamer Einkaufsliste und Kostenverwaltung (siehe D1.3 / D2.2).
 class WG {
   const WG({
@@ -22,7 +24,7 @@ class WG {
       name: data['name'] as String,
       inviteCode: data['inviteCode'] as String,
       createdBy: data['createdBy'] as String,
-      createdAt: data['createdAt'] as DateTime,
+      createdAt: dateTimeFromFirestore(data['createdAt']),
     );
   }
 
