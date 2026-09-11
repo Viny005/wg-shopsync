@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 
 import 'features/auth/data/firebase_auth_repository.dart';
+import 'features/auth/domain/auth_repository.dart';
 import 'features/auth/presentation/sign_in_page.dart';
+import 'features/wg/presentation/wg_overview_page.dart';
 
 class WgShopSyncApp extends StatelessWidget {
-  const WgShopSyncApp({super.key});
+  const WgShopSyncApp({
+    super.key,
+    AuthRepository? authRepository,
+  }) : _authRepository = authRepository;
+
+  final AuthRepository? _authRepository;
 
   @override
   Widget build(BuildContext context) {
-    final authRepository = FirebaseAuthRepository();
+    final authRepository = _authRepository ?? FirebaseAuthRepository();
 
     return MaterialApp(
       title: 'WG-ShopSync',
@@ -31,14 +38,13 @@ class WgShopSyncApp extends StatelessWidget {
           }
 
           if (snapshot.hasData) {
-            return const Scaffold(
-              body: Center(
-                child: Text('Angemeldet'),
-              ),
+            return WgOverviewPage(
+              authRepository: authRepository,
             );
           }
-
-          return const SignInPage();
+          return SignInPage(
+            authRepository: authRepository,
+          );
         },
       ),
     );
