@@ -61,7 +61,6 @@ Repräsentiert einen registrierten Benutzer der Anwendung.
 - id
 - name
 - email
-- passwordHash
 - createdAt
 
 ---
@@ -216,7 +215,7 @@ User
 Kardinalitäten:
 
 ```text
-User      1 --- n Membership
+User      1 --- 0..1 Membership
 
 WG        1 --- n Membership
 

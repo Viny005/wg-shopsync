@@ -4,7 +4,7 @@ Für die Erstellung und Überarbeitung dieser Spezifikation wurden KI-gestützte
 
 ## Verwendete Werkzeuge
 
-- Microsoft Copilot
+- GitHub Copilot
 - ChatGPT
 
 ## Einsatzbereiche

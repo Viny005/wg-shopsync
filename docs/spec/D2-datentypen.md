@@ -13,7 +13,6 @@ Triviale, allgemeine Datentypen wie Text, Integer, Boolean, Email, Timestamp, UR
 | id | Identifier | 1 | Eindeutige technische ID des Benutzers |
 | name | Text | 1 | Anzeigename des Benutzers |
 | email | Email | 1 | Eindeutige E-Mail-Adresse |
-| passwordHash | OpaqueSecret | 1 | Gehashtes Passwort |
 | createdAt | Timestamp | 1 | Zeitpunkt der Registrierung |
 
 ---

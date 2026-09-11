@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isMember(wgId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/wgs/$(wgId)/memberships/$(request.auth.uid));
+    }
+
+    function isAdmin(wgId) {
+      return isMember(wgId)
+        && get(/databases/$(database)/documents/wgs/$(wgId)/memberships/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    function createsOwnWgAdminMembership(wgId, userId) {
+      return request.auth.uid == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.wgId == wgId
+        && request.resource.data.role == 'admin'
+        && !exists(/databases/$(database)/documents/wgs/$(wgId))
+        && existsAfter(/databases/$(database)/documents/wgs/$(wgId))
+        && getAfter(/databases/$(database)/documents/wgs/$(wgId)).data.createdBy == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read, update: if signedIn() && request.auth.uid == userId;
+      allow create: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /wgs/{wgId} {
+      allow read: if isMember(wgId);
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if isAdmin(wgId);
+      allow delete: if false;
+    }
+
+    match /wgs/{wgId}/memberships/{userId} {
+      allow read: if isMember(wgId);
+      // Joining an existing WG must be performed by a trusted backend after
+      // validating its invitation code. The initial admin is created atomically
+      // with a new WG.
+      allow create: if signedIn() && createsOwnWgAdminMembership(wgId, userId);
+      allow update: if isAdmin(wgId) && userId != request.auth.uid;
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /wgs/{wgId}/shoppingItems/{itemId} {
+      allow read, write: if isMember(wgId);
+    }
+
+    match /wgs/{wgId}/expenses/{expenseId} {
+      allow read, write: if isMember(wgId);
+    }
+
+    match /wgs/{wgId}/expenses/{expenseId}/expenseShares/{shareId} {
+      allow read, write: if isMember(wgId);
+    }
+
+    match /wgs/{wgId}/debts/{debtId} {
+      allow read: if isMember(wgId);
+      allow update: if isMember(wgId)
+        && resource.data.debtorId == request.auth.uid;
+      allow create: if isMember(wgId);
+      allow delete: if false;
+    }
+  }
+}
