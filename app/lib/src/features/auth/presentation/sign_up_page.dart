@@ -49,9 +49,9 @@ class _SignUpPageState extends State<SignUpPage> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Konto erstellt. Bitte melde dich an.')),
+        const SnackBar(content: Text('Konto erfolgreich erstellt.')),
       );
-      Navigator.of(context).pop();
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } on FirebaseAuthException catch (error) {
       if (!mounted) return;
       final message = error.code == 'email-already-in-use'

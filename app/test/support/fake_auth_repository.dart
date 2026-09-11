@@ -3,25 +3,39 @@ import 'dart:async';
 import 'package:wg_shopsync/src/features/auth/domain/auth_repository.dart';
 
 class FakeAuthRepository implements AuthRepository {
+  final StreamController<String?> _authStateController =
+      StreamController<String?>.broadcast();
   int signInCalls = 0;
   int signUpCalls = 0;
   int signOutCalls = 0;
+
   String? email;
   String? password;
   String? name;
+
   Future<void>? signInResult;
   Future<void>? signUpResult;
+
   Object? signInError;
   Object? signUpError;
 
   @override
-  Stream<String?> authStateChanges() => const Stream.empty();
+  Stream<String?> authStateChanges() => _authStateController.stream;
+
+  void emitAuthState(String? userId) {
+    _authStateController.add(userId);
+  }
+
+  Future<void> dispose() {
+    return _authStateController.close();
+  }
 
   @override
   Future<void> signIn({required String email, required String password}) {
     signInCalls++;
     this.email = email;
     this.password = password;
+
     if (signInError != null) return Future<void>.error(signInError!);
     return signInResult ?? Future<void>.value();
   }
