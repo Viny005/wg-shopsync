@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../auth/domain/auth_repository.dart';
 
+import 'create_wg_page.dart';
+import 'wg_detail_page.dart';
+
 /// Screen 5 – WG-Übersicht.
 ///
 /// Solange der Benutzer noch keiner WG zugeordnet ist, kann er
@@ -10,9 +13,11 @@ class WgOverviewPage extends StatefulWidget {
   const WgOverviewPage({
     super.key,
     required this.authRepository,
+    required this.userId,
   });
 
   final AuthRepository authRepository;
+  final String userId;
 
   @override
   State<WgOverviewPage> createState() => _WgOverviewPageState();
@@ -76,7 +81,25 @@ class _WgOverviewPageState extends State<WgOverviewPage> {
                 ),
                 const SizedBox(height: 32),
                 FilledButton.icon(
-                  onPressed: () {},
+                  onPressed: () async {
+                    final wg = await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => CreateWgPage(
+                          userId: widget.userId,
+                        ),
+                      ),
+                    );
+                    if (!context.mounted || wg == null) {
+                      return;
+                    }
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => WgDetailPage(
+                          wg: wg,
+                        ),
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.add_home),
                   label: const Text('WG erstellen'),
                 ),

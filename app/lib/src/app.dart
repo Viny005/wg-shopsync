@@ -40,6 +40,7 @@ class WgShopSyncApp extends StatelessWidget {
           if (snapshot.hasData) {
             return WgOverviewPage(
               authRepository: authRepository,
+              userId: snapshot.data!,
             );
           }
           return SignInPage(
