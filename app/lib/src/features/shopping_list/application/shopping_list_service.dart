@@ -17,6 +17,18 @@ class ShoppingItemAlreadyBoughtException implements Exception {
   const ShoppingItemAlreadyBoughtException();
 }
 
+class ShoppingListState {
+  const ShoppingListState({
+    required this.items,
+    this.isFromCache = false,
+    this.hasPendingWrites = false,
+  });
+
+  final List<ShoppingItem> items;
+  final bool isFromCache;
+  final bool hasPendingWrites;
+}
+
 class ShoppingListService {
   ShoppingListService({
     FirebaseFirestore? firestore,
@@ -26,7 +38,7 @@ class ShoppingListService {
 
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
 
-  Stream<List<ShoppingItem>> watchShoppingItems({
+  Stream<ShoppingListState> watchShoppingList({
     required String wgId,
   }) {
     final trimmedWgId = wgId.trim();
@@ -38,14 +50,24 @@ class ShoppingListService {
         .collection('wgs')
         .doc(trimmedWgId)
         .collection('shoppingItems')
-        .snapshots()
+        .snapshots(includeMetadataChanges: true)
         .map((snapshot) {
       final items = snapshot.docs
           .map((doc) => ShoppingItem.fromMap(doc.id, doc.data()))
           .toList();
       items.sort(ShoppingItem.compareByStatusAndName);
-      return items;
+      return ShoppingListState(
+        items: items,
+        isFromCache: snapshot.metadata.isFromCache,
+        hasPendingWrites: snapshot.metadata.hasPendingWrites,
+      );
     });
+  }
+
+  Stream<List<ShoppingItem>> watchShoppingItems({
+    required String wgId,
+  }) {
+    return watchShoppingList(wgId: wgId).map((state) => state.items);
   }
 
   Future<List<ShoppingItem>> getShoppingItems({
@@ -277,6 +299,7 @@ class ShoppingListService {
   Future<ShoppingItem> markAsBought({
     required String wgId,
     required String itemId,
+    DateTime? expectedUpdatedAt,
   }) async {
     final trimmedWgId = wgId.trim();
     final trimmedItemId = itemId.trim();
@@ -305,6 +328,12 @@ class ShoppingListService {
 
       if (currentItem.status == ShoppingItemStatus.bought) {
         throw const ShoppingItemAlreadyBoughtException();
+      }
+
+      if (expectedUpdatedAt != null &&
+          currentItem.updatedAt.millisecondsSinceEpoch !=
+              expectedUpdatedAt.millisecondsSinceEpoch) {
+        throw ShoppingItemConflictException(serverItem: currentItem);
       }
 
       final now = DateTime.now();

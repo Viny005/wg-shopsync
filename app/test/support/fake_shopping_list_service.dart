@@ -12,13 +12,16 @@ class FakeShoppingListService extends ShoppingListService {
     this.deleteItemError,
     this.markAsBoughtError,
     this.simulateConflictOnUpdate = false,
+    this.simulateConflictOnMarkAsBought = false,
+    this.isFromCache = false,
+    this.hasPendingWrites = false,
   }) : _items = initialItems != null ? List.of(initialItems) : [] {
-    _emitItems();
+    _emitState();
   }
 
   final List<ShoppingItem> _items;
-  final StreamController<List<ShoppingItem>> _itemsController =
-      StreamController<List<ShoppingItem>>.broadcast();
+  final StreamController<ShoppingListState> _stateController =
+      StreamController<ShoppingListState>.broadcast();
 
   Object? streamError;
   Object? addItemError;
@@ -26,7 +29,11 @@ class FakeShoppingListService extends ShoppingListService {
   Object? deleteItemError;
   Object? markAsBoughtError;
   bool simulateConflictOnUpdate;
+  bool simulateConflictOnMarkAsBought;
+  bool isFromCache;
+  bool hasPendingWrites;
 
+  int watchShoppingListCalls = 0;
   int watchShoppingItemsCalls = 0;
   int getShoppingItemsCalls = 0;
   int getItemCalls = 0;
@@ -51,38 +58,61 @@ class FakeShoppingListService extends ShoppingListService {
   String? lastDeletedItemId;
   String? lastBoughtItemId;
 
-  void _emitItems() {
-    if (_itemsController.isClosed) return;
+  void _emitState() {
+    if (_stateController.isClosed) return;
     if (streamError != null) {
-      _itemsController.addError(streamError!);
+      _stateController.addError(streamError!);
     } else {
       final sorted = List<ShoppingItem>.from(_items);
       sorted.sort(ShoppingItem.compareByStatusAndName);
-      _itemsController.add(sorted);
+      _stateController.add(
+        ShoppingListState(
+          items: sorted,
+          isFromCache: isFromCache,
+          hasPendingWrites: hasPendingWrites,
+        ),
+      );
     }
   }
 
   void setItems(List<ShoppingItem> newItems) {
     _items.clear();
     _items.addAll(newItems);
-    _emitItems();
+    _emitState();
+  }
+
+  void setOfflineState(
+      {required bool isFromCache, required bool hasPendingWrites}) {
+    this.isFromCache = isFromCache;
+    this.hasPendingWrites = hasPendingWrites;
+    _emitState();
   }
 
   void emitError(Object error) {
     streamError = error;
-    _emitItems();
+    _emitState();
   }
 
   @override
-  Stream<List<ShoppingItem>> watchShoppingItems({required String wgId}) async* {
-    watchShoppingItemsCalls++;
+  Stream<ShoppingListState> watchShoppingList({required String wgId}) async* {
+    watchShoppingListCalls++;
     if (streamError != null) {
       throw streamError!;
     }
     final sorted = List<ShoppingItem>.from(_items);
     sorted.sort(ShoppingItem.compareByStatusAndName);
-    yield sorted;
-    yield* _itemsController.stream;
+    yield ShoppingListState(
+      items: sorted,
+      isFromCache: isFromCache,
+      hasPendingWrites: hasPendingWrites,
+    );
+    yield* _stateController.stream;
+  }
+
+  @override
+  Stream<List<ShoppingItem>> watchShoppingItems({required String wgId}) {
+    watchShoppingItemsCalls++;
+    return watchShoppingList(wgId: wgId).map((state) => state.items);
   }
 
   @override
@@ -144,7 +174,7 @@ class FakeShoppingListService extends ShoppingListService {
     );
 
     _items.add(item);
-    _emitItems();
+    _emitState();
     return item;
   }
 
@@ -204,7 +234,7 @@ class FakeShoppingListService extends ShoppingListService {
     );
 
     _items[index] = updated;
-    _emitItems();
+    _emitState();
     return updated;
   }
 
@@ -226,13 +256,14 @@ class FakeShoppingListService extends ShoppingListService {
     }
 
     _items.removeAt(index);
-    _emitItems();
+    _emitState();
   }
 
   @override
   Future<ShoppingItem> markAsBought({
     required String wgId,
     required String itemId,
+    DateTime? expectedUpdatedAt,
   }) async {
     markAsBoughtCalls++;
     lastBoughtItemId = itemId;
@@ -251,6 +282,20 @@ class FakeShoppingListService extends ShoppingListService {
       throw const ShoppingItemAlreadyBoughtException();
     }
 
+    if (simulateConflictOnMarkAsBought) {
+      final conflictServerItem = existing.copyWith(
+        name: '${existing.name} (server-side change)',
+        updatedAt: DateTime.now().add(const Duration(seconds: 10)),
+      );
+      throw ShoppingItemConflictException(serverItem: conflictServerItem);
+    }
+
+    if (expectedUpdatedAt != null &&
+        existing.updatedAt.millisecondsSinceEpoch !=
+            expectedUpdatedAt.millisecondsSinceEpoch) {
+      throw ShoppingItemConflictException(serverItem: existing);
+    }
+
     final now = DateTime.now();
     final updated = existing.copyWith(
       status: ShoppingItemStatus.bought,
@@ -258,11 +303,11 @@ class FakeShoppingListService extends ShoppingListService {
     );
 
     _items[index] = updated;
-    _emitItems();
+    _emitState();
     return updated;
   }
 
   Future<void> dispose() async {
-    await _itemsController.close();
+    await _stateController.close();
   }
 }

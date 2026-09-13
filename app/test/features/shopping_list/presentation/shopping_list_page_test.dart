@@ -128,6 +128,78 @@ void main() {
       expect(find.widgetWithText(Chip, 'Hygiene'), findsOneWidget);
     });
 
+    testWidgets(
+        'groups items under category subheaders within each status section',
+        (tester) async {
+      final food1 = ShoppingItem(
+        id: '1',
+        wgId: 'wg-1',
+        name: 'Brot',
+        category: ShoppingItemCategory.lebensmittel,
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+      final household1 = ShoppingItem(
+        id: '2',
+        wgId: 'wg-1',
+        name: 'Mülltüten',
+        category: ShoppingItemCategory.haushalt,
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+      final uncatOpen = ShoppingItem(
+        id: '3',
+        wgId: 'wg-1',
+        name: 'Batterien',
+        category: null,
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+      final foodBought = ShoppingItem(
+        id: '4',
+        wgId: 'wg-1',
+        name: 'Käse',
+        category: ShoppingItemCategory.lebensmittel,
+        status: ShoppingItemStatus.bought,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+
+      final service = FakeShoppingListService(
+        initialItems: [food1, household1, uncatOpen, foodBought],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(
+            wgId: 'wg-1',
+            wgName: 'WG Test',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('Offene Artikel (3)'), findsOneWidget);
+      expect(find.text('Gekaufte Artikel (1)'), findsOneWidget);
+      expect(find.text('Lebensmittel'), findsWidgets);
+      expect(find.text('Haushalt'), findsWidgets);
+      expect(find.text('Ohne Kategorie'), findsOneWidget);
+      expect(find.text('Brot'), findsOneWidget);
+      expect(find.text('Mülltüten'), findsOneWidget);
+      expect(find.text('Batterien'), findsOneWidget);
+      expect(find.text('Käse'), findsOneWidget);
+    });
+
     testWidgets('filters items by category chip', (tester) async {
       final foodItem = ShoppingItem(
         id: '1',
@@ -299,6 +371,49 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+        'shows conflict message when item was concurrently modified before marking as bought',
+        (tester) async {
+      final item = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Käse',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+
+      final service = FakeShoppingListService(
+        initialItems: [item],
+        simulateConflictOnMarkAsBought: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(
+            wgId: 'wg-1',
+            wgName: 'WG Test',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Checkbox).first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text(
+          'Der Artikel wurde zwischenzeitlich geändert. Der Serverstand wird geladen.',
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   group('UC-08: Delete item from ShoppingListPage', () {
@@ -422,6 +537,163 @@ void main() {
 
       expect(
         find.text('Der Artikel wurde bereits gelöscht.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'swiping item triggers confirmation dialog and aborts on Abbrechen',
+        (tester) async {
+      final item = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Reis',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+
+      final service = FakeShoppingListService(initialItems: [item]);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(
+            wgId: 'wg-1',
+            wgName: 'WG Test',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Swipe from right to left
+      await tester.drag(find.text('Reis'), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Artikel löschen?'), findsOneWidget);
+      expect(
+        find.text(
+            'Möchtest du den Artikel "Reis" wirklich von der Einkaufsliste löschen?'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.widgetWithText(TextButton, 'Abbrechen'));
+      await tester.pumpAndSettle();
+
+      expect(service.deleteItemCalls, 0);
+      expect(find.text('Reis'), findsOneWidget);
+    });
+
+    testWidgets(
+        'swiping item triggers confirmation dialog and deletes on confirm',
+        (tester) async {
+      final item = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Reis',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+
+      final service = FakeShoppingListService(initialItems: [item]);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(
+            wgId: 'wg-1',
+            wgName: 'WG Test',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Swipe from right to left
+      await tester.drag(find.text('Reis'), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Löschen'));
+      await tester.pumpAndSettle();
+
+      expect(service.deleteItemCalls, 1);
+      expect(service.lastDeletedItemId, 'item-1');
+      expect(find.text('Keine Artikel auf der Einkaufsliste'), findsOneWidget);
+    });
+  });
+
+  group('Offline and pending sync indicators in ShoppingListPage', () {
+    testWidgets('shows offline banner when data is from cache', (tester) async {
+      final item = ShoppingItem(
+        id: '1',
+        wgId: 'wg-1',
+        name: 'Nudeln',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+      final service = FakeShoppingListService(
+        initialItems: [item],
+        isFromCache: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(
+            wgId: 'wg-1',
+            wgName: 'WG Test',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Offline-Modus: Gespeicherte Daten werden angezeigt.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('shows pending sync banner when writes are pending',
+        (tester) async {
+      final item = ShoppingItem(
+        id: '1',
+        wgId: 'wg-1',
+        name: 'Nudeln',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+      final service = FakeShoppingListService(
+        initialItems: [item],
+        hasPendingWrites: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(
+            wgId: 'wg-1',
+            wgName: 'WG Test',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Lokale Änderungen werden synchronisiert...'),
         findsOneWidget,
       );
     });

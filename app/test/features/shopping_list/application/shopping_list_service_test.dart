@@ -287,6 +287,33 @@ void main() {
       expect(service.markAsBoughtCalls, 1);
     });
 
+    test(
+        'throws ShoppingItemConflictException if item was concurrently modified before marking as bought',
+        () async {
+      final initialItem = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Butter',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13, 10, 0),
+        updatedAt: DateTime(2026, 9, 13, 10, 0),
+      );
+      final service = FakeShoppingListService(
+        initialItems: [initialItem],
+        simulateConflictOnMarkAsBought: true,
+      );
+
+      expect(
+        () => service.markAsBought(
+          wgId: 'wg-1',
+          itemId: 'item-1',
+          expectedUpdatedAt: initialItem.updatedAt,
+        ),
+        throwsA(isA<ShoppingItemConflictException>()),
+      );
+    });
+
     test('throws ShoppingItemAlreadyBoughtException if item is already bought',
         () async {
       final item = ShoppingItem(
@@ -314,6 +341,131 @@ void main() {
         () => service.markAsBought(wgId: 'wg-1', itemId: 'item-unknown'),
         throwsA(isA<ShoppingItemNotFoundException>()),
       );
+    });
+  });
+
+  group('ShoppingListService input validations', () {
+    final service = ShoppingListService();
+
+    test('addItem validates required name and IDs', () {
+      expect(
+        () => service.addItem(
+          wgId: '',
+          userId: 'user-1',
+          name: 'Milch',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => service.addItem(
+          wgId: 'wg-1',
+          userId: '',
+          name: 'Milch',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => service.addItem(
+          wgId: 'wg-1',
+          userId: 'user-1',
+          name: '   ',
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => service.addItem(
+          wgId: 'wg-1',
+          userId: 'user-1',
+          name: 'Milch',
+          quantity: 0,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => service.addItem(
+          wgId: 'wg-1',
+          userId: 'user-1',
+          name: 'Milch',
+          description: 'a' * 501,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('updateItem validates input parameters', () {
+      expect(
+        () => service.updateItem(
+          wgId: '',
+          itemId: 'item-1',
+          name: 'Milch',
+          expectedUpdatedAt: DateTime.now(),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => service.updateItem(
+          wgId: 'wg-1',
+          itemId: '',
+          name: 'Milch',
+          expectedUpdatedAt: DateTime.now(),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => service.updateItem(
+          wgId: 'wg-1',
+          itemId: 'item-1',
+          name: '',
+          expectedUpdatedAt: DateTime.now(),
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('deleteItem and markAsBought validate IDs', () {
+      expect(
+        () => service.deleteItem(wgId: '', itemId: 'item-1'),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => service.deleteItem(wgId: 'wg-1', itemId: ''),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => service.markAsBought(wgId: '', itemId: 'item-1'),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => service.markAsBought(wgId: 'wg-1', itemId: ''),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+  });
+
+  group('UC-10: ShoppingListService.watchShoppingList & metadata', () {
+    test('emits ShoppingListState with cache and pending write flags',
+        () async {
+      final item = ShoppingItem(
+        id: '1',
+        wgId: 'wg-1',
+        name: 'Mehl',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+      final service = FakeShoppingListService(
+        initialItems: [item],
+        isFromCache: true,
+        hasPendingWrites: true,
+      );
+
+      final state = await service.watchShoppingList(wgId: 'wg-1').first;
+
+      expect(state.items.length, 1);
+      expect(state.items.first.name, 'Mehl');
+      expect(state.isFromCache, isTrue);
+      expect(state.hasPendingWrites, isTrue);
     });
   });
 }

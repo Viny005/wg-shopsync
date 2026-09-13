@@ -17,7 +17,8 @@ service cloud.firestore {
         && data.name is string
         && data.name.size() >= 1
         && data.name.size() <= 100
-        && (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 500))
+        && data.name.matches('.*[^ \\t\\r\\n].*')
+        && (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 500 && data.description.matches('.*[^ \\t\\r\\n].*')))
         && (!('quantity' in data) || data.quantity == null || (data.quantity is int && data.quantity >= 1))
         && (!('category' in data) || data.category == null || data.category in ['lebensmittel', 'haushalt', 'hygiene', 'sonstiges'])
         && data.status is string
