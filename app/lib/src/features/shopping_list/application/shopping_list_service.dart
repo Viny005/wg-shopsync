@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/network/network_connectivity.dart';
 import '../../../core/validation/validators.dart';
 import '../../../domain/models/shopping_item.dart';
 
@@ -98,12 +99,15 @@ class ShoppingListService {
   ShoppingListService({
     FirebaseFirestore? firestore,
     void Function(Object error, StackTrace stackTrace)? onBackgroundWriteError,
+    bool Function()? isOfflineChecker,
   })  : _firestore = firestore,
-        _onBackgroundWriteError = onBackgroundWriteError;
+        _onBackgroundWriteError = onBackgroundWriteError,
+        _isOfflineChecker = isOfflineChecker ?? isDeviceOffline;
 
   final FirebaseFirestore? _firestore;
   final void Function(Object error, StackTrace stackTrace)?
       _onBackgroundWriteError;
+  final bool Function() _isOfflineChecker;
 
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
 
@@ -310,6 +314,13 @@ class ShoppingListService {
       }
     }
 
+    // Auf Flutter Web führt ein Transaktionsversuch im Offline-Zustand zu
+    // einem unvollständigen Future / NativeError, da navigator.onLine == false.
+    // Ein gezielter Vorab-Check verhindert den Start der Transaktion.
+    if (_isOfflineChecker()) {
+      throw const ShoppingItemRequiresConnectionException();
+    }
+
     final itemRef = firestore
         .collection('wgs')
         .doc(trimmedWgId)
@@ -434,6 +445,13 @@ class ShoppingListService {
     }
     if (trimmedItemId.isEmpty) {
       throw ArgumentError('Die Artikel-ID darf nicht leer sein.');
+    }
+
+    // Auf Flutter Web führt ein Transaktionsversuch im Offline-Zustand zu
+    // einem unvollständigen Future / NativeError, da navigator.onLine == false.
+    // Ein gezielter Vorab-Check verhindert den Start der Transaktion.
+    if (_isOfflineChecker()) {
+      throw const ShoppingItemRequiresConnectionException();
     }
 
     final itemRef = firestore

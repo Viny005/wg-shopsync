@@ -654,4 +654,41 @@ void main() {
       expect(exception, isA<Exception>());
     });
   });
+
+  group('Offline precheck for transactions in ShoppingListService', () {
+    test(
+        'updateItem throws ShoppingItemRequiresConnectionException before transaction when offline',
+        () async {
+      final service = ShoppingListService(
+        isOfflineChecker: () => true,
+      );
+
+      expect(
+        () => service.updateItem(
+          wgId: 'wg-1',
+          itemId: 'item-1',
+          name: 'Milch',
+          expectedUpdatedAt: DateTime.now(),
+        ),
+        throwsA(isA<ShoppingItemRequiresConnectionException>()),
+      );
+    });
+
+    test(
+        'markAsBought throws ShoppingItemRequiresConnectionException before transaction when offline',
+        () async {
+      final service = ShoppingListService(
+        isOfflineChecker: () => true,
+      );
+
+      expect(
+        () => service.markAsBought(
+          wgId: 'wg-1',
+          itemId: 'item-1',
+          expectedUpdatedAt: DateTime.now(),
+        ),
+        throwsA(isA<ShoppingItemRequiresConnectionException>()),
+      );
+    });
+  });
 }
