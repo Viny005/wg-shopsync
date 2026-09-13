@@ -375,6 +375,10 @@ class ShoppingListService {
         throw const ShoppingItemRequiresConnectionException();
       }
       rethrow;
+    } on TimeoutException {
+      // Auf Flutter Web können Firestore-Transaktionen im Offline-Zustand
+      // mit TimeoutException abbrechen, da die Server-Antwort ausbleibt.
+      throw const ShoppingItemRequiresConnectionException();
     }
 
     switch (result.kind) {
@@ -490,6 +494,10 @@ class ShoppingListService {
         throw const ShoppingItemRequiresConnectionException();
       }
       rethrow;
+    } on TimeoutException {
+      // Auf Flutter Web können Firestore-Transaktionen im Offline-Zustand
+      // mit TimeoutException abbrechen, da die Server-Antwort ausbleibt.
+      throw const ShoppingItemRequiresConnectionException();
     }
 
     switch (result.kind) {
