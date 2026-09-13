@@ -29,6 +29,39 @@ class ShoppingListState {
   final bool hasPendingWrites;
 }
 
+/// Mögliche Ergebnisse eines konkurrenzsicheren Firestore-Transaktionsversuchs.
+///
+/// Firestore-Transaktions-Callbacks können auf Flutter Web mehrfach ausgeführt
+/// werden und benutzerdefinierte Exceptions verlieren dabei ihren Typ, wenn sie
+/// direkt aus dem Callback geworfen werden. Deshalb werden Geschäftsergebnisse
+/// als Wert zurückgegeben und erst NACH `runTransaction` in die passende
+/// Domain-Exception übersetzt.
+enum _ItemTransactionOutcome { success, conflict, notFound, alreadyBought }
+
+class _ItemTransactionResult {
+  const _ItemTransactionResult.success(this.item)
+      : kind = _ItemTransactionOutcome.success,
+        serverItem = null;
+
+  const _ItemTransactionResult.conflict(this.serverItem)
+      : kind = _ItemTransactionOutcome.conflict,
+        item = null;
+
+  const _ItemTransactionResult.notFound()
+      : kind = _ItemTransactionOutcome.notFound,
+        item = null,
+        serverItem = null;
+
+  const _ItemTransactionResult.alreadyBought()
+      : kind = _ItemTransactionOutcome.alreadyBought,
+        item = null,
+        serverItem = null;
+
+  final _ItemTransactionOutcome kind;
+  final ShoppingItem? item;
+  final ShoppingItem? serverItem;
+}
+
 class ShoppingListService {
   ShoppingListService({
     FirebaseFirestore? firestore,
@@ -241,10 +274,13 @@ class ShoppingListService {
     // Lesen und Schreiben laufen atomar in einer Transaktion, damit zwischen
     // Prüfung und Schreiben keine unbemerkte Änderung eines anderen Mitglieds
     // einfließen kann (UC-07 A2: Server-Datenstand darf nie still überschrieben werden).
-    return firestore.runTransaction<ShoppingItem>((transaction) async {
+    // Das Ergebnis wird als Wert zurückgegeben statt geworfen, siehe
+    // _ItemTransactionResult.
+    final result =
+        await firestore.runTransaction<_ItemTransactionResult>((transaction) async {
       final snapshot = await transaction.get(itemRef);
       if (!snapshot.exists || snapshot.data() == null) {
-        throw const ShoppingItemNotFoundException();
+        return const _ItemTransactionResult.notFound();
       }
 
       final serverData = snapshot.data()!;
@@ -256,7 +292,7 @@ class ShoppingListService {
       if (serverUpdatedAt == null ||
           serverUpdatedAt.millisecondsSinceEpoch !=
               expectedUpdatedAt.millisecondsSinceEpoch) {
-        throw ShoppingItemConflictException(serverItem: serverItem);
+        return _ItemTransactionResult.conflict(serverItem);
       }
 
       final now = DateTime.now();
@@ -283,8 +319,19 @@ class ShoppingListService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      return updatedItem;
+      return _ItemTransactionResult.success(updatedItem);
     });
+
+    switch (result.kind) {
+      case _ItemTransactionOutcome.notFound:
+        throw const ShoppingItemNotFoundException();
+      case _ItemTransactionOutcome.conflict:
+        throw ShoppingItemConflictException(serverItem: result.serverItem!);
+      case _ItemTransactionOutcome.alreadyBought:
+        throw const ShoppingItemAlreadyBoughtException();
+      case _ItemTransactionOutcome.success:
+        return result.item!;
+    }
   }
 
   Future<void> deleteItem({
@@ -340,17 +387,20 @@ class ShoppingListService {
     // Prüfung und Schreiben keine unbemerkte Änderung eines anderen Mitglieds
     // einfließen kann (UC-09 A2: bereits gekaufte/gelöschte/geänderte Artikel
     // dürfen nicht still überschrieben werden).
-    return firestore.runTransaction<ShoppingItem>((transaction) async {
+    // Das Ergebnis wird als Wert zurückgegeben statt geworfen, siehe
+    // _ItemTransactionResult.
+    final result =
+        await firestore.runTransaction<_ItemTransactionResult>((transaction) async {
       final snapshot = await transaction.get(itemRef);
       if (!snapshot.exists || snapshot.data() == null) {
-        throw const ShoppingItemNotFoundException();
+        return const _ItemTransactionResult.notFound();
       }
 
       final serverData = snapshot.data()!;
       final currentItem = ShoppingItem.fromMap(snapshot.id, serverData);
 
       if (currentItem.status == ShoppingItemStatus.bought) {
-        throw const ShoppingItemAlreadyBoughtException();
+        return const _ItemTransactionResult.alreadyBought();
       }
 
       // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
@@ -360,7 +410,7 @@ class ShoppingListService {
           (currentUpdatedAt == null ||
               currentUpdatedAt.millisecondsSinceEpoch !=
                   expectedUpdatedAt.millisecondsSinceEpoch)) {
-        throw ShoppingItemConflictException(serverItem: currentItem);
+        return _ItemTransactionResult.conflict(currentItem);
       }
 
       final now = DateTime.now();
@@ -374,7 +424,18 @@ class ShoppingListService {
         'updatedAt': FieldValue.serverTimestamp(),
       });
 
-      return updatedItem;
+      return _ItemTransactionResult.success(updatedItem);
     });
+
+    switch (result.kind) {
+      case _ItemTransactionOutcome.notFound:
+        throw const ShoppingItemNotFoundException();
+      case _ItemTransactionOutcome.alreadyBought:
+        throw const ShoppingItemAlreadyBoughtException();
+      case _ItemTransactionOutcome.conflict:
+        throw ShoppingItemConflictException(serverItem: result.serverItem!);
+      case _ItemTransactionOutcome.success:
+        return result.item!;
+    }
   }
 }

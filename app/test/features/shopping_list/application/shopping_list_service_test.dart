@@ -271,6 +271,37 @@ void main() {
       );
     });
 
+    test('performs no write when a stale expectedUpdatedAt is rejected as a '
+        'conflict', () async {
+      final initialItem = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Tee',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13, 10, 0),
+        updatedAt: DateTime(2026, 9, 13, 10, 0),
+      );
+
+      final service = FakeShoppingListService(
+        initialItems: [initialItem],
+        simulateConflictOnUpdate: true,
+      );
+
+      await expectLater(
+        () => service.updateItem(
+          wgId: 'wg-1',
+          itemId: 'item-1',
+          name: 'Neuer Tee',
+          expectedUpdatedAt: initialItem.updatedAt!,
+        ),
+        throwsA(isA<ShoppingItemConflictException>()),
+      );
+
+      final stored = await service.getItem(wgId: 'wg-1', itemId: 'item-1');
+      expect(stored.name, 'Tee');
+    });
+
     test('throws ShoppingItemNotFoundException when updating deleted item',
         () async {
       final service = FakeShoppingListService();
@@ -383,6 +414,35 @@ void main() {
         () => service.markAsBought(wgId: 'wg-1', itemId: 'item-1'),
         throwsA(isA<ShoppingItemAlreadyBoughtException>()),
       );
+    });
+
+    test('performs no write when a stale expectedUpdatedAt is rejected as a '
+        'conflict before marking as bought', () async {
+      final initialItem = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Butter',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13, 10, 0),
+        updatedAt: DateTime(2026, 9, 13, 10, 0),
+      );
+      final service = FakeShoppingListService(
+        initialItems: [initialItem],
+        simulateConflictOnMarkAsBought: true,
+      );
+
+      await expectLater(
+        () => service.markAsBought(
+          wgId: 'wg-1',
+          itemId: 'item-1',
+          expectedUpdatedAt: initialItem.updatedAt,
+        ),
+        throwsA(isA<ShoppingItemConflictException>()),
+      );
+
+      final stored = await service.getItem(wgId: 'wg-1', itemId: 'item-1');
+      expect(stored.status, ShoppingItemStatus.open);
     });
 
     test('throws ShoppingItemNotFoundException if item does not exist',
