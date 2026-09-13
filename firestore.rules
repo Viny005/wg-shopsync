@@ -11,9 +11,43 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/wgs/$(wgId)/memberships/$(request.auth.uid));
     }
 
-    function isAdmin(wgId) {
+    function isValidShoppingItemData(data, wgId) {
+      return data.keys().hasOnly(['wgId', 'name', 'description', 'quantity', 'category', 'status', 'createdBy', 'createdAt', 'updatedAt'])
+        && data.wgId == wgId
+        && data.name is string
+        && data.name.size() >= 1
+        && data.name.size() <= 100
+        && data.name.matches('.*[^ \\t\\r\\n].*')
+        && (!('description' in data) || data.description == null || (data.description is string && data.description.size() <= 500 && data.description.matches('.*[^ \\t\\r\\n].*')))
+        && (!('quantity' in data) || data.quantity == null || (data.quantity is int && data.quantity >= 1))
+        && (!('category' in data) || data.category == null || data.category in ['lebensmittel', 'haushalt', 'hygiene', 'sonstiges'])
+        && data.status is string
+        && data.status in ['open', 'bought']
+        && data.createdBy is string
+        && data.createdAt is timestamp
+        && data.updatedAt is timestamp;
+    }
+
+    function createsValidShoppingItem(wgId) {
       return isMember(wgId)
-        && get(/databases/$(database)/documents/wgs/$(wgId)/memberships/$(request.auth.uid)).data.role == 'admin';
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.status == 'open'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
+        && isValidShoppingItemData(request.resource.data, wgId);
+    }
+
+    function updatesValidShoppingItem(wgId) {
+      return isMember(wgId)
+        && isValidShoppingItemData(request.resource.data, wgId)
+        && request.resource.data.wgId == resource.data.wgId
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
+        && (
+          (resource.data.status == 'open' && (request.resource.data.status == 'open' || request.resource.data.status == 'bought'))
+          || (resource.data.status == 'bought' && request.resource.data.status == 'bought')
+        );
     }
     function createsWgWithReservedInviteCode(wgId) {
       return signedIn()
@@ -131,11 +165,14 @@ service cloud.firestore {
       allow delete: if leavesWgAsMember(wgId, userId);
     }
 
-    // Subcollections for UC-06..16 are denied by default until respective UCs are implemented.
     match /wgs/{wgId}/shoppingItems/{itemId} {
-      allow read, write: if false;
+      allow read: if isMember(wgId);
+      allow create: if createsValidShoppingItem(wgId);
+      allow update: if updatesValidShoppingItem(wgId);
+      allow delete: if isMember(wgId);
     }
 
+    // Subcollections for UC-11..16 are denied by default until respective UCs are implemented.
     match /wgs/{wgId}/expenses/{expenseId} {
       allow read, write: if false;
     }

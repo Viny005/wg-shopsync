@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/models/wg.dart';
 import '../../../domain/models/membership.dart';
+import '../../shopping_list/application/shopping_list_service.dart';
+import '../../shopping_list/presentation/shopping_list_page.dart';
 import '../application/wg_service.dart';
 
 class WgDetailPage extends StatefulWidget {
@@ -11,12 +13,14 @@ class WgDetailPage extends StatefulWidget {
     required this.role,
     required this.userId,
     this.wgService,
+    this.shoppingListService,
   });
 
   final WG wg;
   final MembershipRole role;
   final String userId;
   final WgService? wgService;
+  final ShoppingListService? shoppingListService;
 
   @override
   State<WgDetailPage> createState() => _WgDetailPageState();
@@ -117,6 +121,23 @@ class _WgDetailPageState extends State<WgDetailPage> {
                 widget.role == MembershipRole.admin
                     ? 'Du bist Administrator dieser WG.'
                     : 'Du bist Mitglied dieser WG.',
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ShoppingListPage(
+                        wgId: widget.wg.id,
+                        wgName: widget.wg.name,
+                        userId: widget.userId,
+                        shoppingListService: widget.shoppingListService,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.shopping_cart),
+                label: const Text('Einkaufsliste öffnen'),
               ),
               const Spacer(),
               OutlinedButton(

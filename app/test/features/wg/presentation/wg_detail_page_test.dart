@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wg_shopsync/src/domain/models/membership.dart';
 import 'package:wg_shopsync/src/domain/models/wg.dart';
+import 'package:wg_shopsync/src/features/shopping_list/presentation/shopping_list_page.dart';
 import 'package:wg_shopsync/src/features/wg/application/wg_service.dart';
 import 'package:wg_shopsync/src/features/wg/presentation/wg_detail_page.dart';
 
+import '../../../support/fake_shopping_list_service.dart';
 import '../../../support/fake_wg_service.dart';
 
 void main() {
@@ -244,6 +246,37 @@ void main() {
             'Als letzter Administrator kannst du die WG nicht verlassen.'),
         findsOneWidget,
       );
+    },
+  );
+
+  testWidgets(
+    'opens ShoppingListPage when Einkaufsliste öffnen is tapped',
+    (tester) async {
+      final wg = WG(
+        id: 'wg-1',
+        name: 'Test WG',
+        inviteCode: 'ABC123',
+        createdBy: 'admin-user',
+        createdAt: DateTime(2026, 9, 13),
+      );
+      final shoppingListService = FakeShoppingListService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WgDetailPage(
+            wg: wg,
+            role: MembershipRole.admin,
+            userId: 'admin-user',
+            shoppingListService: shoppingListService,
+          ),
+        ),
+      );
+
+      await tester
+          .tap(find.widgetWithText(FilledButton, 'Einkaufsliste öffnen'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ShoppingListPage), findsOneWidget);
     },
   );
 }
