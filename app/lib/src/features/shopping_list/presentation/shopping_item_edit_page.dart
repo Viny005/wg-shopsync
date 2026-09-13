@@ -261,7 +261,6 @@ class _ShoppingItemEditPageState extends State<ShoppingItemEditPage> {
                       controller: _nameController,
                       decoration: const InputDecoration(
                         labelText: 'Artikelname *',
-                        hintText: 'z. B. Hafermilch',
                       ),
                       validator: Validators.itemName,
                       textInputAction: TextInputAction.next,
@@ -271,7 +270,6 @@ class _ShoppingItemEditPageState extends State<ShoppingItemEditPage> {
                       controller: _quantityController,
                       decoration: const InputDecoration(
                         labelText: 'Menge (optional)',
-                        hintText: 'z. B. 2',
                       ),
                       keyboardType: TextInputType.number,
                       validator: (value) {
@@ -313,7 +311,6 @@ class _ShoppingItemEditPageState extends State<ShoppingItemEditPage> {
                       controller: _descriptionController,
                       decoration: const InputDecoration(
                         labelText: 'Beschreibung (optional)',
-                        hintText: 'z. B. bitte Bio-Qualität',
                       ),
                       maxLines: 3,
                       validator: Validators.itemDescription,

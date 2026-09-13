@@ -32,6 +32,25 @@ void main() {
           findsOneWidget);
     });
 
+    testWidgets('does not show example placeholder hints in add mode',
+        (tester) async {
+      final service = FakeShoppingListService();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingItemEditPage(
+            wgId: 'wg-1',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      expect(find.text('z. B. Hafermilch'), findsNothing);
+      expect(find.text('z. B. 2'), findsNothing);
+      expect(find.text('z. B. bitte Bio-Qualität'), findsNothing);
+    });
+
     testWidgets('shows validation error when name is empty', (tester) async {
       final service = FakeShoppingListService();
 
@@ -201,6 +220,26 @@ void main() {
           findsOneWidget);
       expect(find.widgetWithText(OutlinedButton, 'Artikel löschen'),
           findsOneWidget);
+    });
+
+    testWidgets('does not show example placeholder hints in edit mode',
+        (tester) async {
+      final service = FakeShoppingListService(initialItems: [existingItem]);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingItemEditPage(
+            wgId: 'wg-1',
+            userId: 'user-1',
+            item: existingItem,
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      expect(find.text('z. B. Hafermilch'), findsNothing);
+      expect(find.text('z. B. 2'), findsNothing);
+      expect(find.text('z. B. bitte Bio-Qualität'), findsNothing);
     });
 
     testWidgets('shows validation error when editing name to empty',
