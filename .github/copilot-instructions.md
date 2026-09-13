@@ -14,12 +14,14 @@ These instructions apply to all AI-assisted development and automation tasks in 
 ## 3. Git Workflow & Branches
 - Use **Conventional Commits** (e.g. `feat(...)`, `fix(...)`, `chore(...)`, `test(...)`, `docs(...)`).
 - One feature group / topic per branch (e.g., `feature/...`, `fix/...`).
+- Never use `git add .` or `git add -A`; stage only task-related files explicitly.
+- Never commit or push files outside the task scope.
 - Never merge into `main` directly or perform direct pushes to `main`. Integration into `main` is done solely via reviewed Pull Requests.
 - Do not rewrite history or perform force pushes unless explicitly directed.
 
 ## 4. Quality & Pre-Push Validation
 Before committing and pushing any changes, always run and verify:
-1. `dart format .` (or formatting check)
+1. `dart format <changed-files>` (format only Dart files changed by the current task; never commit unrelated formatting)
 2. `flutter analyze` (must report 0 errors and 0 warnings)
 3. `flutter test` (all tests must pass)
 4. `git diff --check` (no whitespace or formatting violations)

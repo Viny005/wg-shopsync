@@ -10,8 +10,7 @@ enum ShoppingItemCategory {
   static ShoppingItemCategory fromValue(String value) {
     return ShoppingItemCategory.values.firstWhere(
       (category) => category.name == value,
-      orElse: () =>
-          throw ArgumentError('Unbekannte ShoppingItemCategory: $value'),
+      orElse: () => throw ArgumentError('Unbekannte ShoppingItemCategory: $value'),
     );
   }
 }
@@ -24,8 +23,7 @@ enum ShoppingItemStatus {
   static ShoppingItemStatus fromValue(String value) {
     return ShoppingItemStatus.values.firstWhere(
       (status) => status.name == value,
-      orElse: () =>
-          throw ArgumentError('Unbekannte ShoppingItemStatus: $value'),
+      orElse: () => throw ArgumentError('Unbekannte ShoppingItemStatus: $value'),
     );
   }
 }

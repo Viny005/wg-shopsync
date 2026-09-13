@@ -8,17 +8,14 @@ import 'package:wg_shopsync/src/features/auth/presentation/sign_up_page.dart';
 import '../../../support/fake_auth_repository.dart';
 
 void main() {
-  Future<void> pumpPage(
-      WidgetTester tester, FakeAuthRepository repository) async {
+  Future<void> pumpPage(WidgetTester tester, FakeAuthRepository repository) async {
     await tester.binding.setSurfaceSize(const Size(800, 900));
-    await tester
-        .pumpWidget(MaterialApp(home: SignUpPage(authRepository: repository)));
+    await tester.pumpWidget(MaterialApp(home: SignUpPage(authRepository: repository)));
   }
 
   Future<void> enterRegistration(WidgetTester tester) async {
     await tester.enterText(find.byType(TextFormField).at(0), 'Anna');
-    await tester.enterText(
-        find.byType(TextFormField).at(1), ' anna@example.com ');
+    await tester.enterText(find.byType(TextFormField).at(1), ' anna@example.com ');
     await tester.enterText(find.byType(TextFormField).at(2), 'password1');
     await tester.enterText(find.byType(TextFormField).at(3), 'password1');
   }
@@ -26,11 +23,9 @@ void main() {
   testWidgets('shows the registration form', (tester) async {
     await pumpPage(tester, FakeAuthRepository());
     expect(find.widgetWithText(TextFormField, 'Name'), findsOneWidget);
-    expect(
-        find.widgetWithText(TextFormField, 'E-Mail-Adresse'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'E-Mail-Adresse'), findsOneWidget);
     expect(find.widgetWithText(TextFormField, 'Passwort'), findsOneWidget);
-    expect(find.widgetWithText(TextFormField, 'Passwort bestaetigen'),
-        findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'Passwort bestaetigen'), findsOneWidget);
     expect(find.widgetWithText(FilledButton, 'Registrieren'), findsOneWidget);
   });
 
@@ -49,14 +44,10 @@ void main() {
     await tester.tap(find.text('Registrieren'));
     await tester.pump();
     expect(repository.signUpCalls, 0);
-    expect(find.text('Der Name muss zwischen 2 und 50 Zeichen lang sein.'),
-        findsOneWidget);
-    expect(find.text('Bitte gib eine gueltige E-Mail-Adresse ein.'),
-        findsOneWidget);
-    expect(find.text('Das Passwort muss mindestens 8 Zeichen lang sein.'),
-        findsOneWidget);
-    expect(
-        find.text('Die Passwoerter stimmen nicht ueberein.'), findsOneWidget);
+    expect(find.text('Der Name muss zwischen 2 und 50 Zeichen lang sein.'), findsOneWidget);
+    expect(find.text('Bitte gib eine gueltige E-Mail-Adresse ein.'), findsOneWidget);
+    expect(find.text('Das Passwort muss mindestens 8 Zeichen lang sein.'), findsOneWidget);
+    expect(find.text('Die Passwoerter stimmen nicht ueberein.'), findsOneWidget);
   });
 
   testWidgets('submits valid registration data once', (tester) async {
@@ -71,17 +62,14 @@ void main() {
     expect(repository.password, 'password1');
   });
 
-  testWidgets('shows loading and prevents another registration',
-      (tester) async {
-    final repository = FakeAuthRepository()
-      ..signUpResult = Completer<void>().future;
+  testWidgets('shows loading and prevents another registration', (tester) async {
+    final repository = FakeAuthRepository()..signUpResult = Completer<void>().future;
     await pumpPage(tester, repository);
     await enterRegistration(tester);
     await tester.tap(find.text('Registrieren'));
     await tester.pump();
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
-        isNull);
+    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
     expect(repository.signUpCalls, 1);
   });
 
@@ -93,19 +81,16 @@ void main() {
     await tester.tap(find.text('Registrieren'));
     await tester.pump();
     await tester.pump();
-    expect(find.text('Diese E-Mail-Adresse ist bereits registriert.'),
-        findsOneWidget);
+    expect(find.text('Diese E-Mail-Adresse ist bereits registriert.'), findsOneWidget);
   });
 
   testWidgets('shows a generic message for repository errors', (tester) async {
-    final repository = FakeAuthRepository()
-      ..signUpError = StateError('offline');
+    final repository = FakeAuthRepository()..signUpError = StateError('offline');
     await pumpPage(tester, repository);
     await enterRegistration(tester);
     await tester.tap(find.text('Registrieren'));
     await tester.pump();
     await tester.pump();
-    expect(find.text('Registrierung fehlgeschlagen. Bitte versuche es erneut.'),
-        findsOneWidget);
+    expect(find.text('Registrierung fehlgeschlagen. Bitte versuche es erneut.'), findsOneWidget);
   });
 }

@@ -57,14 +57,11 @@ class _SignUpPageState extends State<SignUpPage> {
       final message = error.code == 'email-already-in-use'
           ? 'Diese E-Mail-Adresse ist bereits registriert.'
           : error.message ?? 'Registrierung fehlgeschlagen.';
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Registrierung fehlgeschlagen. Bitte versuche es erneut.')),
+        const SnackBar(content: Text('Registrierung fehlgeschlagen. Bitte versuche es erneut.')),
       );
     } finally {
       if (mounted) {
@@ -88,61 +85,59 @@ class _SignUpPageState extends State<SignUpPage> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text(
-                      'Konto erstellen',
-                      style: Theme.of(context).textTheme.headlineMedium,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Registriere dich, um einer WG beizutreten oder eine WG zu erstellen.',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 32),
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(labelText: 'Name'),
-                      validator: Validators.userName,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration:
-                          const InputDecoration(labelText: 'E-Mail-Adresse'),
-                      validator: Validators.email,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(labelText: 'Passwort'),
-                      validator: Validators.newPassword,
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordConfirmationController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                          labelText: 'Passwort bestaetigen'),
-                      validator: (value) => Validators.passwordConfirmation(
-                        _passwordController.text,
-                      )(value),
-                    ),
-                    const SizedBox(height: 24),
-                    FilledButton(
-                      onPressed: _isSubmitting ? null : _submitSignUp,
-                      child: _isSubmitting
-                          ? const SizedBox(
-                              height: 16,
-                              width: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Registrieren'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Zurueck zum Login'),
-                    ),
+                  Text(
+                    'Konto erstellen',
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Registriere dich, um einer WG beizutreten oder eine WG zu erstellen.',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 32),
+                  TextFormField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(labelText: 'Name'),
+                    validator: Validators.userName,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(labelText: 'E-Mail-Adresse'),
+                    validator: Validators.email,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Passwort'),
+                    validator: Validators.newPassword,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordConfirmationController,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Passwort bestaetigen'),
+                    validator: (value) => Validators.passwordConfirmation(
+                      _passwordController.text,
+                    )(value),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: _isSubmitting ? null : _submitSignUp,
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Registrieren'),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('Zurueck zum Login'),
+                  ),
                   ],
                 ),
               ),
