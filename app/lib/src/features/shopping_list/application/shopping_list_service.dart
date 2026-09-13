@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/validation/validators.dart';
@@ -15,6 +17,13 @@ class ShoppingItemConflictException implements Exception {
 
 class ShoppingItemAlreadyBoughtException implements Exception {
   const ShoppingItemAlreadyBoughtException();
+}
+
+/// Wird geworfen, wenn eine konkurrenzsichere Firestore-Transaktion (UC-07,
+/// UC-09) mangels Netzwerkverbindung nicht ausgeführt werden konnte. Hält den
+/// Firebase-spezifischen Fehlercode von der Präsentationsschicht fern.
+class ShoppingItemRequiresConnectionException implements Exception {
+  const ShoppingItemRequiresConnectionException();
 }
 
 class ShoppingListState {
@@ -62,12 +71,39 @@ class _ItemTransactionResult {
   final ShoppingItem? serverItem;
 }
 
+/// Startet einen Schreibvorgang, ohne auf dessen Abschluss zu warten.
+///
+/// Auf Flutter Web löst das Future eines Firestore-Schreibvorgangs bei
+/// fehlender Verbindung dokumentiert erst nach Wiederherstellung der
+/// Verbindung auf, statt wie bei den mobilen SDKs sofort nach dem lokalen
+/// Zwischenspeichern. Ein synchrones Warten würde das UI unbegrenzt im
+/// Ladezustand belassen, obwohl der Schreibvorgang bereits lokal in die
+/// Firestore-Warteschlange aufgenommen wurde und über den bestehenden
+/// Realtime-Listener (`hasPendingWrites`) sichtbar ist. Eine später
+/// eintreffende serverseitige Ablehnung (z. B. durch die Security Rules)
+/// wird nicht verschluckt, sondern über [onError] gemeldet.
+///
+/// Als eigenständige, Firestore-unabhängige Funktion gehalten, damit das
+/// Nicht-Warten-Verhalten ohne Firestore-Testdouble unit-testbar bleibt.
+void fireAndForgetShoppingWrite(
+  Future<void> pendingWrite, {
+  void Function(Object error, StackTrace stackTrace)? onError,
+}) {
+  unawaited(pendingWrite.catchError((Object error, StackTrace stackTrace) {
+    onError?.call(error, stackTrace);
+  }));
+}
+
 class ShoppingListService {
   ShoppingListService({
     FirebaseFirestore? firestore,
-  }) : _firestore = firestore;
+    void Function(Object error, StackTrace stackTrace)? onBackgroundWriteError,
+  })  : _firestore = firestore,
+        _onBackgroundWriteError = onBackgroundWriteError;
 
   final FirebaseFirestore? _firestore;
+  final void Function(Object error, StackTrace stackTrace)?
+      _onBackgroundWriteError;
 
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
 
@@ -210,20 +246,29 @@ class ShoppingListService {
       updatedAt: now,
     );
 
-    await docRef.set({
-      'wgId': trimmedWgId,
-      'name': trimmedName,
-      'description':
-          (trimmedDescription != null && trimmedDescription.isNotEmpty)
-              ? trimmedDescription
-              : null,
-      'quantity': quantity,
-      'category': category?.name,
-      'status': ShoppingItemStatus.open.name,
-      'createdBy': trimmedUserId,
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    // Nicht auf das Schreib-Future warten: Auf Flutter Web löst es bei
+    // fehlender Verbindung erst nach Wiederherstellung der Verbindung auf
+    // (siehe fireAndForgetShoppingWrite). Der Artikel ist bereits lokal in
+    // der Firestore-Warteschlange und wird über den Realtime-Listener
+    // (hasPendingWrites) sichtbar; eine spätere serverseitige Ablehnung
+    // wird über den optionalen onBackgroundWriteError-Hook gemeldet.
+    fireAndForgetShoppingWrite(
+      docRef.set({
+        'wgId': trimmedWgId,
+        'name': trimmedName,
+        'description':
+            (trimmedDescription != null && trimmedDescription.isNotEmpty)
+                ? trimmedDescription
+                : null,
+        'quantity': quantity,
+        'category': category?.name,
+        'status': ShoppingItemStatus.open.name,
+        'createdBy': trimmedUserId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      }),
+      onError: _onBackgroundWriteError,
+    );
     return item;
   }
 
@@ -276,51 +321,61 @@ class ShoppingListService {
     // einfließen kann (UC-07 A2: Server-Datenstand darf nie still überschrieben werden).
     // Das Ergebnis wird als Wert zurückgegeben statt geworfen, siehe
     // _ItemTransactionResult.
-    final result =
-        await firestore.runTransaction<_ItemTransactionResult>((transaction) async {
-      final snapshot = await transaction.get(itemRef);
-      if (!snapshot.exists || snapshot.data() == null) {
-        return const _ItemTransactionResult.notFound();
-      }
+    final _ItemTransactionResult result;
+    try {
+      result = await firestore
+          .runTransaction<_ItemTransactionResult>((transaction) async {
+        final snapshot = await transaction.get(itemRef);
+        if (!snapshot.exists || snapshot.data() == null) {
+          return const _ItemTransactionResult.notFound();
+        }
 
-      final serverData = snapshot.data()!;
-      final serverItem = ShoppingItem.fromMap(snapshot.id, serverData);
+        final serverData = snapshot.data()!;
+        final serverItem = ShoppingItem.fromMap(snapshot.id, serverData);
 
-      // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
-      // keine ungeschützte Aktualisierung auf Basis eines vorläufigen Stands erfolgt.
-      final serverUpdatedAt = serverItem.updatedAt;
-      if (serverUpdatedAt == null ||
-          serverUpdatedAt.millisecondsSinceEpoch !=
-              expectedUpdatedAt.millisecondsSinceEpoch) {
-        return _ItemTransactionResult.conflict(serverItem);
-      }
+        // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
+        // keine ungeschützte Aktualisierung auf Basis eines vorläufigen Stands erfolgt.
+        final serverUpdatedAt = serverItem.updatedAt;
+        if (serverUpdatedAt == null ||
+            serverUpdatedAt.millisecondsSinceEpoch !=
+                expectedUpdatedAt.millisecondsSinceEpoch) {
+          return _ItemTransactionResult.conflict(serverItem);
+        }
 
-      final now = DateTime.now();
-      final updatedItem = serverItem.copyWith(
-        name: trimmedName,
-        description:
-            (trimmedDescription != null && trimmedDescription.isNotEmpty)
-                ? trimmedDescription
-                : null,
-        clearDescription:
-            trimmedDescription == null || trimmedDescription.isEmpty,
-        quantity: quantity,
-        clearQuantity: quantity == null,
-        category: category,
-        clearCategory: clearCategory || category == null,
-        updatedAt: now,
-      );
+        final now = DateTime.now();
+        final updatedItem = serverItem.copyWith(
+          name: trimmedName,
+          description:
+              (trimmedDescription != null && trimmedDescription.isNotEmpty)
+                  ? trimmedDescription
+                  : null,
+          clearDescription:
+              trimmedDescription == null || trimmedDescription.isEmpty,
+          quantity: quantity,
+          clearQuantity: quantity == null,
+          category: category,
+          clearCategory: clearCategory || category == null,
+          updatedAt: now,
+        );
 
-      transaction.update(itemRef, {
-        'name': updatedItem.name,
-        'description': updatedItem.description,
-        'quantity': updatedItem.quantity,
-        'category': updatedItem.category?.name,
-        'updatedAt': FieldValue.serverTimestamp(),
+        transaction.update(itemRef, {
+          'name': updatedItem.name,
+          'description': updatedItem.description,
+          'quantity': updatedItem.quantity,
+          'category': updatedItem.category?.name,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        return _ItemTransactionResult.success(updatedItem);
       });
-
-      return _ItemTransactionResult.success(updatedItem);
-    });
+    } on FirebaseException catch (e) {
+      // 'unavailable' bedeutet: Backend über das Netzwerk nicht erreichbar.
+      // Andere Firestore-Fehler (z. B. permission-denied) unverändert weiterreichen.
+      if (e.code == 'unavailable') {
+        throw const ShoppingItemRequiresConnectionException();
+      }
+      rethrow;
+    }
 
     switch (result.kind) {
       case _ItemTransactionOutcome.notFound:
@@ -389,43 +444,53 @@ class ShoppingListService {
     // dürfen nicht still überschrieben werden).
     // Das Ergebnis wird als Wert zurückgegeben statt geworfen, siehe
     // _ItemTransactionResult.
-    final result =
-        await firestore.runTransaction<_ItemTransactionResult>((transaction) async {
-      final snapshot = await transaction.get(itemRef);
-      if (!snapshot.exists || snapshot.data() == null) {
-        return const _ItemTransactionResult.notFound();
-      }
+    final _ItemTransactionResult result;
+    try {
+      result = await firestore
+          .runTransaction<_ItemTransactionResult>((transaction) async {
+        final snapshot = await transaction.get(itemRef);
+        if (!snapshot.exists || snapshot.data() == null) {
+          return const _ItemTransactionResult.notFound();
+        }
 
-      final serverData = snapshot.data()!;
-      final currentItem = ShoppingItem.fromMap(snapshot.id, serverData);
+        final serverData = snapshot.data()!;
+        final currentItem = ShoppingItem.fromMap(snapshot.id, serverData);
 
-      if (currentItem.status == ShoppingItemStatus.bought) {
-        return const _ItemTransactionResult.alreadyBought();
-      }
+        if (currentItem.status == ShoppingItemStatus.bought) {
+          return const _ItemTransactionResult.alreadyBought();
+        }
 
-      // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
-      // keine ungeschützte Statusänderung auf Basis eines vorläufigen Stands erfolgt.
-      final currentUpdatedAt = currentItem.updatedAt;
-      if (expectedUpdatedAt != null &&
-          (currentUpdatedAt == null ||
-              currentUpdatedAt.millisecondsSinceEpoch !=
-                  expectedUpdatedAt.millisecondsSinceEpoch)) {
-        return _ItemTransactionResult.conflict(currentItem);
-      }
+        // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
+        // keine ungeschützte Statusänderung auf Basis eines vorläufigen Stands erfolgt.
+        final currentUpdatedAt = currentItem.updatedAt;
+        if (expectedUpdatedAt != null &&
+            (currentUpdatedAt == null ||
+                currentUpdatedAt.millisecondsSinceEpoch !=
+                    expectedUpdatedAt.millisecondsSinceEpoch)) {
+          return _ItemTransactionResult.conflict(currentItem);
+        }
 
-      final now = DateTime.now();
-      final updatedItem = currentItem.copyWith(
-        status: ShoppingItemStatus.bought,
-        updatedAt: now,
-      );
+        final now = DateTime.now();
+        final updatedItem = currentItem.copyWith(
+          status: ShoppingItemStatus.bought,
+          updatedAt: now,
+        );
 
-      transaction.update(itemRef, {
-        'status': ShoppingItemStatus.bought.name,
-        'updatedAt': FieldValue.serverTimestamp(),
+        transaction.update(itemRef, {
+          'status': ShoppingItemStatus.bought.name,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        return _ItemTransactionResult.success(updatedItem);
       });
-
-      return _ItemTransactionResult.success(updatedItem);
-    });
+    } on FirebaseException catch (e) {
+      // 'unavailable' bedeutet: Backend über das Netzwerk nicht erreichbar.
+      // Andere Firestore-Fehler (z. B. permission-denied) unverändert weiterreichen.
+      if (e.code == 'unavailable') {
+        throw const ShoppingItemRequiresConnectionException();
+      }
+      rethrow;
+    }
 
     switch (result.kind) {
       case _ItemTransactionOutcome.notFound:

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wg_shopsync/src/domain/models/shopping_item.dart';
 import 'package:wg_shopsync/src/features/shopping_list/application/shopping_list_service.dart';
@@ -184,6 +186,43 @@ void main() {
     });
   });
 
+  group('fireAndForgetShoppingWrite & offline queueing', () {
+    test('does not block or await unresolved pending write', () {
+      final uncompletedCompleter = Completer<void>();
+      var returned = false;
+
+      fireAndForgetShoppingWrite(uncompletedCompleter.future);
+      returned = true;
+
+      expect(returned, isTrue);
+      expect(uncompletedCompleter.isCompleted, isFalse);
+    });
+
+    test('catches background write error and forwards it to onError hook',
+        () async {
+      final completer = Completer<void>();
+      Object? receivedError;
+      StackTrace? receivedStackTrace;
+
+      fireAndForgetShoppingWrite(
+        completer.future,
+        onError: (error, stackTrace) {
+          receivedError = error;
+          receivedStackTrace = stackTrace;
+        },
+      );
+
+      final error = Exception('Simulated server rejection');
+      completer.completeError(error);
+
+      // Allow microtasks to execute
+      await Future<void>.delayed(Duration.zero);
+
+      expect(receivedError, same(error));
+      expect(receivedStackTrace, isNotNull);
+    });
+  });
+
   group('UC-07: ShoppingListService.updateItem', () {
     test('updates item fields and updates timestamp', () async {
       final initialItem = ShoppingItem(
@@ -271,7 +310,8 @@ void main() {
       );
     });
 
-    test('performs no write when a stale expectedUpdatedAt is rejected as a '
+    test(
+        'performs no write when a stale expectedUpdatedAt is rejected as a '
         'conflict', () async {
       final initialItem = ShoppingItem(
         id: 'item-1',
@@ -416,7 +456,8 @@ void main() {
       );
     });
 
-    test('performs no write when a stale expectedUpdatedAt is rejected as a '
+    test(
+        'performs no write when a stale expectedUpdatedAt is rejected as a '
         'conflict before marking as bought', () async {
       final initialItem = ShoppingItem(
         id: 'item-1',
@@ -604,6 +645,13 @@ void main() {
       expect(state.items.first.name, 'Mehl');
       expect(state.isFromCache, isTrue);
       expect(state.hasPendingWrites, isTrue);
+    });
+  });
+
+  group('ShoppingItemRequiresConnectionException', () {
+    test('can be instantiated as const and is an Exception', () {
+      const exception = ShoppingItemRequiresConnectionException();
+      expect(exception, isA<Exception>());
     });
   });
 }

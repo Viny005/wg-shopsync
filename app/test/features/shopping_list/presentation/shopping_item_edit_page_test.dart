@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wg_shopsync/src/domain/models/shopping_item.dart';
+import 'package:wg_shopsync/src/features/shopping_list/application/shopping_list_service.dart';
 import 'package:wg_shopsync/src/features/shopping_list/presentation/shopping_item_edit_page.dart';
 
 import '../../../support/fake_shopping_list_service.dart';
@@ -182,6 +183,48 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets('submits item immediately in offline state without hanging',
+        (tester) async {
+      final service = FakeShoppingListService();
+      ShoppingItem? returnedItem;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                returnedItem = await Navigator.of(context).push<ShoppingItem>(
+                  MaterialPageRoute(
+                    builder: (_) => ShoppingItemEditPage(
+                      wgId: 'wg-1',
+                      userId: 'user-1',
+                      shoppingListService: service,
+                    ),
+                  ),
+                );
+              },
+              child: const Text('Open Add'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open Add'));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Artikelname *'),
+        'Kekse',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Artikel hinzufügen'));
+      await tester.pumpAndSettle();
+
+      expect(service.addItemCalls, 1);
+      expect(returnedItem, isNotNull);
+      expect(returnedItem!.name, 'Kekse');
+      expect(find.byType(ShoppingItemEditPage), findsNothing);
+    });
   });
 
   group('UC-07: ShoppingItemEditPage in Edit Mode', () {
@@ -360,6 +403,52 @@ void main() {
 
       expect(find.text('Konflikt erkannt'), findsNothing);
       expect(find.textContaining('server-side change'), findsOneWidget);
+    });
+
+    testWidgets('shows connection required SnackBar when offline during update',
+        (tester) async {
+      final service = FakeShoppingListService(
+        initialItems: [existingItem],
+        updateItemError: const ShoppingItemRequiresConnectionException(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingItemEditPage(
+            wgId: 'wg-1',
+            userId: 'user-1',
+            item: existingItem,
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Artikelname *'),
+        'Bio-Tomaten',
+      );
+      await tester
+          .tap(find.widgetWithText(FilledButton, 'Änderungen speichern'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text(
+          'Diese Aktion benötigt eine Internetverbindung. Bitte versuche es erneut, sobald du wieder online bist.',
+        ),
+        findsOneWidget,
+      );
+      // Page should stay open
+      expect(find.byType(ShoppingItemEditPage), findsOneWidget);
+      // Submit button should be enabled again
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.widgetWithText(FilledButton, 'Änderungen speichern'),
+            )
+            .onPressed,
+        isNotNull,
+      );
     });
 
     testWidgets('handles deleted item on update', (tester) async {

@@ -59,6 +59,15 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
           content: Text('Der Artikel ist nicht mehr verfügbar.'),
         ),
       );
+    } on ShoppingItemRequiresConnectionException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Diese Aktion benötigt eine Internetverbindung. Bitte versuche es erneut, sobald du wieder online bist.',
+          ),
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

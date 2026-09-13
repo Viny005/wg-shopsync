@@ -116,6 +116,15 @@ class _ShoppingItemEditPageState extends State<ShoppingItemEditPage> {
       if (Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       }
+    } on ShoppingItemRequiresConnectionException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Diese Aktion benötigt eine Internetverbindung. Bitte versuche es erneut, sobald du wieder online bist.',
+          ),
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

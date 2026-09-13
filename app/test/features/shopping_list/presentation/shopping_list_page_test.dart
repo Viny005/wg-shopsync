@@ -414,6 +414,49 @@ void main() {
         findsOneWidget,
       );
     });
+
+    testWidgets(
+        'shows connection required SnackBar when offline during mark as bought',
+        (tester) async {
+      final item = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Käse',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+
+      final service = FakeShoppingListService(
+        initialItems: [item],
+        markAsBoughtError: const ShoppingItemRequiresConnectionException(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(
+            wgId: 'wg-1',
+            wgName: 'WG Test',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(Checkbox).first);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(
+        find.text(
+          'Diese Aktion benötigt eine Internetverbindung. Bitte versuche es erneut, sobald du wieder online bist.',
+        ),
+        findsOneWidget,
+      );
+    });
   });
 
   group('UC-08: Delete item from ShoppingListPage', () {
