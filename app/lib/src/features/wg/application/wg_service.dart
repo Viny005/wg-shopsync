@@ -17,6 +17,20 @@ class InviteCodeNotFoundException implements Exception {
   const InviteCodeNotFoundException();
 }
 
+class LastAdminCannotLeaveWgException implements Exception {
+  const LastAdminCannotLeaveWgException();
+}
+
+class CurrentWgContext {
+  const CurrentWgContext({
+    required this.wg,
+    required this.role,
+  });
+
+  final WG wg;
+  final MembershipRole role;
+}
+
 class WgJoinPreview {
   const WgJoinPreview({
     required this.wgId,
@@ -272,6 +286,109 @@ class WgService {
       wgSnapshot.id,
       wgData,
     );
+  }
+
+  Future<CurrentWgContext?> loadCurrentWg({
+    required String userId,
+  }) async {
+    final trimmedUserId = userId.trim();
+
+    if (trimmedUserId.isEmpty) {
+      throw ArgumentError('Die Benutzer-ID darf nicht leer sein.');
+    }
+
+    final userMembershipSnapshot =
+        await firestore.collection('userMemberships').doc(trimmedUserId).get();
+
+    if (!userMembershipSnapshot.exists) {
+      return null;
+    }
+
+    final userMembershipData = userMembershipSnapshot.data();
+    final wgId = userMembershipData?['wgId'];
+
+    if (wgId is! String || wgId.isEmpty) {
+      return null;
+    }
+
+    final wgSnapshot = await firestore.collection('wgs').doc(wgId).get();
+    final wgData = wgSnapshot.data();
+
+    if (!wgSnapshot.exists || wgData == null) {
+      return null;
+    }
+
+    final membershipSnapshot = await firestore
+        .collection('wgs')
+        .doc(wgId)
+        .collection('memberships')
+        .doc(trimmedUserId)
+        .get();
+    final membershipData = membershipSnapshot.data();
+
+    if (!membershipSnapshot.exists || membershipData == null) {
+      return null;
+    }
+
+    final wg = WG.fromMap(wgSnapshot.id, wgData);
+    final membership =
+        Membership.fromMap(membershipSnapshot.id, membershipData);
+
+    return CurrentWgContext(
+      wg: wg,
+      role: membership.role,
+    );
+  }
+
+  Future<void> leaveWg({
+    required String wgId,
+    required String userId,
+  }) async {
+    final trimmedWgId = wgId.trim();
+    final trimmedUserId = userId.trim();
+
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+
+    if (trimmedUserId.isEmpty) {
+      throw ArgumentError('Die Benutzer-ID darf nicht leer sein.');
+    }
+
+    final membershipRef = firestore
+        .collection('wgs')
+        .doc(trimmedWgId)
+        .collection('memberships')
+        .doc(trimmedUserId);
+
+    final userMembershipRef =
+        firestore.collection('userMemberships').doc(trimmedUserId);
+
+    await firestore.runTransaction((transaction) async {
+      final membershipSnapshot = await transaction.get(membershipRef);
+      final userMembershipSnapshot = await transaction.get(userMembershipRef);
+
+      if (!membershipSnapshot.exists || !userMembershipSnapshot.exists) {
+        throw StateError('Mitgliedschaft existiert nicht.');
+      }
+
+      final userMembershipData = userMembershipSnapshot.data();
+      final recordedWgId = userMembershipData?['wgId'];
+
+      if (recordedWgId != trimmedWgId) {
+        throw StateError('Inkonsistente WG-Mitgliedschaft.');
+      }
+
+      final membershipData = membershipSnapshot.data();
+      final roleString = membershipData?['role'];
+
+      if (roleString == MembershipRole.admin.name) {
+        throw const LastAdminCannotLeaveWgException();
+      }
+
+      transaction.delete(membershipRef);
+      transaction.delete(userMembershipRef);
+    });
   }
 
   String _generateInviteCode() {

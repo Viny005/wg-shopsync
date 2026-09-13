@@ -74,6 +74,26 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/wgs/$(wgId)).data.inviteCode == getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode;
     }
 
+    function deletesOwnUserMembership(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && resource.data.wgId is string
+        && !existsAfter(
+          /databases/$(database)/documents/wgs/$(resource.data.wgId)/memberships/$(userId)
+        );
+    }
+
+    function leavesWgAsMember(wgId, userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && resource.data.userId == userId
+        && resource.data.wgId == wgId
+        && resource.data.role == 'member'
+        && !existsAfter(
+          /databases/$(database)/documents/userMemberships/$(userId)
+        );
+    }
+
     match /users/{userId} {
       allow read, update: if signedIn() && request.auth.uid == userId;
       allow create: if signedIn() && request.auth.uid == userId;
@@ -82,12 +102,14 @@ service cloud.firestore {
     match /userMemberships/{userId} {
       allow read: if signedIn() && request.auth.uid == userId;
       allow create: if createsOwnUserMembership(userId);
-      allow update, delete: if false;
+      allow update: if false;
+      allow delete: if deletesOwnUserMembership(userId);
     }
 
     match /inviteCodes/{inviteCode} {
       allow get: if signedIn();
-      allow list: if false;      allow create: if createsOwnInviteCode(inviteCode);
+      allow list: if false;
+      allow create: if createsOwnInviteCode(inviteCode);
       allow update, delete: if false;
     }
 
@@ -100,16 +122,13 @@ service cloud.firestore {
 
     match /wgs/{wgId}/memberships/{userId} {
       allow read: if isMember(wgId);
-      // Joining an existing WG must be performed by a trusted backend after
-      // validating its invitation code. The initial admin is created atomically
-      // with a new WG.
       allow create: if signedIn()
-      && (
-        createsOwnWgAdminMembership(wgId, userId)
-        || createsOwnWgMemberMembership(wgId, userId)
-      );
-      allow update: if isAdmin(wgId) && userId != request.auth.uid;
-      allow delete: if signedIn() && request.auth.uid == userId;
+        && (
+          createsOwnWgAdminMembership(wgId, userId)
+          || createsOwnWgMemberMembership(wgId, userId)
+        );
+      allow update: if false;
+      allow delete: if leavesWgAsMember(wgId, userId);
     }
 
     match /wgs/{wgId}/shoppingItems/{itemId} {

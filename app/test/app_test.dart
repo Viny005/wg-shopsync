@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wg_shopsync/src/app.dart';
 
 import 'support/fake_auth_repository.dart';
+import 'support/fake_wg_service.dart';
 
 void main() {
   testWidgets(
@@ -28,15 +29,17 @@ void main() {
     'shows WG overview when user is authenticated',
     (tester) async {
       final repository = FakeAuthRepository();
+      final wgService = FakeWgService(currentContext: null);
 
       await tester.pumpWidget(
         WgShopSyncApp(
           authRepository: repository,
+          wgService: wgService,
         ),
       );
 
       repository.emitAuthState('test-user');
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(
         find.text('Willkommen bei WG-ShopSync'),
