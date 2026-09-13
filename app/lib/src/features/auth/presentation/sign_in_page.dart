@@ -75,7 +75,9 @@ class _SignInPageState extends State<SignInPage> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Anmeldung fehlgeschlagen. Bitte versuche es erneut.')),
+        const SnackBar(
+            content:
+                Text('Anmeldung fehlgeschlagen. Bitte versuche es erneut.')),
       );
     } finally {
       if (mounted) {
@@ -111,7 +113,8 @@ class _SignInPageState extends State<SignInPage> {
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'E-Mail-Adresse'),
+                    decoration:
+                        const InputDecoration(labelText: 'E-Mail-Adresse'),
                     validator: Validators.email,
                   ),
                   const SizedBox(height: 16),

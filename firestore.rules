@@ -116,7 +116,7 @@ service cloud.firestore {
     match /wgs/{wgId} {
       allow read: if isMember(wgId);
       allow create: if createsWgWithReservedInviteCode(wgId);
-      allow update: if isAdmin(wgId);
+      allow update: if false;
       allow delete: if false;
     }
 
@@ -131,24 +131,21 @@ service cloud.firestore {
       allow delete: if leavesWgAsMember(wgId, userId);
     }
 
+    // Subcollections for UC-06..16 are denied by default until respective UCs are implemented.
     match /wgs/{wgId}/shoppingItems/{itemId} {
-      allow read, write: if isMember(wgId);
+      allow read, write: if false;
     }
 
     match /wgs/{wgId}/expenses/{expenseId} {
-      allow read, write: if isMember(wgId);
+      allow read, write: if false;
     }
 
     match /wgs/{wgId}/expenses/{expenseId}/expenseShares/{shareId} {
-      allow read, write: if isMember(wgId);
+      allow read, write: if false;
     }
 
     match /wgs/{wgId}/debts/{debtId} {
-      allow read: if isMember(wgId);
-      allow update: if isMember(wgId)
-        && resource.data.debtorId == request.auth.uid;
-      allow create: if isMember(wgId);
-      allow delete: if false;
+      allow read, write: if false;
     }
   }
 }
