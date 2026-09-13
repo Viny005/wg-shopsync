@@ -9,6 +9,26 @@ class UserAlreadyInWgException implements Exception {
   const UserAlreadyInWgException();
 }
 
+class InvalidInviteCodeException implements Exception {
+  const InvalidInviteCodeException();
+}
+
+class InviteCodeNotFoundException implements Exception {
+  const InviteCodeNotFoundException();
+}
+
+class WgJoinPreview {
+  const WgJoinPreview({
+    required this.wgId,
+    required this.wgName,
+    required this.inviteCode,
+  });
+
+  final String wgId;
+  final String wgName;
+  final String inviteCode;
+}
+
 class WgService {
   WgService({
     FirebaseFirestore? firestore,
@@ -83,6 +103,7 @@ class WgService {
           inviteCodeRef,
           {
             'wgId': wgRef.id,
+            'wgName': trimmedName,
           },
         );
 
@@ -100,6 +121,7 @@ class WgService {
           userMembershipRef,
           {
             'wgId': wgRef.id,
+            'inviteCode': inviteCode,
           },
         );
 
@@ -113,6 +135,142 @@ class WgService {
 
     throw StateError(
       'Es konnte kein eindeutiger Einladungscode erzeugt werden.',
+    );
+  }
+
+  Future<WgJoinPreview> findWgByInviteCode({
+    required String inviteCode,
+    required String userId,
+  }) async {
+    final normalizedCode = inviteCode.trim().toUpperCase();
+    final trimmedUserId = userId.trim();
+
+    if (trimmedUserId.isEmpty) {
+      throw ArgumentError('Die Benutzer-ID darf nicht leer sein.');
+    }
+
+    if (!RegExp(r'^[A-Z0-9]{6}$').hasMatch(normalizedCode)) {
+      throw const InvalidInviteCodeException();
+    }
+
+    final userMembershipSnapshot =
+        await firestore.collection('userMemberships').doc(trimmedUserId).get();
+
+    if (userMembershipSnapshot.exists) {
+      throw const UserAlreadyInWgException();
+    }
+
+    final inviteCodeSnapshot =
+        await firestore.collection('inviteCodes').doc(normalizedCode).get();
+
+    if (!inviteCodeSnapshot.exists) {
+      throw const InviteCodeNotFoundException();
+    }
+
+    final data = inviteCodeSnapshot.data();
+    final wgId = data?['wgId'];
+    final wgName = data?['wgName'];
+
+    if (wgId is! String ||
+        wgId.isEmpty ||
+        wgName is! String ||
+        wgName.isEmpty) {
+      throw StateError(
+        'Die Daten des Einladungscodes sind unvollständig.',
+      );
+    }
+
+    return WgJoinPreview(
+      wgId: wgId,
+      wgName: wgName,
+      inviteCode: normalizedCode,
+    );
+  }
+
+  Future<WG> joinWg({
+    required String inviteCode,
+    required String userId,
+  }) async {
+    final normalizedCode = inviteCode.trim().toUpperCase();
+    final trimmedUserId = userId.trim();
+
+    if (trimmedUserId.isEmpty) {
+      throw ArgumentError('Die Benutzer-ID darf nicht leer sein.');
+    }
+
+    if (!RegExp(r'^[A-Z0-9]{6}$').hasMatch(normalizedCode)) {
+      throw const InvalidInviteCodeException();
+    }
+
+    final inviteCodeRef =
+        firestore.collection('inviteCodes').doc(normalizedCode);
+
+    final userMembershipRef =
+        firestore.collection('userMemberships').doc(trimmedUserId);
+
+    final wgId = await firestore.runTransaction<String>((transaction) async {
+      final userMembershipSnapshot = await transaction.get(userMembershipRef);
+
+      if (userMembershipSnapshot.exists) {
+        throw const UserAlreadyInWgException();
+      }
+
+      final inviteCodeSnapshot = await transaction.get(inviteCodeRef);
+
+      if (!inviteCodeSnapshot.exists) {
+        throw const InviteCodeNotFoundException();
+      }
+
+      final inviteCodeData = inviteCodeSnapshot.data();
+      final foundWgId = inviteCodeData?['wgId'];
+
+      if (foundWgId is! String || foundWgId.isEmpty) {
+        throw StateError(
+          'Die Daten des Einladungscodes sind unvollständig.',
+        );
+      }
+
+      final wgRef = firestore.collection('wgs').doc(foundWgId);
+
+      final membershipRef = wgRef.collection('memberships').doc(trimmedUserId);
+
+      final membership = Membership(
+        id: trimmedUserId,
+        userId: trimmedUserId,
+        wgId: foundWgId,
+        role: MembershipRole.member,
+        joinedAt: DateTime.now(),
+      );
+
+      transaction.set(
+        membershipRef,
+        membership.toMap(),
+      );
+
+      transaction.set(
+        userMembershipRef,
+        {
+          'wgId': foundWgId,
+          'inviteCode': normalizedCode,
+        },
+      );
+
+      return foundWgId;
+    });
+
+    final wgSnapshot = await firestore.collection('wgs').doc(wgId).get();
+
+    final wgData = wgSnapshot.data();
+
+    if (!wgSnapshot.exists || wgData == null) {
+      throw StateError(
+        'Die WG konnte nach dem Beitritt nicht geladen werden.',
+      );
+    }
+
+    return WG.fromMap(
+      wgSnapshot.id,
+      wgData,
     );
   }
 

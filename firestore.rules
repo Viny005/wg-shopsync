@@ -24,14 +24,17 @@ service cloud.firestore {
         && existsAfter(/databases/$(database)/documents/userMemberships/$(request.auth.uid))
         && getAfter(/databases/$(database)/documents/userMemberships/$(request.auth.uid)).data.wgId == wgId
         && existsAfter(/databases/$(database)/documents/inviteCodes/$(request.resource.data.inviteCode))
-        && getAfter(/databases/$(database)/documents/inviteCodes/$(request.resource.data.inviteCode)).data.wgId == wgId;
+        && getAfter(/databases/$(database)/documents/inviteCodes/$(request.resource.data.inviteCode)).data.wgId == wgId
+        && getAfter(/databases/$(database)/documents/userMemberships/$(request.auth.uid)).data.inviteCode == request.resource.data.inviteCode;
     }
 
     function createsOwnInviteCode(inviteCode) {
       return signedIn()
         && request.resource.data.wgId is string
+        && request.resource.data.wgName is string
         && existsAfter(/databases/$(database)/documents/wgs/$(request.resource.data.wgId))
         && getAfter(/databases/$(database)/documents/wgs/$(request.resource.data.wgId)).data.inviteCode == inviteCode
+        && getAfter(/databases/$(database)/documents/wgs/$(request.resource.data.wgId)).data.name == request.resource.data.wgName
         && getAfter(/databases/$(database)/documents/wgs/$(request.resource.data.wgId)).data.createdBy == request.auth.uid;
     }
 
@@ -39,10 +42,14 @@ service cloud.firestore {
       return signedIn()
         && request.auth.uid == userId
         && request.resource.data.wgId is string
+        && request.resource.data.inviteCode is string
+        && request.resource.data.inviteCode.matches('^[A-Z0-9]{6}$')
         && !exists(/databases/$(database)/documents/userMemberships/$(userId))
         && existsAfter(/databases/$(database)/documents/wgs/$(request.resource.data.wgId))
-        && getAfter(/databases/$(database)/documents/wgs/$(request.resource.data.wgId)).data.createdBy == request.auth.uid;
-    }
+        && existsAfter(/databases/$(database)/documents/inviteCodes/$(request.resource.data.inviteCode))
+        && getAfter(/databases/$(database)/documents/inviteCodes/$(request.resource.data.inviteCode)).data.wgId == request.resource.data.wgId
+        && existsAfter(/databases/$(database)/documents/wgs/$(request.resource.data.wgId)/memberships/$(userId));
+      }
 
     function createsOwnWgAdminMembership(wgId, userId) {
       return request.auth.uid == userId
@@ -52,6 +59,19 @@ service cloud.firestore {
         && !exists(/databases/$(database)/documents/wgs/$(wgId))
         && existsAfter(/databases/$(database)/documents/wgs/$(wgId))
         && getAfter(/databases/$(database)/documents/wgs/$(wgId)).data.createdBy == request.auth.uid;
+    }
+
+    function createsOwnWgMemberMembership(wgId, userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.userId == userId
+        && request.resource.data.wgId == wgId
+        && request.resource.data.role == 'member'
+        && exists(/databases/$(database)/documents/wgs/$(wgId))
+        && existsAfter(/databases/$(database)/documents/userMemberships/$(userId))
+        && getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.wgId == wgId
+        && getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode is string
+        && get(/databases/$(database)/documents/wgs/$(wgId)).data.inviteCode == getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode;
     }
 
     match /users/{userId} {
@@ -66,8 +86,8 @@ service cloud.firestore {
     }
 
     match /inviteCodes/{inviteCode} {
-      allow read: if signedIn();
-      allow create: if createsOwnInviteCode(inviteCode);
+      allow get: if signedIn();
+      allow list: if false;      allow create: if createsOwnInviteCode(inviteCode);
       allow update, delete: if false;
     }
 
@@ -83,7 +103,11 @@ service cloud.firestore {
       // Joining an existing WG must be performed by a trusted backend after
       // validating its invitation code. The initial admin is created atomically
       // with a new WG.
-      allow create: if signedIn() && createsOwnWgAdminMembership(wgId, userId);
+      allow create: if signedIn()
+      && (
+        createsOwnWgAdminMembership(wgId, userId)
+        || createsOwnWgMemberMembership(wgId, userId)
+      );
       allow update: if isAdmin(wgId) && userId != request.auth.uid;
       allow delete: if signedIn() && request.auth.uid == userId;
     }

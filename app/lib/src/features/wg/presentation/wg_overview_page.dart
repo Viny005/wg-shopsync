@@ -4,6 +4,8 @@ import '../../auth/domain/auth_repository.dart';
 
 import 'create_wg_page.dart';
 import 'wg_detail_page.dart';
+import 'join_wg_page.dart';
+import '../../../domain/models/membership.dart';
 
 /// Screen 5 – WG-Übersicht.
 ///
@@ -96,6 +98,7 @@ class _WgOverviewPageState extends State<WgOverviewPage> {
                       MaterialPageRoute(
                         builder: (context) => WgDetailPage(
                           wg: wg,
+                          role: MembershipRole.admin,
                         ),
                       ),
                     );
@@ -105,7 +108,26 @@ class _WgOverviewPageState extends State<WgOverviewPage> {
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () async {
+                    final wg = await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => JoinWgPage(
+                          userId: widget.userId,
+                        ),
+                      ),
+                    );
+                    if (!context.mounted || wg == null) {
+                      return;
+                    }
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => WgDetailPage(
+                          wg: wg,
+                          role: MembershipRole.member,
+                        ),
+                      ),
+                    );
+                  },
                   icon: const Icon(Icons.group_add),
                   label: const Text('WG beitreten'),
                 ),

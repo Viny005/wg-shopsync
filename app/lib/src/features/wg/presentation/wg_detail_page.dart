@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/wg.dart';
+import '../../../domain/models/membership.dart';
 
 class WgDetailPage extends StatelessWidget {
   const WgDetailPage({
     super.key,
     required this.wg,
+    required this.role,
   });
 
   final WG wg;
+  final MembershipRole role;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +40,11 @@ class WgDetailPage extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 32),
-              const Text('Du bist Administrator dieser WG.'),
+              Text(
+                role == MembershipRole.admin
+                    ? 'Du bist Administrator dieser WG.'
+                    : 'Du bist Mitglied dieser WG.',
+              ),
             ],
           ),
         ),
