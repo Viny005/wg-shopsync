@@ -67,8 +67,8 @@ class ShoppingItem {
     this.category,
     required this.status,
     required this.createdBy,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt,
+    this.updatedAt,
   });
 
   final String id;
@@ -81,8 +81,14 @@ class ShoppingItem {
   final ShoppingItemCategory? category;
   final ShoppingItemStatus status;
   final String createdBy;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+
+  /// `null` solange der servergenerierte Zeitstempel (FieldValue.serverTimestamp)
+  /// im lokalen Pending-Snapshot noch nicht aufgelöst ist (siehe AF-06/AF-07).
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  /// Wahr, solange die serverseitigen Zeitstempel noch nicht bestätigt sind.
+  bool get hasUnresolvedServerTimestamp => createdAt == null || updatedAt == null;
 
   factory ShoppingItem.fromMap(String id, Map<String, dynamic> data) {
     return ShoppingItem(
@@ -96,8 +102,8 @@ class ShoppingItem {
           : ShoppingItemCategory.fromValue(data['category'] as String),
       status: ShoppingItemStatus.fromValue(data['status'] as String),
       createdBy: data['createdBy'] as String,
-      createdAt: dateTimeFromFirestore(data['createdAt']),
-      updatedAt: dateTimeFromFirestore(data['updatedAt']),
+      createdAt: dateTimeFromFirestoreOrNull(data['createdAt']),
+      updatedAt: dateTimeFromFirestoreOrNull(data['updatedAt']),
     );
   }
 

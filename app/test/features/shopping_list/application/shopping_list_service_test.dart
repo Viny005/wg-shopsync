@@ -118,6 +118,31 @@ void main() {
       expect(reconstructed.status, item.status);
       expect(reconstructed.createdBy, item.createdBy);
     });
+
+    test(
+        'fromMap tolerates unresolved (null) pending server timestamps '
+        'without throwing', () {
+      // Simuliert einen lokalen Pending-Snapshot direkt nach addItem/updateItem,
+      // bei dem FieldValue.serverTimestamp() noch nicht aufgelöst ist.
+      final pendingData = <String, dynamic>{
+        'wgId': 'wg-1',
+        'name': 'Milch',
+        'description': null,
+        'quantity': null,
+        'category': null,
+        'status': 'open',
+        'createdBy': 'user-1',
+        'createdAt': null,
+        'updatedAt': null,
+      };
+
+      final item = ShoppingItem.fromMap('item-1', pendingData);
+
+      expect(item.createdAt, isNull);
+      expect(item.updatedAt, isNull);
+      expect(item.hasUnresolvedServerTimestamp, isTrue);
+      expect(item.name, 'Milch');
+    });
   });
 
   group('UC-06: ShoppingListService.addItem', () {
@@ -183,7 +208,7 @@ void main() {
         description: 'Bio',
         quantity: 2,
         category: ShoppingItemCategory.lebensmittel,
-        expectedUpdatedAt: initialItem.updatedAt,
+        expectedUpdatedAt: initialItem.updatedAt!,
       );
 
       expect(service.updateItemCalls, 1);
@@ -213,7 +238,34 @@ void main() {
           wgId: 'wg-1',
           itemId: 'item-1',
           name: 'Neuer Tee',
-          expectedUpdatedAt: initialItem.updatedAt,
+          expectedUpdatedAt: initialItem.updatedAt!,
+        ),
+        throwsA(isA<ShoppingItemConflictException>()),
+      );
+    });
+
+    test(
+        'throws ShoppingItemConflictException instead of allowing an unsafe '
+        'update while the server updatedAt is still unresolved (pending)',
+        () async {
+      final pendingItem = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Tee',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        // createdAt/updatedAt unresolved, wie in einem lokalen Pending-Snapshot
+        // unmittelbar nach addItem, bevor FieldValue.serverTimestamp() ankommt.
+      );
+
+      final service = FakeShoppingListService(initialItems: [pendingItem]);
+
+      expect(
+        () => service.updateItem(
+          wgId: 'wg-1',
+          itemId: 'item-1',
+          name: 'Neuer Tee',
+          expectedUpdatedAt: DateTime(2026, 9, 13, 10, 0),
         ),
         throwsA(isA<ShoppingItemConflictException>()),
       );

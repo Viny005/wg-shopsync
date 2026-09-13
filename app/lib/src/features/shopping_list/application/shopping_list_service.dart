@@ -246,8 +246,12 @@ class ShoppingListService {
     final serverData = snapshot.data()!;
     final serverItem = ShoppingItem.fromMap(snapshot.id, serverData);
 
-    if (serverItem.updatedAt.millisecondsSinceEpoch !=
-        expectedUpdatedAt.millisecondsSinceEpoch) {
+    // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
+    // keine ungeschützte Aktualisierung auf Basis eines vorläufigen Stands erfolgt.
+    final serverUpdatedAt = serverItem.updatedAt;
+    if (serverUpdatedAt == null ||
+        serverUpdatedAt.millisecondsSinceEpoch !=
+            expectedUpdatedAt.millisecondsSinceEpoch) {
       throw ShoppingItemConflictException(serverItem: serverItem);
     }
 
@@ -338,9 +342,13 @@ class ShoppingListService {
       throw const ShoppingItemAlreadyBoughtException();
     }
 
+    // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
+    // keine ungeschützte Statusänderung auf Basis eines vorläufigen Stands erfolgt.
+    final currentUpdatedAt = currentItem.updatedAt;
     if (expectedUpdatedAt != null &&
-        currentItem.updatedAt.millisecondsSinceEpoch !=
-            expectedUpdatedAt.millisecondsSinceEpoch) {
+        (currentUpdatedAt == null ||
+            currentUpdatedAt.millisecondsSinceEpoch !=
+                expectedUpdatedAt.millisecondsSinceEpoch)) {
       throw ShoppingItemConflictException(serverItem: currentItem);
     }
 

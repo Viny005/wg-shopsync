@@ -154,7 +154,7 @@ class _ShoppingItemEditPageState extends State<ShoppingItemEditPage> {
                     ? serverItem.quantity.toString()
                     : '';
                 _selectedCategory = serverItem.category;
-                _expectedUpdatedAt = serverItem.updatedAt;
+                _expectedUpdatedAt = serverItem.updatedAt ?? DateTime.now();
               });
             },
             child: const Text('Serverdaten laden'),

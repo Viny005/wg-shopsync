@@ -215,8 +215,9 @@ class FakeShoppingListService extends ShoppingListService {
       throw ShoppingItemConflictException(serverItem: conflictServerItem);
     }
 
-    if (existing.updatedAt.millisecondsSinceEpoch !=
-        expectedUpdatedAt.millisecondsSinceEpoch) {
+    if (existing.updatedAt == null ||
+        existing.updatedAt!.millisecondsSinceEpoch !=
+            expectedUpdatedAt.millisecondsSinceEpoch) {
       throw ShoppingItemConflictException(serverItem: existing);
     }
 
@@ -291,8 +292,9 @@ class FakeShoppingListService extends ShoppingListService {
     }
 
     if (expectedUpdatedAt != null &&
-        existing.updatedAt.millisecondsSinceEpoch !=
-            expectedUpdatedAt.millisecondsSinceEpoch) {
+        (existing.updatedAt == null ||
+            existing.updatedAt!.millisecondsSinceEpoch !=
+                expectedUpdatedAt.millisecondsSinceEpoch)) {
       throw ShoppingItemConflictException(serverItem: existing);
     }
 
