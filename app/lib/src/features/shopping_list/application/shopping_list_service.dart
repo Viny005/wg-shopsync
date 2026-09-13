@@ -177,7 +177,20 @@ class ShoppingListService {
       updatedAt: now,
     );
 
-    await docRef.set(item.toMap());
+    await docRef.set({
+      'wgId': trimmedWgId,
+      'name': trimmedName,
+      'description':
+          (trimmedDescription != null && trimmedDescription.isNotEmpty)
+              ? trimmedDescription
+              : null,
+      'quantity': quantity,
+      'category': category?.name,
+      'status': ShoppingItemStatus.open.name,
+      'createdBy': trimmedUserId,
+      'createdAt': FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
     return item;
   }
 
@@ -225,46 +238,43 @@ class ShoppingListService {
         .collection('shoppingItems')
         .doc(trimmedItemId);
 
-    return await firestore.runTransaction<ShoppingItem>((transaction) async {
-      final snapshot = await transaction.get(itemRef);
-      if (!snapshot.exists || snapshot.data() == null) {
-        throw const ShoppingItemNotFoundException();
-      }
+    final snapshot = await itemRef.get();
+    if (!snapshot.exists || snapshot.data() == null) {
+      throw const ShoppingItemNotFoundException();
+    }
 
-      final serverData = snapshot.data()!;
-      final serverItem = ShoppingItem.fromMap(snapshot.id, serverData);
+    final serverData = snapshot.data()!;
+    final serverItem = ShoppingItem.fromMap(snapshot.id, serverData);
 
-      if (serverItem.updatedAt.millisecondsSinceEpoch !=
-          expectedUpdatedAt.millisecondsSinceEpoch) {
-        throw ShoppingItemConflictException(serverItem: serverItem);
-      }
+    if (serverItem.updatedAt.millisecondsSinceEpoch !=
+        expectedUpdatedAt.millisecondsSinceEpoch) {
+      throw ShoppingItemConflictException(serverItem: serverItem);
+    }
 
-      final now = DateTime.now();
-      final updatedItem = serverItem.copyWith(
-        name: trimmedName,
-        description:
-            (trimmedDescription != null && trimmedDescription.isNotEmpty)
-                ? trimmedDescription
-                : null,
-        clearDescription:
-            trimmedDescription == null || trimmedDescription.isEmpty,
-        quantity: quantity,
-        clearQuantity: quantity == null,
-        category: category,
-        clearCategory: clearCategory || category == null,
-        updatedAt: now,
-      );
+    final now = DateTime.now();
+    final updatedItem = serverItem.copyWith(
+      name: trimmedName,
+      description: (trimmedDescription != null && trimmedDescription.isNotEmpty)
+          ? trimmedDescription
+          : null,
+      clearDescription:
+          trimmedDescription == null || trimmedDescription.isEmpty,
+      quantity: quantity,
+      clearQuantity: quantity == null,
+      category: category,
+      clearCategory: clearCategory || category == null,
+      updatedAt: now,
+    );
 
-      transaction.update(itemRef, {
-        'name': updatedItem.name,
-        'description': updatedItem.description,
-        'quantity': updatedItem.quantity,
-        'category': updatedItem.category?.name,
-        'updatedAt': updatedItem.updatedAt,
-      });
-
-      return updatedItem;
+    await itemRef.update({
+      'name': updatedItem.name,
+      'description': updatedItem.description,
+      'quantity': updatedItem.quantity,
+      'category': updatedItem.category?.name,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    return updatedItem;
   }
 
   Future<void> deleteItem({
@@ -287,13 +297,12 @@ class ShoppingListService {
         .collection('shoppingItems')
         .doc(trimmedItemId);
 
-    await firestore.runTransaction((transaction) async {
-      final snapshot = await transaction.get(itemRef);
-      if (!snapshot.exists) {
-        throw const ShoppingItemNotFoundException();
-      }
-      transaction.delete(itemRef);
-    });
+    final snapshot = await itemRef.get();
+    if (!snapshot.exists) {
+      throw const ShoppingItemNotFoundException();
+    }
+
+    await itemRef.delete();
   }
 
   Future<ShoppingItem> markAsBought({
@@ -317,37 +326,35 @@ class ShoppingListService {
         .collection('shoppingItems')
         .doc(trimmedItemId);
 
-    return await firestore.runTransaction<ShoppingItem>((transaction) async {
-      final snapshot = await transaction.get(itemRef);
-      if (!snapshot.exists || snapshot.data() == null) {
-        throw const ShoppingItemNotFoundException();
-      }
+    final snapshot = await itemRef.get();
+    if (!snapshot.exists || snapshot.data() == null) {
+      throw const ShoppingItemNotFoundException();
+    }
 
-      final serverData = snapshot.data()!;
-      final currentItem = ShoppingItem.fromMap(snapshot.id, serverData);
+    final serverData = snapshot.data()!;
+    final currentItem = ShoppingItem.fromMap(snapshot.id, serverData);
 
-      if (currentItem.status == ShoppingItemStatus.bought) {
-        throw const ShoppingItemAlreadyBoughtException();
-      }
+    if (currentItem.status == ShoppingItemStatus.bought) {
+      throw const ShoppingItemAlreadyBoughtException();
+    }
 
-      if (expectedUpdatedAt != null &&
-          currentItem.updatedAt.millisecondsSinceEpoch !=
-              expectedUpdatedAt.millisecondsSinceEpoch) {
-        throw ShoppingItemConflictException(serverItem: currentItem);
-      }
+    if (expectedUpdatedAt != null &&
+        currentItem.updatedAt.millisecondsSinceEpoch !=
+            expectedUpdatedAt.millisecondsSinceEpoch) {
+      throw ShoppingItemConflictException(serverItem: currentItem);
+    }
 
-      final now = DateTime.now();
-      final updatedItem = currentItem.copyWith(
-        status: ShoppingItemStatus.bought,
-        updatedAt: now,
-      );
+    final now = DateTime.now();
+    final updatedItem = currentItem.copyWith(
+      status: ShoppingItemStatus.bought,
+      updatedAt: now,
+    );
 
-      transaction.update(itemRef, {
-        'status': ShoppingItemStatus.bought.name,
-        'updatedAt': updatedItem.updatedAt,
-      });
-
-      return updatedItem;
+    await itemRef.update({
+      'status': ShoppingItemStatus.bought.name,
+      'updatedAt': FieldValue.serverTimestamp(),
     });
+
+    return updatedItem;
   }
 }

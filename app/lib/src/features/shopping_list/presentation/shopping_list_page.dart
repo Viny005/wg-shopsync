@@ -199,21 +199,28 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
 
                   return Column(
                     children: [
-                      if (state.isFromCache)
+                      if (state.isFromCache && state.hasPendingWrites)
                         _buildStatusBanner(
-                          icon: Icons.cloud_off_outlined,
+                          icon: Icons.sync,
                           text:
-                              'Offline-Modus: Gespeicherte Daten werden angezeigt.',
-                          backgroundColor: Theme.of(context)
-                              .colorScheme
-                              .surfaceContainerHighest,
-                        ),
-                      if (state.hasPendingWrites)
+                              'Offline-Änderungen werden bei Verbindung synchronisiert.',
+                          backgroundColor:
+                              Theme.of(context).colorScheme.secondaryContainer,
+                        )
+                      else if (state.hasPendingWrites)
                         _buildStatusBanner(
                           icon: Icons.sync,
                           text: 'Lokale Änderungen werden synchronisiert...',
                           backgroundColor:
                               Theme.of(context).colorScheme.secondaryContainer,
+                        )
+                      else if (state.isFromCache)
+                        _buildStatusBanner(
+                          icon: Icons.cloud_done_outlined,
+                          text: 'Offline-Daten: Zwischengespeicherte Liste.',
+                          backgroundColor: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHighest,
                         ),
                       Expanded(
                         child: filteredItems.isEmpty
@@ -421,10 +428,37 @@ class _ShoppingListPageState extends State<ShoppingListPage> {
         child: const Icon(Icons.delete, color: Colors.white),
       ),
       confirmDismiss: (_) async {
-        return await _showDeleteConfirmationDialog(item);
+        final shouldDelete = await _showDeleteConfirmationDialog(item);
+        if (shouldDelete != true) return false;
+
+        try {
+          await _shoppingListService.deleteItem(
+            wgId: widget.wgId,
+            itemId: item.id,
+          );
+          return true;
+        } on ShoppingItemNotFoundException {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Der Artikel wurde bereits gelöscht.'),
+              ),
+            );
+          }
+          return true;
+        } catch (_) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Fehler beim Löschen des Artikels.'),
+              ),
+            );
+          }
+          return false;
+        }
       },
       onDismissed: (_) {
-        _deleteItemDirectly(item);
+        // Item was successfully deleted during confirmDismiss.
       },
       child: Card(
         margin: const EdgeInsets.symmetric(vertical: 4),

@@ -626,6 +626,98 @@ void main() {
       expect(service.lastDeletedItemId, 'item-1');
       expect(find.text('Keine Artikel auf der Einkaufsliste'), findsOneWidget);
     });
+
+    testWidgets(
+        'swiping item handles deletion failure safely without removing from tree',
+        (tester) async {
+      final item = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Reis',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+
+      final service = FakeShoppingListService(
+        initialItems: [item],
+        deleteItemError: Exception('Firestore error'),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(
+            wgId: 'wg-1',
+            wgName: 'WG Test',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.text('Reis'), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Löschen'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(service.deleteItemCalls, 1);
+      expect(
+        find.text('Fehler beim Löschen des Artikels.'),
+        findsOneWidget,
+      );
+      // Item must remain in tree and not cause Dismissible crash
+      expect(find.text('Reis'), findsOneWidget);
+    });
+
+    testWidgets(
+        'swiping item handles already-deleted case gracefully with SnackBar',
+        (tester) async {
+      final item = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Reis',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+
+      final service = FakeShoppingListService(
+        initialItems: [item],
+        deleteItemError: const ShoppingItemNotFoundException(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(
+            wgId: 'wg-1',
+            wgName: 'WG Test',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      await tester.drag(find.text('Reis'), const Offset(-500, 0));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Löschen'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(service.deleteItemCalls, 1);
+      expect(
+        find.text('Der Artikel wurde bereits gelöscht.'),
+        findsOneWidget,
+      );
+    });
   });
 
   group('Offline and pending sync indicators in ShoppingListPage', () {
@@ -658,7 +750,44 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('Offline-Modus: Gespeicherte Daten werden angezeigt.'),
+        find.text('Offline-Daten: Zwischengespeicherte Liste.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'shows offline pending sync banner when from cache with pending writes',
+        (tester) async {
+      final item = ShoppingItem(
+        id: '1',
+        wgId: 'wg-1',
+        name: 'Nudeln',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        createdAt: DateTime(2026, 9, 13),
+        updatedAt: DateTime(2026, 9, 13),
+      );
+      final service = FakeShoppingListService(
+        initialItems: [item],
+        isFromCache: true,
+        hasPendingWrites: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ShoppingListPage(
+            wgId: 'wg-1',
+            wgName: 'WG Test',
+            userId: 'user-1',
+            shoppingListService: service,
+          ),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Offline-Änderungen werden bei Verbindung synchronisiert.'),
         findsOneWidget,
       );
     });

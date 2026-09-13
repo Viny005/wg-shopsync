@@ -32,6 +32,8 @@ service cloud.firestore {
       return isMember(wgId)
         && request.resource.data.createdBy == request.auth.uid
         && request.resource.data.status == 'open'
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time
         && isValidShoppingItemData(request.resource.data, wgId);
     }
 
@@ -41,6 +43,7 @@ service cloud.firestore {
         && request.resource.data.wgId == resource.data.wgId
         && request.resource.data.createdBy == resource.data.createdBy
         && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.updatedAt == request.time
         && (
           (resource.data.status == 'open' && (request.resource.data.status == 'open' || request.resource.data.status == 'bought'))
           || (resource.data.status == 'bought' && request.resource.data.status == 'bought')
