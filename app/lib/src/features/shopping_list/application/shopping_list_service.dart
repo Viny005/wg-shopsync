@@ -238,47 +238,53 @@ class ShoppingListService {
         .collection('shoppingItems')
         .doc(trimmedItemId);
 
-    final snapshot = await itemRef.get();
-    if (!snapshot.exists || snapshot.data() == null) {
-      throw const ShoppingItemNotFoundException();
-    }
+    // Lesen und Schreiben laufen atomar in einer Transaktion, damit zwischen
+    // Prüfung und Schreiben keine unbemerkte Änderung eines anderen Mitglieds
+    // einfließen kann (UC-07 A2: Server-Datenstand darf nie still überschrieben werden).
+    return firestore.runTransaction<ShoppingItem>((transaction) async {
+      final snapshot = await transaction.get(itemRef);
+      if (!snapshot.exists || snapshot.data() == null) {
+        throw const ShoppingItemNotFoundException();
+      }
 
-    final serverData = snapshot.data()!;
-    final serverItem = ShoppingItem.fromMap(snapshot.id, serverData);
+      final serverData = snapshot.data()!;
+      final serverItem = ShoppingItem.fromMap(snapshot.id, serverData);
 
-    // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
-    // keine ungeschützte Aktualisierung auf Basis eines vorläufigen Stands erfolgt.
-    final serverUpdatedAt = serverItem.updatedAt;
-    if (serverUpdatedAt == null ||
-        serverUpdatedAt.millisecondsSinceEpoch !=
-            expectedUpdatedAt.millisecondsSinceEpoch) {
-      throw ShoppingItemConflictException(serverItem: serverItem);
-    }
+      // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
+      // keine ungeschützte Aktualisierung auf Basis eines vorläufigen Stands erfolgt.
+      final serverUpdatedAt = serverItem.updatedAt;
+      if (serverUpdatedAt == null ||
+          serverUpdatedAt.millisecondsSinceEpoch !=
+              expectedUpdatedAt.millisecondsSinceEpoch) {
+        throw ShoppingItemConflictException(serverItem: serverItem);
+      }
 
-    final now = DateTime.now();
-    final updatedItem = serverItem.copyWith(
-      name: trimmedName,
-      description: (trimmedDescription != null && trimmedDescription.isNotEmpty)
-          ? trimmedDescription
-          : null,
-      clearDescription:
-          trimmedDescription == null || trimmedDescription.isEmpty,
-      quantity: quantity,
-      clearQuantity: quantity == null,
-      category: category,
-      clearCategory: clearCategory || category == null,
-      updatedAt: now,
-    );
+      final now = DateTime.now();
+      final updatedItem = serverItem.copyWith(
+        name: trimmedName,
+        description:
+            (trimmedDescription != null && trimmedDescription.isNotEmpty)
+                ? trimmedDescription
+                : null,
+        clearDescription:
+            trimmedDescription == null || trimmedDescription.isEmpty,
+        quantity: quantity,
+        clearQuantity: quantity == null,
+        category: category,
+        clearCategory: clearCategory || category == null,
+        updatedAt: now,
+      );
 
-    await itemRef.update({
-      'name': updatedItem.name,
-      'description': updatedItem.description,
-      'quantity': updatedItem.quantity,
-      'category': updatedItem.category?.name,
-      'updatedAt': FieldValue.serverTimestamp(),
+      transaction.update(itemRef, {
+        'name': updatedItem.name,
+        'description': updatedItem.description,
+        'quantity': updatedItem.quantity,
+        'category': updatedItem.category?.name,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return updatedItem;
     });
-
-    return updatedItem;
   }
 
   Future<void> deleteItem({
@@ -330,39 +336,45 @@ class ShoppingListService {
         .collection('shoppingItems')
         .doc(trimmedItemId);
 
-    final snapshot = await itemRef.get();
-    if (!snapshot.exists || snapshot.data() == null) {
-      throw const ShoppingItemNotFoundException();
-    }
+    // Lesen und Schreiben laufen atomar in einer Transaktion, damit zwischen
+    // Prüfung und Schreiben keine unbemerkte Änderung eines anderen Mitglieds
+    // einfließen kann (UC-09 A2: bereits gekaufte/gelöschte/geänderte Artikel
+    // dürfen nicht still überschrieben werden).
+    return firestore.runTransaction<ShoppingItem>((transaction) async {
+      final snapshot = await transaction.get(itemRef);
+      if (!snapshot.exists || snapshot.data() == null) {
+        throw const ShoppingItemNotFoundException();
+      }
 
-    final serverData = snapshot.data()!;
-    final currentItem = ShoppingItem.fromMap(snapshot.id, serverData);
+      final serverData = snapshot.data()!;
+      final currentItem = ShoppingItem.fromMap(snapshot.id, serverData);
 
-    if (currentItem.status == ShoppingItemStatus.bought) {
-      throw const ShoppingItemAlreadyBoughtException();
-    }
+      if (currentItem.status == ShoppingItemStatus.bought) {
+        throw const ShoppingItemAlreadyBoughtException();
+      }
 
-    // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
-    // keine ungeschützte Statusänderung auf Basis eines vorläufigen Stands erfolgt.
-    final currentUpdatedAt = currentItem.updatedAt;
-    if (expectedUpdatedAt != null &&
-        (currentUpdatedAt == null ||
-            currentUpdatedAt.millisecondsSinceEpoch !=
-                expectedUpdatedAt.millisecondsSinceEpoch)) {
-      throw ShoppingItemConflictException(serverItem: currentItem);
-    }
+      // Ein noch nicht aufgelöster Server-Zeitstempel gilt als Konflikt, damit
+      // keine ungeschützte Statusänderung auf Basis eines vorläufigen Stands erfolgt.
+      final currentUpdatedAt = currentItem.updatedAt;
+      if (expectedUpdatedAt != null &&
+          (currentUpdatedAt == null ||
+              currentUpdatedAt.millisecondsSinceEpoch !=
+                  expectedUpdatedAt.millisecondsSinceEpoch)) {
+        throw ShoppingItemConflictException(serverItem: currentItem);
+      }
 
-    final now = DateTime.now();
-    final updatedItem = currentItem.copyWith(
-      status: ShoppingItemStatus.bought,
-      updatedAt: now,
-    );
+      final now = DateTime.now();
+      final updatedItem = currentItem.copyWith(
+        status: ShoppingItemStatus.bought,
+        updatedAt: now,
+      );
 
-    await itemRef.update({
-      'status': ShoppingItemStatus.bought.name,
-      'updatedAt': FieldValue.serverTimestamp(),
+      transaction.update(itemRef, {
+        'status': ShoppingItemStatus.bought.name,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      return updatedItem;
     });
-
-    return updatedItem;
   }
 }

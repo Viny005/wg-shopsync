@@ -394,6 +394,32 @@ void main() {
         throwsA(isA<ShoppingItemNotFoundException>()),
       );
     });
+
+    test(
+        'throws ShoppingItemConflictException instead of allowing an unsafe '
+        'status change while the server updatedAt is still unresolved '
+        '(pending)', () async {
+      final pendingItem = ShoppingItem(
+        id: 'item-1',
+        wgId: 'wg-1',
+        name: 'Butter',
+        status: ShoppingItemStatus.open,
+        createdBy: 'user-1',
+        // createdAt/updatedAt unresolved, wie in einem lokalen Pending-Snapshot
+        // unmittelbar nach addItem, bevor FieldValue.serverTimestamp() ankommt.
+      );
+
+      final service = FakeShoppingListService(initialItems: [pendingItem]);
+
+      expect(
+        () => service.markAsBought(
+          wgId: 'wg-1',
+          itemId: 'item-1',
+          expectedUpdatedAt: DateTime(2026, 9, 13, 10, 0),
+        ),
+        throwsA(isA<ShoppingItemConflictException>()),
+      );
+    });
   });
 
   group('ShoppingListService input validations', () {
