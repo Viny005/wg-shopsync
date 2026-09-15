@@ -295,7 +295,7 @@ class _ShoppingItemEditPageState extends State<ShoppingItemEditPage> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<ShoppingItemCategory?>(
-                      initialValue: _selectedCategory,
+                      value: _selectedCategory,
                       decoration: const InputDecoration(
                         labelText: 'Kategorie (optional)',
                       ),
