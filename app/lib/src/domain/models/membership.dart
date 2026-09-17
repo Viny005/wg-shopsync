@@ -36,7 +36,7 @@ class Membership {
   final String? displayName;
 
   /// Gibt den Anzeigenamen zurueck, oder 'Unbekanntes Mitglied' als Fallback.
-  String get displayLabel => 
+  String get displayLabel =>
     (displayName != null && displayName!.trim().isNotEmpty)
       ? displayName!
       : 'Unbekanntes Mitglied';
