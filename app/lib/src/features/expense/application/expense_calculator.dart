@@ -1,4 +1,4 @@
-﻿/// AF-01 - Kostenaufteilung berechnen
+/// AF-01 - Kostenaufteilung berechnen
 /// 
 /// Verteilt einen Betrag cent-genau auf eine Liste von Teilnehmern.
 /// Die Summe aller Anteile entspricht exakt dem Gesamtbetrag (BR-08).

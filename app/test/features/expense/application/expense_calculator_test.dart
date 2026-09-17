@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wg_shopsync/src/features/expense/domain/expense_calculator.dart';
+import 'package:wg_shopsync/src/features/expense/application/expense_calculator.dart';
 
 void main() {
   group('ExpenseCalculator.euroToCents', () {
