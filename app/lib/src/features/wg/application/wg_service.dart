@@ -381,6 +381,29 @@ class WgService {
     return memberIds;
   }
 
+  /// Laedt alle Memberships der WG fuer die Darstellung (z.B. UC-11).
+  /// Liefert Membership-Objekte inkl. displayLabel; sortiert nach userId.
+  Future<List<Membership>> loadWgMembers({
+    required String wgId,
+  }) async {
+    final trimmedWgId = wgId.trim();
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+
+    final snapshot = await firestore
+        .collection('wgs')
+        .doc(trimmedWgId)
+        .collection('memberships')
+        .get();
+
+    final members = snapshot.docs
+        .map((doc) => Membership.fromMap(doc.id, doc.data()))
+        .toList();
+    members.sort((a, b) => a.userId.compareTo(b.userId));
+    return members;
+  }
+
   Future<void> leaveWg({
     required String wgId,
     required String userId,
