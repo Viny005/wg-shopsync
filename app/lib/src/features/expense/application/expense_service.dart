@@ -81,7 +81,7 @@ class ExpenseService {
         .collection('wgs')
         .doc(wgId)
         .collection('expenses')
-        .doc();
+        .doc(expense.id);
 
     return activeFirestore.runTransaction<Expense>((transaction) async {
       final payerMembershipRef = activeFirestore

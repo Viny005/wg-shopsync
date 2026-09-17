@@ -160,6 +160,34 @@ void main() {
 
       expect(created.description, 'Einkauf');
     });
+
+    test('keeps the pre-generated expense identifier through persistence',
+        () async {
+      String? idSeenByPersistence;
+      final service = ExpenseService(
+        membershipChecker: (wgId, userId) async => true,
+        persistence: ({
+          required wgId,
+          required expense,
+          required shares,
+          required participantUserIds,
+        }) async {
+          idSeenByPersistence = expense.id;
+          return expense;
+        },
+      );
+
+      final created = await service.createExpense(
+        wgId: 'wg-1',
+        amount: 10,
+        description: 'Einkauf',
+        paidBy: 'user-1',
+        participantUserIds: ['user-1'],
+      );
+
+      expect(created.id, isNotEmpty);
+      expect(idSeenByPersistence, created.id);
+    });
   });
 
   group('UC-11: ExpenseService.createExpense membership validation', () {
