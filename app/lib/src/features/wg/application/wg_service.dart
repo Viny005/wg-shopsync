@@ -340,6 +340,25 @@ class WgService {
     );
   }
 
+  Future<List<String>> loadWgMemberIds({
+    required String wgId,
+  }) async {
+    final trimmedWgId = wgId.trim();
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+
+    final snapshot = await firestore
+        .collection('wgs')
+        .doc(trimmedWgId)
+        .collection('memberships')
+        .get();
+
+    final memberIds = snapshot.docs.map((doc) => doc.id).toList();
+    memberIds.sort();
+    return memberIds;
+  }
+
   Future<void> leaveWg({
     required String wgId,
     required String userId,
