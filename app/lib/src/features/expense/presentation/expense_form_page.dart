@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/validation/validators.dart';
 import '../../wg/application/wg_service.dart';
 import '../application/expense_service.dart';
+import '../../../domain/models/membership.dart';
 
 class ExpenseFormPage extends StatefulWidget {
   const ExpenseFormPage({
@@ -31,7 +32,7 @@ class _ExpenseFormPageState extends State<ExpenseFormPage> {
   final _amountController = TextEditingController();
   final _descriptionController = TextEditingController();
 
-  List<String> _memberIds = const [];
+  List<Membership> _members = const [];
   String? _selectedPayer;
   final Set<String> _selectedParticipants = <String>{};
   bool _isLoadingMembers = true;
@@ -50,25 +51,22 @@ class _ExpenseFormPageState extends State<ExpenseFormPage> {
     super.dispose();
   }
 
-  Future<void> _loadMembers() async {
+    Future<void> _loadMembers() async {
     try {
-      final memberIds = await _wgService.loadWgMemberIds(wgId: widget.wgId);
+      final members = await _wgService.loadWgMembers(wgId: widget.wgId);
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _memberIds = memberIds;
+        _members = members;
         _isLoadingMembers = false;
 
-        if (_memberIds.isNotEmpty) {
-          if (_memberIds.contains(widget.userId)) {
-            _selectedPayer = widget.userId;
-          } else {
-            _selectedPayer = _memberIds.first;
-          }
+        if (_members.isNotEmpty) {
+          final isMember = _members.any((m) => m.userId == widget.userId);
+          _selectedPayer = isMember ? widget.userId : _members.first.userId;
 
-          if (_selectedParticipants.isEmpty && _memberIds.contains(widget.userId)) {
+          if (_selectedParticipants.isEmpty && isMember) {
             _selectedParticipants.add(widget.userId);
           }
         }
@@ -183,7 +181,7 @@ class _ExpenseFormPageState extends State<ExpenseFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final canSubmit = !_isLoadingMembers && _memberIds.isNotEmpty;
+    final canSubmit = !_isLoadingMembers && _members.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -246,11 +244,11 @@ class _ExpenseFormPageState extends State<ExpenseFormPage> {
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
                         value: _selectedPayer,
-                        items: _memberIds
+                        items: _members
                             .map(
-                              (memberId) => DropdownMenuItem(
-                                value: memberId,
-                                child: Text(memberId),
+                              (member) => DropdownMenuItem<String>(
+                                value: member.userId,
+                                child: Text(member.displayLabel),
                               ),
                             )
                             .toList(),
@@ -275,20 +273,20 @@ class _ExpenseFormPageState extends State<ExpenseFormPage> {
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                       const SizedBox(height: 8),
-                      if (_memberIds.isEmpty)
+                      if (_members.isEmpty)
                         const Text('Keine Mitglieder verfügbar.')
                       else
-                        ..._memberIds.map(
-                          (memberId) => CheckboxListTile(
+                        ..._members.map(
+                          (member) => CheckboxListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: Text(memberId),
-                            value: _selectedParticipants.contains(memberId),
+                            title: Text(member.displayLabel),
+                            value: _selectedParticipants.contains(member.userId),
                             onChanged: (selected) {
                               setState(() {
                                 if (selected == true) {
-                                  _selectedParticipants.add(memberId);
+                                  _selectedParticipants.add(member.userId);
                                 } else {
-                                  _selectedParticipants.remove(memberId);
+                                  _selectedParticipants.remove(member.userId);
                                 }
                               });
                             },
