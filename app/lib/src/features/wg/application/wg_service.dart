@@ -1,4 +1,4 @@
-import 'dart:math';
+﻿import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -55,7 +55,23 @@ class WgService {
   static const String _inviteCodeCharacters =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
-  Future<WG> createWg({
+  /// Liest ausschliesslich das Feld `name` aus dem eigenen users/{uid}-Dokument
+  /// innerhalb einer Transaktion (Read vor Write). Nur der eigene Nutzer darf
+  /// sein Profil lesen; andere Profile bleiben privat.
+  Future<String?> _loadOwnDisplayName(
+    Transaction transaction,
+    String userId,
+  ) async {
+    final userSnapshot =
+        await transaction.get(firestore.collection('users').doc(userId));
+    final name = userSnapshot.data()?['name'];
+    if (name is String && name.trim().isNotEmpty) {
+      return name.trim();
+    }
+    return null;
+  }
+
+    Future<WG> createWg({
     required String name,
     required String userId,
   }) async {
@@ -93,12 +109,12 @@ class WgService {
       );
 
       final membership = Membership(
-        id: trimmedUserId,
-        userId: trimmedUserId,
-        wgId: wgRef.id,
-        role: MembershipRole.admin,
-        joinedAt: now,
-      );
+          id: trimmedUserId,
+          userId: trimmedUserId,
+          wgId: wgRef.id,
+          role: MembershipRole.admin,
+          joinedAt: now,
+       );
 
       final created = await firestore.runTransaction<bool>((transaction) async {
         final userMembershipSnapshot = await transaction.get(userMembershipRef);
@@ -112,6 +128,8 @@ class WgService {
         if (inviteCodeSnapshot.exists) {
           return false;
         }
+
+        final displayName = await _loadOwnDisplayName(transaction, trimmedUserId);
 
         transaction.set(
           inviteCodeRef,
@@ -128,7 +146,7 @@ class WgService {
 
         transaction.set(
           membershipRef,
-          membership.toMap(),
+          membership.copyWith(displayName: displayName).toMap(),
         );
 
         transaction.set(
@@ -204,7 +222,7 @@ class WgService {
   Future<WG> joinWg({
     required String inviteCode,
     required String userId,
-  }) async {
+    }) async {
     final normalizedCode = inviteCode.trim().toUpperCase();
     final trimmedUserId = userId.trim();
 
@@ -248,12 +266,16 @@ class WgService {
 
       final membershipRef = wgRef.collection('memberships').doc(trimmedUserId);
 
+      final displayName =
+        await _loadOwnDisplayName(transaction, trimmedUserId);
+
       final membership = Membership(
         id: trimmedUserId,
         userId: trimmedUserId,
         wgId: foundWgId,
         role: MembershipRole.member,
         joinedAt: DateTime.now(),
+        displayName: displayName,
       );
 
       transaction.set(
