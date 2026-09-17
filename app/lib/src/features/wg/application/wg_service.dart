@@ -353,13 +353,26 @@ class WgService {
     }
 
     final wg = WG.fromMap(wgSnapshot.id, wgData);
-    final membership =
+        final membership =
         Membership.fromMap(membershipSnapshot.id, membershipData);
+
+    // Self-Migration: eigene Membership ohne displayName nachtraeglich ergaenzen.
+    if (membership.displayName == null) {
+      final userSnapshot =
+          await firestore.collection('users').doc(trimmedUserId).get();
+      final name = userSnapshot.data()?['name'];
+      if (name is String && name.trim().isNotEmpty) {
+        await membershipSnapshot.reference.update({
+          'displayName': name.trim(),
+        });
+      }
+    }
 
     return CurrentWgContext(
       wg: wg,
       role: membership.role,
     );
+
   }
 
   Future<List<String>> loadWgMemberIds({
