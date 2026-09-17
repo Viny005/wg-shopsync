@@ -245,7 +245,7 @@ class _ExpenseFormPageState extends State<ExpenseFormPage> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        initialValue: _selectedPayer,
+                        value: _selectedPayer,
                         items: _memberIds
                             .map(
                               (memberId) => DropdownMenuItem(
