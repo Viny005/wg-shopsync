@@ -14,6 +14,31 @@ service cloud.firestore {
       return signedIn() && isUserMember(wgId, request.auth.uid);
     }
 
+        function isValidDisplayNameFor(userId, data) {
+      return !('displayName' in data)
+        || (
+          data.displayName is string
+          && data.displayName.size() >= 2
+          && data.displayName.size() <= 50
+          && data.displayName.matches('.*[^ \\t\\r\\n].*')
+          && get(/databases/$(database)/documents/users/$(userId)).data.name.trim() == data.displayName
+        );
+    }
+
+    function migratesOwnDisplayName(wgId, userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && resource.data.userId == userId
+        && resource.data.wgId == wgId
+        && !('displayName' in resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 50
+        && request.resource.data.displayName.matches('.*[^ \\t\\r\\n].*')
+        && get(/databases/$(database)/documents/users/$(userId)).data.name.trim() == request.resource.data.displayName;
+    }
+
     function isValidShoppingItemData(data, wgId) {
       return data.keys().hasOnly(['wgId', 'name', 'description', 'quantity', 'category', 'status', 'createdBy', 'createdAt', 'updatedAt'])
         && data.wgId == wgId
@@ -132,7 +157,8 @@ service cloud.firestore {
         && request.resource.data.role == 'admin'
         && !exists(/databases/$(database)/documents/wgs/$(wgId))
         && existsAfter(/databases/$(database)/documents/wgs/$(wgId))
-        && getAfter(/databases/$(database)/documents/wgs/$(wgId)).data.createdBy == request.auth.uid;
+        && getAfter(/databases/$(database)/documents/wgs/$(wgId)).data.createdBy == request.auth.uid
+        && isValidDisplayNameFor(userId, request.resource.data);
     }
 
     function createsOwnWgMemberMembership(wgId, userId) {
@@ -145,7 +171,8 @@ service cloud.firestore {
         && existsAfter(/databases/$(database)/documents/userMemberships/$(userId))
         && getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.wgId == wgId
         && getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode is string
-        && get(/databases/$(database)/documents/wgs/$(wgId)).data.inviteCode == getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode;
+        && get(/databases/$(database)/documents/wgs/$(wgId)).data.inviteCode == getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode
+        && isValidDisplayNameFor(userId, request.resource.data);
     }
 
     function deletesOwnUserMembership(userId) {
@@ -201,7 +228,7 @@ service cloud.firestore {
           createsOwnWgAdminMembership(wgId, userId)
           || createsOwnWgMemberMembership(wgId, userId)
         );
-      allow update: if false;
+      allow update: if migratesOwnDisplayName(wgId, userId);
       allow delete: if leavesWgAsMember(wgId, userId);
     }
 
