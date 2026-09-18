@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../wg/application/wg_service.dart';
 import '../../../domain/models/expense.dart';
 import '../application/expense_service.dart';
 import 'expense_form_page.dart';
@@ -11,12 +12,14 @@ class ExpenseOverviewPage extends StatefulWidget {
     required this.wgName,
     required this.userId,
     this.expenseService,
+    this.wgService,
   });
 
   final String wgId;
   final String wgName;
   final String userId;
   final ExpenseService? expenseService;
+  final WgService? wgService;
 
   @override
   State<ExpenseOverviewPage> createState() => _ExpenseOverviewPageState();
@@ -25,6 +28,8 @@ class ExpenseOverviewPage extends StatefulWidget {
 class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
   late final ExpenseService _expenseService =
       widget.expenseService ?? ExpenseService();
+  late final WgService _wgService = widget.wgService ?? WgService();
+  Map<String, String> _memberLabels = const {};    
 
   late Future<List<Expense>> _expensesFuture;
 
@@ -35,8 +40,15 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
   }
 
   Future<List<Expense>> _loadExpenses() async {
+    final members = await _wgService.loadWgMembers(wgId: widget.wgId);
+    _memberLabels = {
+      for (final member in members) member.userId: member.displayLabel,
+    };
     return _expenseService.getExpenses(wgId: widget.wgId);
   }
+
+  String _labelFor(String userId) =>
+      _memberLabels[userId] ?? 'Unbekanntes Mitglied';
 
   Future<void> _openAddExpense() async {
     final result = await Navigator.of(context).push<bool>(
@@ -129,7 +141,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
                 child: ListTile(
                   title: Text(expense.description),
                   subtitle: Text(
-                    '${expense.paidBy} • ${expense.amount.toStringAsFixed(2)} €',
+                    '${_labelFor(expense.paidBy)} • ${expense.amount.toStringAsFixed(2)} €',
                   ),
                   trailing: Text(
                     expense.createdAt.toLocal().toString().split(' ')[0],
