@@ -110,7 +110,7 @@ service cloud.firestore {
 
     function createsValidExpenseShare(wgId, expenseId) {
       return isMember(wgId)
-        && exists(/databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId))
+        && existsAfter(/databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId))
         && isValidExpenseShareData(request.resource.data, wgId, expenseId);
     }
 
