@@ -29,7 +29,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
   late final ExpenseService _expenseService =
       widget.expenseService ?? ExpenseService();
   late final WgService _wgService = widget.wgService ?? WgService();
-  Map<String, String> _memberLabels = const {};    
+  Map<String, String> _memberLabels = const {};
 
   late Future<List<Expense>> _expensesFuture;
 
