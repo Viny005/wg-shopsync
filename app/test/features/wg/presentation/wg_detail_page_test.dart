@@ -274,7 +274,7 @@ void main() {
       );
 
       await tester
-          .tap(find.widgetWithText(FilledButton, 'Einkaufsliste öffnen'));
+          .tap(find.text('Einkaufsliste öffnen'));
       await tester.pumpAndSettle();
 
       expect(find.byType(ShoppingListPage), findsOneWidget);
@@ -302,7 +302,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Ausgaben öffnen'));
+      await tester.tap(find.text('Ausgaben öffnen'));
       await tester.pumpAndSettle();
 
       expect(find.byType(ExpenseOverviewPage), findsOneWidget);

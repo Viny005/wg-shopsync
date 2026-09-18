@@ -29,8 +29,10 @@ void main() {
           findsOneWidget);
       expect(find.widgetWithText(TextFormField, 'Beschreibung (optional)'),
           findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Artikel hinzufügen'),
-          findsOneWidget);
+      expect(
+        find.widgetWithText(FilledButton, 'Artikel hinzufügen'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('does not show example placeholder hints in add mode',
@@ -259,9 +261,9 @@ void main() {
       expect(find.text('Tomaten'), findsOneWidget);
       expect(find.text('Rispentomaten'), findsOneWidget);
       expect(find.text('5'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'Änderungen speichern'),
+      expect(find.text('Änderungen speichern'),
           findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, 'Artikel löschen'),
+      expect(find.text('Artikel löschen'),
           findsOneWidget);
     });
 
@@ -304,8 +306,12 @@ void main() {
         find.widgetWithText(TextFormField, 'Artikelname *'),
         '',
       );
-      await tester
-          .tap(find.widgetWithText(FilledButton, 'Änderungen speichern'));
+      await tester.tap(
+          find.ancestor(
+            of: find.text('Änderungen speichern'),
+            matching: find.byType(FilledButton),
+          ),
+        );
       await tester.pump();
 
       expect(find.text('Bitte gib einen Artikelnamen ein.'), findsOneWidget);
@@ -351,7 +357,7 @@ void main() {
       );
 
       await tester
-          .tap(find.widgetWithText(FilledButton, 'Änderungen speichern'));
+          .tap(find.text('Änderungen speichern'));
       await tester.pumpAndSettle();
 
       expect(service.updateItemCalls, 1);
@@ -384,7 +390,7 @@ void main() {
         'Geänderte Tomaten',
       );
       await tester
-          .tap(find.widgetWithText(FilledButton, 'Änderungen speichern'));
+          .tap(find.text('Änderungen speichern'));
       await tester.pumpAndSettle();
 
       expect(find.text('Konflikt erkannt'), findsOneWidget);
@@ -428,7 +434,7 @@ void main() {
         'Bio-Tomaten',
       );
       await tester
-          .tap(find.widgetWithText(FilledButton, 'Änderungen speichern'));
+          .tap(find.text('Änderungen speichern'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -444,7 +450,10 @@ void main() {
       expect(
         tester
             .widget<FilledButton>(
-              find.widgetWithText(FilledButton, 'Änderungen speichern'),
+              find.ancestor(
+               of: find.text('Änderungen speichern'),
+               matching: find.byType(FilledButton),
+            ),
             )
             .onPressed,
         isNotNull,
@@ -468,7 +477,7 @@ void main() {
       );
 
       await tester
-          .tap(find.widgetWithText(FilledButton, 'Änderungen speichern'));
+          .tap(find.text('Änderungen speichern'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -505,7 +514,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Artikel löschen'));
+      await tester.tap(find.text('Artikel löschen'));
       await tester.pumpAndSettle();
 
       expect(find.text('Artikel löschen?'), findsOneWidget);
@@ -550,10 +559,10 @@ void main() {
       await tester.tap(find.text('Open Edit'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(OutlinedButton, 'Artikel löschen'));
+      await tester.tap(find.text('Artikel löschen'));
       await tester.pumpAndSettle();
 
-      await tester.tap(find.widgetWithText(FilledButton, 'Löschen'));
+      await tester.tap(find.text('Löschen'));
       await tester.pumpAndSettle();
 
       expect(service.deleteItemCalls, 1);
