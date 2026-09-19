@@ -80,24 +80,39 @@ service cloud.firestore {
 
     // UC-11 – Ausgabe erfassen.
     function isValidExpenseData(data, wgId) {
-      return data.keys().hasOnly(['wgId', 'amount', 'description', 'paidBy', 'shoppingItemId', 'receiptUrl', 'createdAt'])
-        && data.wgId == wgId
-        && data.amount is number
-        && data.amount > 0
-        && data.description is string
-        && data.description.matches('.*[^ \\t\\r\\n].*')
-        && data.paidBy is string
-        && isUserMember(wgId, data.paidBy)
-        && (!('shoppingItemId' in data) || data.shoppingItemId == null || data.shoppingItemId is string)
-        && (!('receiptUrl' in data) || data.receiptUrl == null || data.receiptUrl is string)
-        && data.createdAt is timestamp;
-    }
+  return data.keys().hasOnly(['wgId', 'amount', 'description', 'paidBy', 'shoppingItemId', 'receiptUrl', 'createdAt', 'updatedAt'])
+    && data.wgId == wgId
+    && data.amount is number
+    && data.amount > 0
+    && data.description is string
+    && data.description.matches('.*[^ \\t\\r\\n].*')
+    && data.paidBy is string
+    && isUserMember(wgId, data.paidBy)
+    && (!('shoppingItemId' in data) || data.shoppingItemId == null || data.shoppingItemId is string)
+    && (!('receiptUrl' in data) || data.receiptUrl == null || data.receiptUrl is string)
+    && data.createdAt is timestamp
+    && (!('updatedAt' in data) || data.updatedAt is timestamp);
+}
 
-    function createsValidExpense(wgId) {
-      return isMember(wgId)
-        && request.resource.data.createdAt == request.time
-        && isValidExpenseData(request.resource.data, wgId);
-    }
+function createsValidExpense(wgId) {
+  return isMember(wgId)
+    && request.resource.data.createdAt == request.time
+    && request.resource.data.updatedAt == request.time
+    && isValidExpenseData(request.resource.data, wgId);
+}
+
+// UC-12 – Ausgabe bearbeiten: Betrag, Beschreibung und Zahler duerfen sich
+// aendern; wgId, createdAt, shoppingItemId und receiptUrl bleiben unveraendert.
+function updatesValidExpense(wgId, expenseId) {
+  return isMember(wgId)
+    && request.resource.data.wgId == resource.data.wgId
+    && request.resource.data.createdAt == resource.data.createdAt
+    && request.resource.data.shoppingItemId == resource.data.shoppingItemId
+    && request.resource.data.receiptUrl == resource.data.receiptUrl
+    && request.resource.data.updatedAt == request.time
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['amount', 'description', 'paidBy', 'updatedAt'])
+    && isValidExpenseData(request.resource.data, wgId);
+}
 
     function isValidExpenseShareData(data, wgId, expenseId) {
       return data.keys().hasOnly(['expenseId', 'userId', 'shareAmount'])
@@ -113,6 +128,17 @@ service cloud.firestore {
         && existsAfter(/databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId))
         && isValidExpenseShareData(request.resource.data, wgId, expenseId);
     }
+
+    // UC-12 loescht bestehende ExpenseShares nur im selben atomaren Vorgang,
+    // in dem auch die zugehoerige Parent-Expense aktualisiert wird
+    // (updatedAt == request.time). Ein isoliertes Loeschen einzelner Shares
+    // ausserhalb einer Expense-Aktualisierung bleibt damit ausgeschlossen.
+    function deletesValidExpenseShare(wgId, expenseId) {
+      return isMember(wgId)
+      && resource.data.expenseId == expenseId
+      && existsAfter(/databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId))
+      && getAfter(/databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId)).data.updatedAt == request.time;
+}
 
     function createsWgWithReservedInviteCode(wgId) {
       return signedIn()
@@ -245,14 +271,16 @@ service cloud.firestore {
     match /wgs/{wgId}/expenses/{expenseId} {
       allow read: if isMember(wgId);
       allow create: if signedIn() && createsValidExpense(wgId);
-      allow update, delete: if false;
-    }
+      allow update: if signedIn() && updatesValidExpense(wgId, expenseId);
+      allow delete: if false;
+}
 
     match /wgs/{wgId}/expenses/{expenseId}/expenseShares/{shareId} {
       allow read: if isMember(wgId);
       allow create: if signedIn() && createsValidExpenseShare(wgId, expenseId);
-      allow update, delete: if false;
-    }
+      allow delete: if signedIn() && deletesValidExpenseShare(wgId, expenseId);
+      allow update: if false;
+}
 
     match /wgs/{wgId}/debts/{debtId} {
       allow read: if false;
