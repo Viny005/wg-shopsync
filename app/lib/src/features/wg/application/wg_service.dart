@@ -1,4 +1,4 @@
-import 'dart:math';
+﻿import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -55,7 +55,23 @@ class WgService {
   static const String _inviteCodeCharacters =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
-  Future<WG> createWg({
+  /// Liest ausschliesslich das Feld `name` aus dem eigenen users/{uid}-Dokument
+  /// innerhalb einer Transaktion (Read vor Write). Nur der eigene Nutzer darf
+  /// sein Profil lesen; andere Profile bleiben privat.
+  Future<String?> _loadOwnDisplayName(
+    Transaction transaction,
+    String userId,
+  ) async {
+    final userSnapshot =
+        await transaction.get(firestore.collection('users').doc(userId));
+    final name = userSnapshot.data()?['name'];
+    if (name is String && name.trim().isNotEmpty) {
+      return name.trim();
+    }
+    return null;
+  }
+
+    Future<WG> createWg({
     required String name,
     required String userId,
   }) async {
@@ -93,12 +109,12 @@ class WgService {
       );
 
       final membership = Membership(
-        id: trimmedUserId,
-        userId: trimmedUserId,
-        wgId: wgRef.id,
-        role: MembershipRole.admin,
-        joinedAt: now,
-      );
+          id: trimmedUserId,
+          userId: trimmedUserId,
+          wgId: wgRef.id,
+          role: MembershipRole.admin,
+          joinedAt: now,
+       );
 
       final created = await firestore.runTransaction<bool>((transaction) async {
         final userMembershipSnapshot = await transaction.get(userMembershipRef);
@@ -112,6 +128,8 @@ class WgService {
         if (inviteCodeSnapshot.exists) {
           return false;
         }
+
+        final displayName = await _loadOwnDisplayName(transaction, trimmedUserId);
 
         transaction.set(
           inviteCodeRef,
@@ -128,7 +146,7 @@ class WgService {
 
         transaction.set(
           membershipRef,
-          membership.toMap(),
+          membership.copyWith(displayName: displayName).toMap(),
         );
 
         transaction.set(
@@ -204,7 +222,7 @@ class WgService {
   Future<WG> joinWg({
     required String inviteCode,
     required String userId,
-  }) async {
+    }) async {
     final normalizedCode = inviteCode.trim().toUpperCase();
     final trimmedUserId = userId.trim();
 
@@ -248,12 +266,16 @@ class WgService {
 
       final membershipRef = wgRef.collection('memberships').doc(trimmedUserId);
 
+      final displayName =
+        await _loadOwnDisplayName(transaction, trimmedUserId);
+
       final membership = Membership(
         id: trimmedUserId,
         userId: trimmedUserId,
         wgId: foundWgId,
         role: MembershipRole.member,
         joinedAt: DateTime.now(),
+        displayName: displayName,
       );
 
       transaction.set(
@@ -331,13 +353,68 @@ class WgService {
     }
 
     final wg = WG.fromMap(wgSnapshot.id, wgData);
-    final membership =
+        final membership =
         Membership.fromMap(membershipSnapshot.id, membershipData);
+
+    // Self-Migration: eigene Membership ohne displayName nachtraeglich ergaenzen.
+    if (membership.displayName == null) {
+      final userSnapshot =
+          await firestore.collection('users').doc(trimmedUserId).get();
+      final name = userSnapshot.data()?['name'];
+      if (name is String && name.trim().isNotEmpty) {
+        await membershipSnapshot.reference.update({
+          'displayName': name.trim(),
+        });
+      }
+    }
 
     return CurrentWgContext(
       wg: wg,
       role: membership.role,
     );
+
+  }
+
+  Future<List<String>> loadWgMemberIds({
+    required String wgId,
+  }) async {
+    final trimmedWgId = wgId.trim();
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+
+    final snapshot = await firestore
+        .collection('wgs')
+        .doc(trimmedWgId)
+        .collection('memberships')
+        .get();
+
+    final memberIds = snapshot.docs.map((doc) => doc.id).toList();
+    memberIds.sort();
+    return memberIds;
+  }
+
+  /// Laedt alle Memberships der WG fuer die Darstellung (z.B. UC-11).
+  /// Liefert Membership-Objekte inkl. displayLabel; sortiert nach userId.
+  Future<List<Membership>> loadWgMembers({
+    required String wgId,
+  }) async {
+    final trimmedWgId = wgId.trim();
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+
+    final snapshot = await firestore
+        .collection('wgs')
+        .doc(trimmedWgId)
+        .collection('memberships')
+        .get();
+
+    final members = snapshot.docs
+        .map((doc) => Membership.fromMap(doc.id, doc.data()))
+        .toList();
+    members.sort((a, b) => a.userId.compareTo(b.userId));
+    return members;
   }
 
   Future<void> leaveWg({

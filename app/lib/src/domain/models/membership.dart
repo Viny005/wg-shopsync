@@ -1,4 +1,4 @@
-import '../../core/utils/firestore_converters.dart';
+﻿import '../../core/utils/firestore_converters.dart';
 
 /// Rolle eines Mitglieds innerhalb einer WG (siehe D2.8 Mitgliedsrolle).
 enum MembershipRole {
@@ -14,6 +14,8 @@ enum MembershipRole {
 }
 
 /// Verbindet einen [User] mit einer [WG] und speichert dessen Rolle (siehe D1.4).
+/// Das Feld [displayName] ist optional fuer Rueckwaertskompatibilitaet
+/// mit bestehenden Memberships ohne dieses Feld.
 class Membership {
   const Membership({
     required this.id,
@@ -21,6 +23,7 @@ class Membership {
     required this.wgId,
     required this.role,
     required this.joinedAt,
+    this.displayName,
   });
 
   final String id;
@@ -29,6 +32,15 @@ class Membership {
   final MembershipRole role;
   final DateTime joinedAt;
 
+  /// Anzeigename des Mitglieds. Optional fuer alte Dokumente ohne dieses Feld.
+  final String? displayName;
+
+  /// Gibt den Anzeigenamen zurueck, oder 'Unbekanntes Mitglied' als Fallback.
+  String get displayLabel =>
+    (displayName != null && displayName!.trim().isNotEmpty)
+      ? displayName!
+      : 'Unbekanntes Mitglied';
+
   factory Membership.fromMap(String id, Map<String, dynamic> data) {
     return Membership(
       id: id,
@@ -36,6 +48,7 @@ class Membership {
       wgId: data['wgId'] as String,
       role: MembershipRole.fromValue(data['role'] as String),
       joinedAt: dateTimeFromFirestore(data['joinedAt']),
+      displayName: data['displayName'] as String?,
     );
   }
 
@@ -45,6 +58,18 @@ class Membership {
       'wgId': wgId,
       'role': role.name,
       'joinedAt': joinedAt,
+      if (displayName != null) 'displayName': displayName,
     };
+  }
+
+  Membership copyWith({String? displayName}) {
+    return Membership(
+      id: id,
+      userId: userId,
+      wgId: wgId,
+      role: role,
+      joinedAt: joinedAt,
+      displayName: displayName ?? this.displayName,
+    );
   }
 }

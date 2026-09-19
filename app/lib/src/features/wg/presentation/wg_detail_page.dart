@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../domain/models/wg.dart';
 import '../../../domain/models/membership.dart';
+import '../../expense/presentation/expense_overview_page.dart';
 import '../../shopping_list/application/shopping_list_service.dart';
 import '../../shopping_list/presentation/shopping_list_page.dart';
 import '../application/wg_service.dart';
@@ -138,6 +139,22 @@ class _WgDetailPageState extends State<WgDetailPage> {
                 },
                 icon: const Icon(Icons.shopping_cart),
                 label: const Text('Einkaufsliste öffnen'),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => ExpenseOverviewPage(
+                        wgId: widget.wg.id,
+                        wgName: widget.wg.name,
+                        userId: widget.userId,
+                      ),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.receipt_long),
+                label: const Text('Ausgaben öffnen'),
               ),
               const Spacer(),
               OutlinedButton(

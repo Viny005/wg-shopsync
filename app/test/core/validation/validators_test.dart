@@ -47,4 +47,24 @@ void main() {
       expect(Validators.userName('a' * 51), isNotNull);
     });
   });
+
+  group('expenseAmount', () {
+    test('accepts positive amounts with at most two decimal places', () {
+      expect(Validators.expenseAmount(10.00), isNull);
+      expect(Validators.expenseAmount(10.10), isNull);
+      expect(Validators.expenseAmount(0.01), isNull);
+      expect(Validators.expenseAmount(12.99), isNull);
+    });
+
+    test('rejects amounts with more than two decimal places', () {
+      expect(Validators.expenseAmount(10.001), isNotNull);
+      expect(Validators.expenseAmount(12.999), isNotNull);
+    });
+
+    test('rejects null, zero and negative amounts', () {
+      expect(Validators.expenseAmount(null), isNotNull);
+      expect(Validators.expenseAmount(0), isNotNull);
+      expect(Validators.expenseAmount(-5), isNotNull);
+    });
+  });
 }

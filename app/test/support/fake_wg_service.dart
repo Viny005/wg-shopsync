@@ -1,4 +1,5 @@
 import 'package:wg_shopsync/src/features/wg/application/wg_service.dart';
+import 'package:wg_shopsync/src/domain/models/membership.dart';
 
 class FakeWgService extends WgService {
   FakeWgService({
@@ -11,6 +12,8 @@ class FakeWgService extends WgService {
   CurrentWgContext? currentContext;
   final List<CurrentWgContext?>? _contextSequence;
   Object? leaveWgError;
+  List<Membership> members = const [];
+  int loadWgMembersCalls = 0;
 
   int loadCurrentWgCalls = 0;
   int leaveWgCalls = 0;
@@ -39,5 +42,12 @@ class FakeWgService extends WgService {
     if (leaveWgError != null) {
       throw leaveWgError!;
     }
+  }
+  @override
+  Future<List<Membership>> loadWgMembers({
+    required String wgId,
+  }) async {
+    loadWgMembersCalls++;
+    return members;
   }
 }

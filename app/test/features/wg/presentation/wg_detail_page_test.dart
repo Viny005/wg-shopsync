@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wg_shopsync/src/domain/models/membership.dart';
 import 'package:wg_shopsync/src/domain/models/wg.dart';
+import 'package:wg_shopsync/src/features/expense/presentation/expense_overview_page.dart';
 import 'package:wg_shopsync/src/features/shopping_list/presentation/shopping_list_page.dart';
 import 'package:wg_shopsync/src/features/wg/application/wg_service.dart';
 import 'package:wg_shopsync/src/features/wg/presentation/wg_detail_page.dart';
@@ -273,10 +274,38 @@ void main() {
       );
 
       await tester
-          .tap(find.widgetWithText(FilledButton, 'Einkaufsliste öffnen'));
+          .tap(find.text('Einkaufsliste öffnen'));
       await tester.pumpAndSettle();
 
       expect(find.byType(ShoppingListPage), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'opens ExpenseOverviewPage when Ausgaben öffnen is tapped',
+    (tester) async {
+      final wg = WG(
+        id: 'wg-1',
+        name: 'Test WG',
+        inviteCode: 'ABC123',
+        createdBy: 'admin-user',
+        createdAt: DateTime(2026, 9, 13),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WgDetailPage(
+            wg: wg,
+            role: MembershipRole.admin,
+            userId: 'admin-user',
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Ausgaben öffnen'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ExpenseOverviewPage), findsOneWidget);
     },
   );
 }

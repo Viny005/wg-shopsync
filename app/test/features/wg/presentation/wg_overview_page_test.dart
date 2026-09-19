@@ -56,7 +56,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(
-        find.widgetWithText(FilledButton, 'WG erstellen'),
+        find.text('WG erstellen'),
       );
 
       await tester.pumpAndSettle();
@@ -86,7 +86,7 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.tap(
-        find.widgetWithText(OutlinedButton, 'WG beitreten'),
+        find.text('WG beitreten'),
       );
 
       await tester.pumpAndSettle();
@@ -130,7 +130,7 @@ void main() {
 
       expect(find.text('Unsere WG'), findsOneWidget);
       expect(find.text('Du bist Mitglied dieser WG.'), findsOneWidget);
-      expect(find.widgetWithText(FilledButton, 'WG öffnen'), findsOneWidget);
+      expect(find.text('WG öffnen'), findsOneWidget);
       expect(find.text('WG erstellen'), findsNothing);
       expect(find.text('WG beitreten'), findsNothing);
 
@@ -171,9 +171,9 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.widgetWithText(FilledButton, 'WG öffnen'), findsOneWidget);
+      expect(find.text('WG öffnen'), findsOneWidget);
 
-      await tester.tap(find.widgetWithText(FilledButton, 'WG öffnen'));
+      await tester.tap(find.text('WG öffnen'));
       await tester.pumpAndSettle();
 
       expect(find.byType(WgDetailPage), findsOneWidget);

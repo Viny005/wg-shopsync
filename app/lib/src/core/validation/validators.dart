@@ -92,10 +92,14 @@ class Validators {
     return null;
   }
 
-  /// Ausgabebetrag: größer als 0.
+  /// Ausgabebetrag: endlich, größer als 0 und höchstens zwei Nachkommastellen.
   static String? expenseAmount(double? value) {
-    if (value == null || value <= 0) {
+    if (value == null || !value.isFinite || value <= 0) {
       return 'Der Betrag muss groesser als 0 sein.';
+    }
+    final cents = value * 100;
+    if ((cents - cents.roundToDouble()).abs() > 1e-9) {
+      return 'Der Betrag darf hoechstens zwei Nachkommastellen haben.';
     }
     return null;
   }

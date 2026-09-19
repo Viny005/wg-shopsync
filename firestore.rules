@@ -6,9 +6,37 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isUserMember(wgId, userId) {
+      return exists(/databases/$(database)/documents/wgs/$(wgId)/memberships/$(userId));
+    }
+
     function isMember(wgId) {
+      return signedIn() && isUserMember(wgId, request.auth.uid);
+    }
+
+        function isValidDisplayNameFor(userId, data) {
+      return !('displayName' in data)
+        || (
+          data.displayName is string
+          && data.displayName.size() >= 2
+          && data.displayName.size() <= 50
+          && data.displayName.matches('.*[^ \\t\\r\\n].*')
+          && get(/databases/$(database)/documents/users/$(userId)).data.name.trim() == data.displayName
+        );
+    }
+
+    function migratesOwnDisplayName(wgId, userId) {
       return signedIn()
-        && exists(/databases/$(database)/documents/wgs/$(wgId)/memberships/$(request.auth.uid));
+        && request.auth.uid == userId
+        && resource.data.userId == userId
+        && resource.data.wgId == wgId
+        && !('displayName' in resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName'])
+        && request.resource.data.displayName is string
+        && request.resource.data.displayName.size() >= 2
+        && request.resource.data.displayName.size() <= 50
+        && request.resource.data.displayName.matches('.*[^ \\t\\r\\n].*')
+        && get(/databases/$(database)/documents/users/$(userId)).data.name.trim() == request.resource.data.displayName;
     }
 
     function isValidShoppingItemData(data, wgId) {
@@ -49,6 +77,43 @@ service cloud.firestore {
           || (resource.data.status == 'bought' && request.resource.data.status == 'bought')
         );
     }
+
+    // UC-11 – Ausgabe erfassen.
+    function isValidExpenseData(data, wgId) {
+      return data.keys().hasOnly(['wgId', 'amount', 'description', 'paidBy', 'shoppingItemId', 'receiptUrl', 'createdAt'])
+        && data.wgId == wgId
+        && data.amount is number
+        && data.amount > 0
+        && data.description is string
+        && data.description.matches('.*[^ \\t\\r\\n].*')
+        && data.paidBy is string
+        && isUserMember(wgId, data.paidBy)
+        && (!('shoppingItemId' in data) || data.shoppingItemId == null || data.shoppingItemId is string)
+        && (!('receiptUrl' in data) || data.receiptUrl == null || data.receiptUrl is string)
+        && data.createdAt is timestamp;
+    }
+
+    function createsValidExpense(wgId) {
+      return isMember(wgId)
+        && request.resource.data.createdAt == request.time
+        && isValidExpenseData(request.resource.data, wgId);
+    }
+
+    function isValidExpenseShareData(data, wgId, expenseId) {
+      return data.keys().hasOnly(['expenseId', 'userId', 'shareAmount'])
+        && data.expenseId == expenseId
+        && data.userId is string
+        && isUserMember(wgId, data.userId)
+        && data.shareAmount is number
+        && data.shareAmount >= 0;
+    }
+
+    function createsValidExpenseShare(wgId, expenseId) {
+      return isMember(wgId)
+        && existsAfter(/databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId))
+        && isValidExpenseShareData(request.resource.data, wgId, expenseId);
+    }
+
     function createsWgWithReservedInviteCode(wgId) {
       return signedIn()
         && request.resource.data.createdBy == request.auth.uid
@@ -92,7 +157,8 @@ service cloud.firestore {
         && request.resource.data.role == 'admin'
         && !exists(/databases/$(database)/documents/wgs/$(wgId))
         && existsAfter(/databases/$(database)/documents/wgs/$(wgId))
-        && getAfter(/databases/$(database)/documents/wgs/$(wgId)).data.createdBy == request.auth.uid;
+        && getAfter(/databases/$(database)/documents/wgs/$(wgId)).data.createdBy == request.auth.uid
+        && isValidDisplayNameFor(userId, request.resource.data);
     }
 
     function createsOwnWgMemberMembership(wgId, userId) {
@@ -105,7 +171,8 @@ service cloud.firestore {
         && existsAfter(/databases/$(database)/documents/userMemberships/$(userId))
         && getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.wgId == wgId
         && getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode is string
-        && get(/databases/$(database)/documents/wgs/$(wgId)).data.inviteCode == getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode;
+        && get(/databases/$(database)/documents/wgs/$(wgId)).data.inviteCode == getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode
+        && isValidDisplayNameFor(userId, request.resource.data);
     }
 
     function deletesOwnUserMembership(userId) {
@@ -161,7 +228,7 @@ service cloud.firestore {
           createsOwnWgAdminMembership(wgId, userId)
           || createsOwnWgMemberMembership(wgId, userId)
         );
-      allow update: if false;
+      allow update: if migratesOwnDisplayName(wgId, userId);
       allow delete: if leavesWgAsMember(wgId, userId);
     }
 
@@ -172,17 +239,25 @@ service cloud.firestore {
       allow delete: if isMember(wgId);
     }
 
-    // Subcollections for UC-11..16 are denied by default until respective UCs are implemented.
+    // UC-11 – Ausgabe erfassen: nur das Anlegen ist freigeschaltet. Lesen wird
+    // für den Screen ebenfalls nur WG-Mitgliedern erlaubt; spätere UC-12..UC-16
+    // bleiben weiterhin gesperrt.
     match /wgs/{wgId}/expenses/{expenseId} {
-      allow read, write: if false;
+      allow read: if isMember(wgId);
+      allow create: if signedIn() && createsValidExpense(wgId);
+      allow update, delete: if false;
     }
 
     match /wgs/{wgId}/expenses/{expenseId}/expenseShares/{shareId} {
-      allow read, write: if false;
+      allow read: if isMember(wgId);
+      allow create: if signedIn() && createsValidExpenseShare(wgId, expenseId);
+      allow update, delete: if false;
     }
 
     match /wgs/{wgId}/debts/{debtId} {
-      allow read, write: if false;
+      allow read: if false;
+      allow create: if false;
+      allow update, delete: if false;
     }
   }
 }
