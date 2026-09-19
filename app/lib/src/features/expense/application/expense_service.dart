@@ -409,9 +409,10 @@ class ExpenseService {
   /// (AF-01, siehe [ExpenseCalculator]) und der dafür erforderlichen
   /// ExpenseShares.
   ///
-  /// Keine Debt-Entitäten werden im Rahmen von UC-11 erstellt; die Operation
-  /// bleibt atomar innerhalb derselben Firestore-Transaktion und speichert nur
-  /// Expense + ExpenseShares.
+  /// Erzeugt zusätzlich die Debt-Deltas für UC-13 (siehe DebtDeltaCalculator
+  /// und _applyDebtDelta). Die Operation bleibt atomar innerhalb derselben
+  /// Firestore-Transaktion und speichert Expense, ExpenseShares und die
+  /// betroffenen Debt-Dokumente gemeinsam.
   Future<Expense> createExpense({
     required String wgId,
     required double amount,
