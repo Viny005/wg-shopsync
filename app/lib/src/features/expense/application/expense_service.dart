@@ -5,6 +5,7 @@ import '../../../core/network/network_connectivity.dart';
 import '../../../core/validation/validators.dart';
 import '../../../domain/models/expense.dart';
 import '../../../domain/models/expense_share.dart';
+import '../../../domain/models/debt.dart';
 import 'expense_calculator.dart';
 
 /// Wird geworfen, wenn der angegebene Zahler kein Mitglied der WG ist.
@@ -204,7 +205,100 @@ class ExpenseService {
         transaction.set(shareRef, share.toMap());
       }
 
+      for (final participantId in participantUserIds) {
+        if (participantId == expense.paidBy) {
+          continue;
+        }
+        await _applyDebtDelta(
+          transaction: transaction,
+          firestore: activeFirestore,
+          wgId: wgId,
+          creditorId: expense.paidBy,
+          debtorId: participantId,
+          deltaAmountInEuro: shares[participantId]!,
+        );
+      }
+
       return expense;
+    });
+  }
+
+  /// UC-13 – Kosten aufteilen (AF-06 Saldo berechnen).
+  ///
+  /// Design-Entscheidung: Debt besitzt laut D1.8 keinen Verweis auf die
+  /// ausloesende Expense (kein expenseId-Feld). Statt einer Debt pro
+  /// Expense-Teilnehmer-Paar wird daher EIN aggregiertes Netto-Debt pro
+  /// gerichtetem Schuldner-Glaeubiger-Paar gefuehrt (ID = creditorId_debtorId).
+  /// Jede Expense-Erstellung/-Aenderung addiert bzw. subtrahiert die
+  /// Differenz des jeweiligen ExpenseShare-Betrags auf dieses eine Dokument,
+  /// statt eine neue Debt pro Ausgabe anzulegen. Das entspricht AF-06
+  /// ("Der Saldo zeigt, wer Geld erhaelt und wer Geld schuldet") und bleibt
+  /// mit dem in D1.8 vorgegebenen Attributsatz kompatibel.
+  ///
+  /// Wird innerhalb derselben Transaktion wie das Expense/ExpenseShare-
+  /// Schreiben aufgerufen (Read vor Write, siehe A08 8.3). [deltaAmount]
+  /// ist der zu addierende Betrag in Euro; negative Werte reduzieren eine
+  /// bestehende Schuld (z.B. bei UC-12, wenn ein Anteil sinkt oder ein
+  /// Teilnehmer entfernt wird).
+  ///
+  /// Sinkt der Betrag auf 0 oder darunter, wird die Debt nicht geloescht,
+  /// sondern auf 0 gesetzt und bleibt mit status 'open' bestehen. Ein
+  /// Loeschen wuerde die Historie verlieren; UC-15 (Schuld als bezahlt
+  /// markieren) ist ohnehin ausserhalb dieses Scopes und bleibt unberuehrt.
+  Future<void> _applyDebtDelta({
+    required Transaction transaction,
+    required FirebaseFirestore firestore,
+    required String wgId,
+    required String creditorId,
+    required String debtorId,
+    required double deltaAmountInEuro,
+  }) async {
+    if (creditorId == debtorId || deltaAmountInEuro == 0) {
+      return;
+    }
+
+    final debtRef = firestore
+        .collection('wgs')
+        .doc(wgId)
+        .collection('debts')
+        .doc('${creditorId}_$debtorId');
+
+    final debtSnapshot = await transaction.get(debtRef);
+    final deltaInCents = ExpenseCalculator.euroToCents(deltaAmountInEuro);
+
+    if (!debtSnapshot.exists) {
+      final newAmountInCents = deltaInCents > 0 ? deltaInCents : 0;
+      if (newAmountInCents == 0) {
+        return;
+      }
+      final debt = Debt(
+        id: debtRef.id,
+        wgId: wgId,
+        creditorId: creditorId,
+        debtorId: debtorId,
+        amount: newAmountInCents / 100,
+        status: DebtStatus.open,
+        createdAt: DateTime.now(),
+      );
+      transaction.set(debtRef, {
+        ...debt.toMap(),
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      return;
+    }
+
+    final existingDebt = Debt.fromMap(
+      debtSnapshot.id,
+      debtSnapshot.data()!,
+    );
+    final existingAmountInCents =
+        ExpenseCalculator.euroToCents(existingDebt.amount);
+    final updatedAmountInCents =
+        (existingAmountInCents + deltaInCents).clamp(0, 1 << 62);
+
+    transaction.update(debtRef, {
+      'amount': updatedAmountInCents / 100,
+      'status': DebtStatus.open.name,
     });
   }
 
@@ -523,6 +617,11 @@ class ExpenseService {
     final existingShareRefs = existingSharesQuery.docs
         .map((doc) => doc.reference)
         .toList(growable: false);
+    final existingSharesByUserId = <String, double>{
+      for (final doc in existingSharesQuery.docs)
+        (doc.data())['userId'] as String:
+            ((doc.data())['shareAmount'] as num).toDouble(),
+    };
     try {
       result = await activeFirestore.runTransaction<_ExpenseTransactionResult>(
         (transaction) async {
@@ -621,6 +720,64 @@ class ExpenseService {
             );
 
             transaction.set(shareRef, share.toMap());
+          }
+
+          // UC-13: Debt-Deltas anwenden. Bei Zahlerwechsel wird die
+          // vollstaendige alte Zuordnung storniert und die neue
+          // vollstaendig aufgebaut (siehe Design-Entscheidung bei
+          // _applyDebtDelta). Bleibt der Zahler gleich, wird nur die
+          // Differenz zwischen altem und neuem Anteil je Teilnehmer
+          // angewendet.
+          final payerChanged = originalExpense.paidBy != paidBy;
+          final allInvolvedUserIds = {
+            ...existingSharesByUserId.keys,
+            ...participantUserIds,
+          };
+
+          if (payerChanged) {
+            for (final userId in existingSharesByUserId.keys) {
+              if (userId == originalExpense.paidBy) {
+                continue;
+              }
+              await _applyDebtDelta(
+                transaction: transaction,
+                firestore: activeFirestore,
+                wgId: originalExpense.wgId,
+                creditorId: originalExpense.paidBy,
+                debtorId: userId,
+                deltaAmountInEuro: -existingSharesByUserId[userId]!,
+              );
+            }
+            for (final participantId in participantUserIds) {
+              if (participantId == paidBy) {
+                continue;
+              }
+              await _applyDebtDelta(
+                transaction: transaction,
+                firestore: activeFirestore,
+                wgId: originalExpense.wgId,
+                creditorId: paidBy,
+                debtorId: participantId,
+                deltaAmountInEuro: shares[participantId]!,
+              );
+            }
+          } else {
+            for (final userId in allInvolvedUserIds) {
+              if (userId == paidBy) {
+                continue;
+              }
+              final oldAmount = existingSharesByUserId[userId] ?? 0;
+              final newAmount = shares[userId] ?? 0;
+              final delta = newAmount - oldAmount;
+              await _applyDebtDelta(
+                transaction: transaction,
+                firestore: activeFirestore,
+                wgId: originalExpense.wgId,
+                creditorId: paidBy,
+                debtorId: userId,
+                deltaAmountInEuro: delta,
+              );
+            }
           }
 
           return _ExpenseTransactionResult.success(updatedExpense);
