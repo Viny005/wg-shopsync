@@ -34,6 +34,49 @@ class ExpenseConflictException implements Exception {
   final Expense serverExpense;
 }
 
+enum _ExpenseTransactionOutcome {
+  success,
+  notFound,
+  conflict,
+  payerNotMember,
+  participantNotMember,
+}
+
+class _ExpenseTransactionResult {
+  const _ExpenseTransactionResult.success(this.expense)
+      : kind = _ExpenseTransactionOutcome.success,
+        serverExpense = null,
+        conflictingParticipantId = null;
+
+  const _ExpenseTransactionResult.notFound()
+      : kind = _ExpenseTransactionOutcome.notFound,
+        expense = null,
+        serverExpense = null,
+        conflictingParticipantId = null;
+
+  const _ExpenseTransactionResult.conflict(this.serverExpense)
+      : kind = _ExpenseTransactionOutcome.conflict,
+        expense = null,
+        conflictingParticipantId = null;
+
+  const _ExpenseTransactionResult.payerNotMember()
+      : kind = _ExpenseTransactionOutcome.payerNotMember,
+        expense = null,
+        serverExpense = null,
+        conflictingParticipantId = null;
+
+  const _ExpenseTransactionResult.participantNotMember(
+    this.conflictingParticipantId,
+  )   : kind = _ExpenseTransactionOutcome.participantNotMember,
+        expense = null,
+        serverExpense = null;
+
+  final _ExpenseTransactionOutcome kind;
+  final Expense? expense;
+  final Expense? serverExpense;
+  final String? conflictingParticipantId;
+}
+
 /// Wird geworfen, wenn UC-12 ohne erforderliche Internetverbindung
 /// ausgeführt werden soll.
 class ExpenseRequiresConnectionException implements Exception {
@@ -47,6 +90,16 @@ typedef ExpensePersistence = Future<Expense> Function({
   required List<String> participantUserIds,
 });
 
+
+typedef ExpenseUpdatePersistence = Future<Expense> Function({
+  required Expense originalExpense,
+  required double amount,
+  required String description,
+  required String paidBy,
+  required List<String> participantUserIds,
+  required Map<String, double> shares,
+});
+
 /// Anwendungsdienst für UC-11 – Ausgabe erfassen (siehe A05 Bausteinsicht).
 ///
 /// Trennt fachliche Validierung, Kostenaufteilung (AF-01, siehe
@@ -56,18 +109,21 @@ typedef ExpensePersistence = Future<Expense> Function({
 /// Firestore-Memberships geprüft – eine vom Client übergebene Mitgliederliste
 /// wird NICHT als Sicherheitsnachweis akzeptiert.
 class ExpenseService {
-  ExpenseService({
+    ExpenseService({
     FirebaseFirestore? firestore,
     Future<bool> Function(String wgId, String userId)? membershipChecker,
     ExpensePersistence? persistence,
+    ExpenseUpdatePersistence? updatePersistence,
     bool Function()? isOfflineChecker,
   })  : _firestore = firestore,
         _membershipChecker = membershipChecker,
         _persistence = persistence,
+        _updatePersistence = updatePersistence,
         _isOfflineChecker = isOfflineChecker ?? isDeviceOffline;
   final FirebaseFirestore? _firestore;
   final Future<bool> Function(String wgId, String userId)? _membershipChecker;
   final ExpensePersistence? _persistence;
+  final ExpenseUpdatePersistence? _updatePersistence;
   final bool Function() _isOfflineChecker;
 
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
@@ -407,7 +463,7 @@ class ExpenseService {
       for (final entry in sharesInCents.entries) entry.key: entry.value / 100,
     };
 
-    return _updateExpenseWithFirestore(
+        return _persistUpdatedExpense(
       originalExpense: originalExpense,
       amount: amount,
       description: trimmedDescription,
@@ -417,7 +473,36 @@ class ExpenseService {
     );
   }
 
-  Future<Expense> _updateExpenseWithFirestore({
+  Future<Expense> _persistUpdatedExpense({
+    required Expense originalExpense,
+    required double amount,
+    required String description,
+    required String paidBy,
+    required List<String> participantUserIds,
+    required Map<String, double> shares,
+  }) {
+    if (_updatePersistence != null) {
+      return _updatePersistence(
+        originalExpense: originalExpense,
+        amount: amount,
+        description: description,
+        paidBy: paidBy,
+        participantUserIds: participantUserIds,
+        shares: shares,
+      );
+    }
+
+    return _updateExpenseWithFirestore(
+      originalExpense: originalExpense,
+      amount: amount,
+      description: description,
+      paidBy: paidBy,
+      participantUserIds: participantUserIds,
+      shares: shares,
+    );
+  }
+
+    Future<Expense> _updateExpenseWithFirestore({
     required Expense originalExpense,
     required double amount,
     required String description,
@@ -433,23 +518,22 @@ class ExpenseService {
         .collection('expenses')
         .doc(originalExpense.id);
 
-    // Die vorhandenen Share-Referenzen werden vor der Transaktion geladen.
-    // Jede gültige UC-12-Änderung aktualisiert gleichzeitig die Parent-Expense;
-    // deren updatedAt dient innerhalb der Transaktion als Konfliktversion.
-    final existingSharesSnapshot =
+    final _ExpenseTransactionResult result;
+    final existingSharesQuery =
         await expenseRef.collection('expenseShares').get();
-
     final existingShareRefs =
-        existingSharesSnapshot.docs.map((doc) => doc.reference).toList();
-
+        existingSharesQuery.docs.map((doc) => doc.reference).toList(growable: false);
     try {
-      return await activeFirestore.runTransaction<Expense>(
+      result = await activeFirestore.runTransaction<_ExpenseTransactionResult>(
         (transaction) async {
-          // Alle transaktionalen Lesezugriffe erfolgen vor den Schreibzugriffen.
+          // Alle transaktionalen Lesezugriffe erfolgen vor den Schreibzugriffen
+          // (siehe A08 8.3 und die bestehende Konvention in
+          // ShoppingListService): zuerst die Expense, danach die bestehenden
+          // ExpenseShares, danach die Memberships. Erst danach folgen writes.
           final expenseSnapshot = await transaction.get(expenseRef);
 
           if (!expenseSnapshot.exists || expenseSnapshot.data() == null) {
-            throw const ExpenseNotFoundException();
+            return const _ExpenseTransactionResult.notFound();
           }
 
           final serverExpense = Expense.fromMap(
@@ -459,9 +543,17 @@ class ExpenseService {
 
           if (serverExpense.effectiveUpdatedAt.microsecondsSinceEpoch !=
               originalExpense.effectiveUpdatedAt.microsecondsSinceEpoch) {
-            throw ExpenseConflictException(
-              serverExpense: serverExpense,
-            );
+            return _ExpenseTransactionResult.conflict(serverExpense);
+          }
+
+          // Die Menge der bestehenden Shares ist vor der Transaktion nicht
+          // bekannt (dynamische Query), daher werden die IDs ausserhalb
+          // ermittelt und die einzelnen Dokumente anschliessend innerhalb
+          // der Transaktion erneut gelesen. Das gibt Firestore die
+          // Moeglichkeit, eine zwischenzeitliche Aenderung an genau diesen
+          // Share-Dokumenten als Konflikt zu erkennen (Retry der Transaktion).
+          for (final ref in existingShareRefs) {
+            await transaction.get(ref);
           }
 
           final payerMembershipRef = activeFirestore
@@ -474,7 +566,7 @@ class ExpenseService {
               await transaction.get(payerMembershipRef);
 
           if (!payerMembershipSnapshot.exists) {
-            throw const ExpensePayerNotMemberException();
+            return const _ExpenseTransactionResult.payerNotMember();
           }
 
           for (final participantId in participantUserIds) {
@@ -492,7 +584,9 @@ class ExpenseService {
                 await transaction.get(participantMembershipRef);
 
             if (!participantMembershipSnapshot.exists) {
-              throw ExpenseParticipantNotMemberException(participantId);
+              return _ExpenseTransactionResult.participantNotMember(
+                participantId,
+              );
             }
           }
 
@@ -526,23 +620,34 @@ class ExpenseService {
               shareAmount: shares[participantId]!,
             );
 
-            transaction.set(
-              shareRef,
-              share.toMap(),
-            );
+            transaction.set(shareRef, share.toMap());
           }
 
-          return updatedExpense;
+          return _ExpenseTransactionResult.success(updatedExpense);
         },
       );
     } on FirebaseException catch (error) {
       if (error.code == 'unavailable') {
         throw const ExpenseRequiresConnectionException();
       }
-
       rethrow;
     } on TimeoutException {
       throw const ExpenseRequiresConnectionException();
+    }
+
+    switch (result.kind) {
+      case _ExpenseTransactionOutcome.notFound:
+        throw const ExpenseNotFoundException();
+      case _ExpenseTransactionOutcome.conflict:
+        throw ExpenseConflictException(serverExpense: result.serverExpense!);
+      case _ExpenseTransactionOutcome.payerNotMember:
+        throw const ExpensePayerNotMemberException();
+      case _ExpenseTransactionOutcome.participantNotMember:
+        throw ExpenseParticipantNotMemberException(
+          result.conflictingParticipantId!,
+        );
+      case _ExpenseTransactionOutcome.success:
+        return result.expense!;
     }
   }
 }
