@@ -295,6 +295,8 @@ class _ShoppingItemEditPageState extends State<ShoppingItemEditPage> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<ShoppingItemCategory?>(
+                      // Keep `value` for compatibility with Flutter 3.32.x.
+                      // ignore: deprecated_member_use
                       value: _selectedCategory,
                       decoration: const InputDecoration(
                         labelText: 'Kategorie (optional)',

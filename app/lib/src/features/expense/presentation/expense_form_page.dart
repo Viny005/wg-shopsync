@@ -243,6 +243,8 @@ class _ExpenseFormPageState extends State<ExpenseFormPage> {
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
+                        // Keep `value` for compatibility with Flutter 3.32.x.
+                        // ignore: deprecated_member_use
                         value: _selectedPayer,
                         items: _members
                             .map(
