@@ -6,6 +6,7 @@ import '../../../core/validation/validators.dart';
 import '../../../domain/models/expense.dart';
 import '../../../domain/models/expense_share.dart';
 import '../../../domain/models/debt.dart';
+import 'debt_delta_calculator.dart';
 import 'expense_calculator.dart';
 
 /// Wird geworfen, wenn der angegebene Zahler kein Mitglied der WG ist.
@@ -205,17 +206,18 @@ class ExpenseService {
         transaction.set(shareRef, share.toMap());
       }
 
-      for (final participantId in participantUserIds) {
-        if (participantId == expense.paidBy) {
-          continue;
-        }
+      final debtDeltas = DebtDeltaCalculator.forCreate(
+        paidBy: expense.paidBy,
+        shares: shares,
+      );
+      for (final delta in debtDeltas) {
         await _applyDebtDelta(
           transaction: transaction,
           firestore: activeFirestore,
           wgId: wgId,
-          creditorId: expense.paidBy,
-          debtorId: participantId,
-          deltaAmountInEuro: shares[participantId]!,
+          creditorId: delta.creditorId,
+          debtorId: delta.debtorId,
+          deltaAmountInEuro: delta.amountInEuro,
         );
       }
 
@@ -728,56 +730,22 @@ class ExpenseService {
           // _applyDebtDelta). Bleibt der Zahler gleich, wird nur die
           // Differenz zwischen altem und neuem Anteil je Teilnehmer
           // angewendet.
-          final payerChanged = originalExpense.paidBy != paidBy;
-          final allInvolvedUserIds = {
-            ...existingSharesByUserId.keys,
-            ...participantUserIds,
-          };
 
-          if (payerChanged) {
-            for (final userId in existingSharesByUserId.keys) {
-              if (userId == originalExpense.paidBy) {
-                continue;
-              }
-              await _applyDebtDelta(
-                transaction: transaction,
-                firestore: activeFirestore,
-                wgId: originalExpense.wgId,
-                creditorId: originalExpense.paidBy,
-                debtorId: userId,
-                deltaAmountInEuro: -existingSharesByUserId[userId]!,
-              );
-            }
-            for (final participantId in participantUserIds) {
-              if (participantId == paidBy) {
-                continue;
-              }
-              await _applyDebtDelta(
-                transaction: transaction,
-                firestore: activeFirestore,
-                wgId: originalExpense.wgId,
-                creditorId: paidBy,
-                debtorId: participantId,
-                deltaAmountInEuro: shares[participantId]!,
-              );
-            }
-          } else {
-            for (final userId in allInvolvedUserIds) {
-              if (userId == paidBy) {
-                continue;
-              }
-              final oldAmount = existingSharesByUserId[userId] ?? 0;
-              final newAmount = shares[userId] ?? 0;
-              final delta = newAmount - oldAmount;
-              await _applyDebtDelta(
-                transaction: transaction,
-                firestore: activeFirestore,
-                wgId: originalExpense.wgId,
-                creditorId: paidBy,
-                debtorId: userId,
-                deltaAmountInEuro: delta,
-              );
-            }
+          final debtDeltas = DebtDeltaCalculator.forUpdate(
+            oldPaidBy: originalExpense.paidBy,
+            oldShares: existingSharesByUserId,
+            newPaidBy: paidBy,
+            newShares: shares,
+          );
+          for (final delta in debtDeltas) {
+            await _applyDebtDelta(
+              transaction: transaction,
+              firestore: activeFirestore,
+              wgId: originalExpense.wgId,
+              creditorId: delta.creditorId,
+              debtorId: delta.debtorId,
+              deltaAmountInEuro: delta.amountInEuro,
+            );
           }
 
           return _ExpenseTransactionResult.success(updatedExpense);
