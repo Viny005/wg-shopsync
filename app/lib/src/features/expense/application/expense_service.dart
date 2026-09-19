@@ -355,7 +355,6 @@ class ExpenseService {
     if (trimmedWgId.isEmpty) {
       throw ArgumentError('Die WG-ID darf nicht leer sein.');
     }
-
     if (trimmedExpenseId.isEmpty) {
       throw ArgumentError('Die Ausgabe-ID darf nicht leer sein.');
     }
@@ -368,12 +367,42 @@ class ExpenseService {
         .collection('expenseShares')
         .get();
 
-    final shares = snapshot.docs
+    return snapshot.docs
         .map((doc) => ExpenseShare.fromMap(doc.id, doc.data()))
-        .toList()
-      ..sort((a, b) => a.userId.compareTo(b.userId));
+        .toList();
+  }
 
-    return shares;
+  /// UC-13 (Saldenanzeige) / Vorbereitung fuer UC-14. Laedt alle offenen
+  /// und bezahlten Debts einer WG, in denen [userId] entweder Glaeubiger
+  /// oder Schuldner ist.
+  Future<List<Debt>> getDebtsForUser({
+    required String wgId,
+    required String userId,
+  }) async {
+    final trimmedWgId = wgId.trim();
+    final trimmedUserId = userId.trim();
+
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+    if (trimmedUserId.isEmpty) {
+      throw ArgumentError('Die Benutzer-ID darf nicht leer sein.');
+    }
+
+    final debtsRef =
+        firestore.collection('wgs').doc(trimmedWgId).collection('debts');
+
+    final asCreditor =
+        await debtsRef.where('creditorId', isEqualTo: trimmedUserId).get();
+    final asDebtor =
+        await debtsRef.where('debtorId', isEqualTo: trimmedUserId).get();
+
+    final debts = <Debt>[
+      ...asCreditor.docs.map((doc) => Debt.fromMap(doc.id, doc.data())),
+      ...asDebtor.docs.map((doc) => Debt.fromMap(doc.id, doc.data())),
+    ];
+
+    return debts;
   }
 
   /// Erfasst eine neue Ausgabe (UC-11) inklusive cent-genauer Kostenaufteilung
