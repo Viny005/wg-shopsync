@@ -138,7 +138,8 @@ void main() {
           required expense,
           required shares,
           required participantUserIds,
-        }) async => Expense(
+        }) async =>
+            Expense(
           id: expense.id,
           wgId: expense.wgId,
           amount: expense.amount,
@@ -237,7 +238,8 @@ void main() {
           required expense,
           required shares,
           required participantUserIds,
-        }) async => expense,
+        }) async =>
+            expense,
       );
 
       await expectLater(
@@ -252,7 +254,7 @@ void main() {
       );
     });
   });
-    group('UC-12: ExpenseService.updateExpense input validation', () {
+  group('UC-12: ExpenseService.updateExpense input validation', () {
     final service = ExpenseService();
 
     final baseExpense = Expense(

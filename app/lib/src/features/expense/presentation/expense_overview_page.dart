@@ -4,6 +4,7 @@ import '../../wg/application/wg_service.dart';
 import '../../../domain/models/expense.dart';
 import '../application/expense_service.dart';
 import 'expense_form_page.dart';
+import 'expense_edit_page.dart';
 
 class ExpenseOverviewPage extends StatefulWidget {
   const ExpenseOverviewPage({
@@ -56,6 +57,25 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
         builder: (context) => ExpenseFormPage(
           wgId: widget.wgId,
           userId: widget.userId,
+          expenseService: _expenseService,
+        ),
+      ),
+    );
+
+    if (result == true && mounted) {
+      setState(() {
+        _expensesFuture = _loadExpenses();
+      });
+    }
+  }
+
+  Future<void> _openEditExpense(Expense expense) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (context) => ExpenseEditPage(
+          expense: expense,
+          userId: widget.userId,
+          wgService: _wgService,
           expenseService: _expenseService,
         ),
       ),
@@ -143,9 +163,12 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
                   subtitle: Text(
                     '${_labelFor(expense.paidBy)} • ${expense.amount.toStringAsFixed(2)} €',
                   ),
-                  trailing: Text(
-                    expense.createdAt.toLocal().toString().split(' ')[0],
+                  trailing: IconButton(
+                    tooltip: 'Ausgabe bearbeiten',
+                    icon: const Icon(Icons.edit),
+                    onPressed: () => _openEditExpense(expense),
                   ),
+                  onTap: () => _openEditExpense(expense),
                 ),
               );
             },

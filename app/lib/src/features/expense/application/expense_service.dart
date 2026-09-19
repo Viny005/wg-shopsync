@@ -90,7 +90,6 @@ typedef ExpensePersistence = Future<Expense> Function({
   required List<String> participantUserIds,
 });
 
-
 typedef ExpenseUpdatePersistence = Future<Expense> Function({
   required Expense originalExpense,
   required double amount,
@@ -109,7 +108,7 @@ typedef ExpenseUpdatePersistence = Future<Expense> Function({
 /// Firestore-Memberships geprüft – eine vom Client übergebene Mitgliederliste
 /// wird NICHT als Sicherheitsnachweis akzeptiert.
 class ExpenseService {
-    ExpenseService({
+  ExpenseService({
     FirebaseFirestore? firestore,
     Future<bool> Function(String wgId, String userId)? membershipChecker,
     ExpensePersistence? persistence,
@@ -463,7 +462,7 @@ class ExpenseService {
       for (final entry in sharesInCents.entries) entry.key: entry.value / 100,
     };
 
-        return _persistUpdatedExpense(
+    return _persistUpdatedExpense(
       originalExpense: originalExpense,
       amount: amount,
       description: trimmedDescription,
@@ -502,7 +501,7 @@ class ExpenseService {
     );
   }
 
-    Future<Expense> _updateExpenseWithFirestore({
+  Future<Expense> _updateExpenseWithFirestore({
     required Expense originalExpense,
     required double amount,
     required String description,
@@ -521,8 +520,9 @@ class ExpenseService {
     final _ExpenseTransactionResult result;
     final existingSharesQuery =
         await expenseRef.collection('expenseShares').get();
-    final existingShareRefs =
-        existingSharesQuery.docs.map((doc) => doc.reference).toList(growable: false);
+    final existingShareRefs = existingSharesQuery.docs
+        .map((doc) => doc.reference)
+        .toList(growable: false);
     try {
       result = await activeFirestore.runTransaction<_ExpenseTransactionResult>(
         (transaction) async {
