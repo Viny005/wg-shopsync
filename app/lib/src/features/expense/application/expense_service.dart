@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../../../core/network/network_connectivity.dart';
 import '../../../core/validation/validators.dart';
 import '../../../domain/models/expense.dart';
 import '../../../domain/models/expense_share.dart';
@@ -15,6 +17,27 @@ class ExpenseParticipantNotMemberException implements Exception {
   const ExpenseParticipantNotMemberException(this.userId);
 
   final String userId;
+}
+
+/// Wird geworfen, wenn die zu bearbeitende Ausgabe nicht mehr existiert.
+class ExpenseNotFoundException implements Exception {
+  const ExpenseNotFoundException();
+}
+
+/// Wird geworfen, wenn die Ausgabe seit dem Öffnen des Formulars
+/// zwischenzeitlich von einem anderen Mitglied geändert wurde.
+class ExpenseConflictException implements Exception {
+  const ExpenseConflictException({
+    required this.serverExpense,
+  });
+
+  final Expense serverExpense;
+}
+
+/// Wird geworfen, wenn UC-12 ohne erforderliche Internetverbindung
+/// ausgeführt werden soll.
+class ExpenseRequiresConnectionException implements Exception {
+  const ExpenseRequiresConnectionException();
 }
 
 typedef ExpensePersistence = Future<Expense> Function({
@@ -37,13 +60,15 @@ class ExpenseService {
     FirebaseFirestore? firestore,
     Future<bool> Function(String wgId, String userId)? membershipChecker,
     ExpensePersistence? persistence,
+    bool Function()? isOfflineChecker,
   })  : _firestore = firestore,
         _membershipChecker = membershipChecker,
-        _persistence = persistence;
-
+        _persistence = persistence,
+        _isOfflineChecker = isOfflineChecker ?? isDeviceOffline;
   final FirebaseFirestore? _firestore;
   final Future<bool> Function(String wgId, String userId)? _membershipChecker;
   final ExpensePersistence? _persistence;
+  final bool Function() _isOfflineChecker;
 
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
 
@@ -110,6 +135,7 @@ class ExpenseService {
       transaction.set(expenseRef, {
         ...expense.toMap(),
         'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
       });
 
       for (final participantId in participantUserIds) {
@@ -164,6 +190,39 @@ class ExpenseService {
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return expenses;
+  }
+
+  /// Lädt die gespeicherten Kostenanteile einer Ausgabe.
+  /// Wird für das Vorbelegen des Bearbeitungsformulars in UC-12 verwendet.
+  Future<List<ExpenseShare>> getExpenseShares({
+    required String wgId,
+    required String expenseId,
+  }) async {
+    final trimmedWgId = wgId.trim();
+    final trimmedExpenseId = expenseId.trim();
+
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+
+    if (trimmedExpenseId.isEmpty) {
+      throw ArgumentError('Die Ausgabe-ID darf nicht leer sein.');
+    }
+
+    final snapshot = await firestore
+        .collection('wgs')
+        .doc(trimmedWgId)
+        .collection('expenses')
+        .doc(trimmedExpenseId)
+        .collection('expenseShares')
+        .get();
+
+    final shares = snapshot.docs
+        .map((doc) => ExpenseShare.fromMap(doc.id, doc.data()))
+        .toList()
+      ..sort((a, b) => a.userId.compareTo(b.userId));
+
+    return shares;
   }
 
   /// Erfasst eine neue Ausgabe (UC-11) inklusive cent-genauer Kostenaufteilung
@@ -257,6 +316,7 @@ class ExpenseService {
       shoppingItemId: shoppingItemId,
       receiptUrl: receiptUrl,
       createdAt: createdAt,
+      updatedAt: createdAt,
     );
 
     return _persistExpense(
@@ -265,5 +325,224 @@ class ExpenseService {
       shares: shares,
       participantUserIds: trimmedParticipants,
     );
+  }
+
+  /// Bearbeitet eine bestehende Ausgabe (UC-12).
+  ///
+  /// Betrag, Beschreibung, Zahler und Beteiligte können geändert werden.
+  /// Die ExpenseShares werden anschließend gemäß AF-01 neu berechnet.
+  Future<Expense> updateExpense({
+    required Expense originalExpense,
+    required double amount,
+    required String description,
+    required String paidBy,
+    required List<String> participantUserIds,
+  }) async {
+    final trimmedWgId = originalExpense.wgId.trim();
+    final trimmedExpenseId = originalExpense.id.trim();
+    final trimmedDescription = description.trim();
+    final trimmedPaidBy = paidBy.trim();
+    final trimmedParticipants =
+        participantUserIds.map((id) => id.trim()).toList(growable: false);
+
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+
+    if (trimmedExpenseId.isEmpty) {
+      throw ArgumentError('Die Ausgabe-ID darf nicht leer sein.');
+    }
+
+    if (trimmedPaidBy.isEmpty) {
+      throw ArgumentError('Die Zahler-ID darf nicht leer sein.');
+    }
+
+    final amountError = Validators.expenseAmount(amount);
+    if (amountError != null) {
+      throw ArgumentError(amountError);
+    }
+
+    if (trimmedDescription.isEmpty) {
+      throw ArgumentError('Die Beschreibung darf nicht leer sein.');
+    }
+
+    if (trimmedParticipants.isEmpty) {
+      throw ArgumentError(
+        'Es muss mindestens ein beteiligtes Mitglied ausgewaehlt werden.',
+      );
+    }
+
+    if (trimmedParticipants.any((id) => id.isEmpty)) {
+      throw ArgumentError('Teilnehmer-IDs duerfen nicht leer sein.');
+    }
+
+    if (trimmedParticipants.toSet().length != trimmedParticipants.length) {
+      throw ArgumentError(
+        'Teilnehmer duerfen nicht doppelt ausgewaehlt werden.',
+      );
+    }
+
+    if (_isOfflineChecker()) {
+      throw const ExpenseRequiresConnectionException();
+    }
+
+    if (!await _isWgMember(trimmedWgId, trimmedPaidBy)) {
+      throw const ExpensePayerNotMemberException();
+    }
+
+    for (final participantId in trimmedParticipants) {
+      if (!await _isWgMember(trimmedWgId, participantId)) {
+        throw ExpenseParticipantNotMemberException(participantId);
+      }
+    }
+
+    final amountInCents = ExpenseCalculator.euroToCents(amount);
+
+    final sharesInCents = ExpenseCalculator.splitInCents(
+      amountInCents: amountInCents,
+      participantIds: trimmedParticipants,
+    );
+
+    final shares = {
+      for (final entry in sharesInCents.entries) entry.key: entry.value / 100,
+    };
+
+    return _updateExpenseWithFirestore(
+      originalExpense: originalExpense,
+      amount: amount,
+      description: trimmedDescription,
+      paidBy: trimmedPaidBy,
+      participantUserIds: trimmedParticipants,
+      shares: shares,
+    );
+  }
+
+  Future<Expense> _updateExpenseWithFirestore({
+    required Expense originalExpense,
+    required double amount,
+    required String description,
+    required String paidBy,
+    required List<String> participantUserIds,
+    required Map<String, double> shares,
+  }) async {
+    final activeFirestore = firestore;
+
+    final expenseRef = activeFirestore
+        .collection('wgs')
+        .doc(originalExpense.wgId)
+        .collection('expenses')
+        .doc(originalExpense.id);
+
+    // Die vorhandenen Share-Referenzen werden vor der Transaktion geladen.
+    // Jede gültige UC-12-Änderung aktualisiert gleichzeitig die Parent-Expense;
+    // deren updatedAt dient innerhalb der Transaktion als Konfliktversion.
+    final existingSharesSnapshot =
+        await expenseRef.collection('expenseShares').get();
+
+    final existingShareRefs =
+        existingSharesSnapshot.docs.map((doc) => doc.reference).toList();
+
+    try {
+      return await activeFirestore.runTransaction<Expense>(
+        (transaction) async {
+          // Alle transaktionalen Lesezugriffe erfolgen vor den Schreibzugriffen.
+          final expenseSnapshot = await transaction.get(expenseRef);
+
+          if (!expenseSnapshot.exists || expenseSnapshot.data() == null) {
+            throw const ExpenseNotFoundException();
+          }
+
+          final serverExpense = Expense.fromMap(
+            expenseSnapshot.id,
+            expenseSnapshot.data()!,
+          );
+
+          if (serverExpense.effectiveUpdatedAt.microsecondsSinceEpoch !=
+              originalExpense.effectiveUpdatedAt.microsecondsSinceEpoch) {
+            throw ExpenseConflictException(
+              serverExpense: serverExpense,
+            );
+          }
+
+          final payerMembershipRef = activeFirestore
+              .collection('wgs')
+              .doc(originalExpense.wgId)
+              .collection('memberships')
+              .doc(paidBy);
+
+          final payerMembershipSnapshot =
+              await transaction.get(payerMembershipRef);
+
+          if (!payerMembershipSnapshot.exists) {
+            throw const ExpensePayerNotMemberException();
+          }
+
+          for (final participantId in participantUserIds) {
+            if (participantId == paidBy) {
+              continue;
+            }
+
+            final participantMembershipRef = activeFirestore
+                .collection('wgs')
+                .doc(originalExpense.wgId)
+                .collection('memberships')
+                .doc(participantId);
+
+            final participantMembershipSnapshot =
+                await transaction.get(participantMembershipRef);
+
+            if (!participantMembershipSnapshot.exists) {
+              throw ExpenseParticipantNotMemberException(participantId);
+            }
+          }
+
+          final now = DateTime.now();
+
+          final updatedExpense = originalExpense.copyWith(
+            amount: amount,
+            description: description,
+            paidBy: paidBy,
+            updatedAt: now,
+          );
+
+          transaction.update(expenseRef, {
+            'amount': amount,
+            'description': description,
+            'paidBy': paidBy,
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+
+          for (final oldShareRef in existingShareRefs) {
+            transaction.delete(oldShareRef);
+          }
+
+          for (final participantId in participantUserIds) {
+            final shareRef = expenseRef.collection('expenseShares').doc();
+
+            final share = ExpenseShare(
+              id: shareRef.id,
+              expenseId: expenseRef.id,
+              userId: participantId,
+              shareAmount: shares[participantId]!,
+            );
+
+            transaction.set(
+              shareRef,
+              share.toMap(),
+            );
+          }
+
+          return updatedExpense;
+        },
+      );
+    } on FirebaseException catch (error) {
+      if (error.code == 'unavailable') {
+        throw const ExpenseRequiresConnectionException();
+      }
+
+      rethrow;
+    } on TimeoutException {
+      throw const ExpenseRequiresConnectionException();
+    }
   }
 }

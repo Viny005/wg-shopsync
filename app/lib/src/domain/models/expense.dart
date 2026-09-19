@@ -11,6 +11,7 @@ class Expense {
     this.shoppingItemId,
     this.receiptUrl,
     required this.createdAt,
+    this.updatedAt,
   });
 
   final String id;
@@ -26,6 +27,16 @@ class Expense {
   final String? receiptUrl;
   final DateTime createdAt;
 
+  /// Zeitpunkt der letzten fachlichen Änderung.
+  ///
+  /// Das Feld ist optional, damit bereits vor UC-12 gespeicherte Ausgaben
+  /// weiterhin gelesen werden können.
+  final DateTime? updatedAt;
+
+  /// Versionszeitpunkt für die Konflikterkennung in UC-12.
+  /// Alte Ausgaben ohne updatedAt verwenden createdAt als Ausgangsversion.
+  DateTime get effectiveUpdatedAt => updatedAt ?? createdAt;
+
   factory Expense.fromMap(String id, Map<String, dynamic> data) {
     return Expense(
       id: id,
@@ -36,6 +47,7 @@ class Expense {
       shoppingItemId: data['shoppingItemId'] as String?,
       receiptUrl: data['receiptUrl'] as String?,
       createdAt: dateTimeFromFirestore(data['createdAt']),
+      updatedAt: dateTimeFromFirestoreOrNull(data['updatedAt']),
     );
   }
 
@@ -48,6 +60,26 @@ class Expense {
       'shoppingItemId': shoppingItemId,
       'receiptUrl': receiptUrl,
       'createdAt': createdAt,
+      if (updatedAt != null) 'updatedAt': updatedAt,
     };
+  }
+
+  Expense copyWith({
+    double? amount,
+    String? description,
+    String? paidBy,
+    DateTime? updatedAt,
+  }) {
+    return Expense(
+      id: id,
+      wgId: wgId,
+      amount: amount ?? this.amount,
+      description: description ?? this.description,
+      paidBy: paidBy ?? this.paidBy,
+      shoppingItemId: shoppingItemId,
+      receiptUrl: receiptUrl,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
   }
 }
