@@ -6,7 +6,7 @@ import '../../../core/validation/validators.dart';
 import '../../../domain/models/expense.dart';
 import '../../../domain/models/expense_share.dart';
 import '../../../domain/models/debt.dart';
-import 'debt_delta_calculator.dart';
+import 'debt_projection.dart';
 import 'expense_calculator.dart';
 
 /// Wird geworfen, wenn der angegebene Zahler kein Mitglied der WG ist.
@@ -26,8 +26,8 @@ class ExpenseNotFoundException implements Exception {
   const ExpenseNotFoundException();
 }
 
-/// Wird geworfen, wenn die Ausgabe seit dem Öffnen des Formulars
-/// zwischenzeitlich von einem anderen Mitglied geändert wurde.
+/// Wird geworfen, wenn die Ausgabe seit dem Oeffnen des Formulars
+/// zwischenzeitlich von einem anderen Mitglied geaendert wurde.
 class ExpenseConflictException implements Exception {
   const ExpenseConflictException({
     required this.serverExpense,
@@ -36,12 +36,27 @@ class ExpenseConflictException implements Exception {
   final Expense serverExpense;
 }
 
+/// Wird geworfen, wenn UC-12 ohne erforderliche Internetverbindung
+/// ausgefuehrt werden soll.
+class ExpenseRequiresConnectionException implements Exception {
+  const ExpenseRequiresConnectionException();
+}
+
+/// Wird geworfen, wenn mindestens eine der zu dieser Ausgabe gehoerenden
+/// Schulden bereits als bezahlt markiert wurde. Die Ausgabe darf dann nicht
+/// mehr in ihren finanziellen Eigenschaften veraendert werden, damit die
+/// bezahlte Historie (UC-14/UC-15) nicht rueckwirkend verfaelscht wird.
+class ExpenseAlreadySettledException implements Exception {
+  const ExpenseAlreadySettledException();
+}
+
 enum _ExpenseTransactionOutcome {
   success,
   notFound,
   conflict,
   payerNotMember,
   participantNotMember,
+  alreadySettled,
 }
 
 class _ExpenseTransactionResult {
@@ -73,16 +88,16 @@ class _ExpenseTransactionResult {
         expense = null,
         serverExpense = null;
 
+  const _ExpenseTransactionResult.alreadySettled()
+      : kind = _ExpenseTransactionOutcome.alreadySettled,
+        expense = null,
+        serverExpense = null,
+        conflictingParticipantId = null;
+
   final _ExpenseTransactionOutcome kind;
   final Expense? expense;
   final Expense? serverExpense;
   final String? conflictingParticipantId;
-}
-
-/// Wird geworfen, wenn UC-12 ohne erforderliche Internetverbindung
-/// ausgeführt werden soll.
-class ExpenseRequiresConnectionException implements Exception {
-  const ExpenseRequiresConnectionException();
 }
 
 typedef ExpensePersistence = Future<Expense> Function({
@@ -101,14 +116,21 @@ typedef ExpenseUpdatePersistence = Future<Expense> Function({
   required Map<String, double> shares,
 });
 
-/// Anwendungsdienst für UC-11 – Ausgabe erfassen (siehe A05 Bausteinsicht).
+/// Anwendungsdienst fuer UC-11 (Ausgabe erfassen), UC-12 (Ausgabe bearbeiten)
+/// und UC-13 (Kosten aufteilen) - siehe A05 Bausteinsicht.
 ///
 /// Trennt fachliche Validierung, Kostenaufteilung (AF-01, siehe
 /// [ExpenseCalculator]) und Firestore-Persistenz, damit die Kostenaufteilung
 /// ohne Firestore-Testdouble unit-testbar bleibt. Die Mitgliedschaft von
-/// Zahler und Teilnehmern wird ausschließlich serverseitig gegen die
-/// Firestore-Memberships geprüft – eine vom Client übergebene Mitgliederliste
-/// wird NICHT als Sicherheitsnachweis akzeptiert.
+/// Zahler und Teilnehmern wird ausschliesslich serverseitig gegen die
+/// Firestore-Memberships geprueft - eine vom Client uebergebene
+/// Mitgliederliste wird NICHT als Sicherheitsnachweis akzeptiert.
+///
+/// Debt-Modell (siehe A09 ADR-07): jede Expense erzeugt fuer jeden
+/// Nicht-Zahler-Teilnehmer ein eigenes, ihr zugeordnetes Debt-Dokument
+/// (Debt.expenseId). Es gibt keine ueber mehrere Expenses aggregierte
+/// Paar-Schuld mehr. Alle Transaction-Reads erfolgen vor allen Writes
+/// (Firestore-Vorgabe, siehe A08 8.3).
 class ExpenseService {
   ExpenseService({
     FirebaseFirestore? firestore,
@@ -121,6 +143,7 @@ class ExpenseService {
         _persistence = persistence,
         _updatePersistence = updatePersistence,
         _isOfflineChecker = isOfflineChecker ?? isDeviceOffline;
+
   final FirebaseFirestore? _firestore;
   final Future<bool> Function(String wgId, String userId)? _membershipChecker;
   final ExpensePersistence? _persistence;
@@ -128,6 +151,25 @@ class ExpenseService {
   final bool Function() _isOfflineChecker;
 
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
+
+  Future<bool> _isWgMember(String wgId, String userId) {
+    if (_membershipChecker != null) {
+      return _membershipChecker(wgId, userId);
+    }
+    return firestore
+        .collection('wgs')
+        .doc(wgId)
+        .collection('memberships')
+        .doc(userId)
+        .get()
+        .then((snapshot) => snapshot.exists);
+  }
+
+  /// Erzeugt eine lokale ID ohne Firestore-Zugriff (nur fuer den Testpfad mit
+  /// injiziertem Persistence-Callback; der echte Firestore-Pfad vergibt die
+  /// ID weiterhin ueber ein Firestore-Dokument).
+  String _generateFallbackExpenseId() =>
+      DateTime.now().microsecondsSinceEpoch.toString();
 
   Future<Expense> _persistExpense({
     required String wgId,
@@ -143,7 +185,6 @@ class ExpenseService {
         participantUserIds: participantUserIds,
       );
     }
-
     return _persistExpenseWithFirestore(
       wgId: wgId,
       expense: expense,
@@ -152,306 +193,12 @@ class ExpenseService {
     );
   }
 
-  Future<Expense> _persistExpenseWithFirestore({
-    required String wgId,
-    required Expense expense,
-    required Map<String, double> shares,
-    required List<String> participantUserIds,
-  }) async {
-    final activeFirestore = firestore;
-    final expenseRef = activeFirestore
-        .collection('wgs')
-        .doc(wgId)
-        .collection('expenses')
-        .doc(expense.id);
-
-    return activeFirestore.runTransaction<Expense>((transaction) async {
-      final payerMembershipRef = activeFirestore
-          .collection('wgs')
-          .doc(wgId)
-          .collection('memberships')
-          .doc(expense.paidBy);
-      final payerMembershipSnapshot = await transaction.get(payerMembershipRef);
-      if (!payerMembershipSnapshot.exists) {
-        throw const ExpensePayerNotMemberException();
-      }
-
-      for (final participantId in participantUserIds) {
-        final participantMembershipRef = activeFirestore
-            .collection('wgs')
-            .doc(wgId)
-            .collection('memberships')
-            .doc(participantId);
-        final participantMembershipSnapshot =
-            await transaction.get(participantMembershipRef);
-        if (!participantMembershipSnapshot.exists) {
-          throw ExpenseParticipantNotMemberException(participantId);
-        }
-      }
-
-      transaction.set(expenseRef, {
-        ...expense.toMap(),
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      for (final participantId in participantUserIds) {
-        final shareRef = expenseRef.collection('expenseShares').doc();
-        final share = ExpenseShare(
-          id: shareRef.id,
-          expenseId: expenseRef.id,
-          userId: participantId,
-          shareAmount: shares[participantId]!,
-        );
-        transaction.set(shareRef, share.toMap());
-      }
-
-      final debtDeltas = DebtDeltaCalculator.forCreate(
-        paidBy: expense.paidBy,
-        shares: shares,
-      );
-      final debtCurrentAmounts = <DebtDelta, int>{};
-      for (final delta in debtDeltas) {
-        debtCurrentAmounts[delta] = await _readDebtAmountInCents(
-          transaction: transaction,
-          firestore: activeFirestore,
-          wgId: wgId,
-          creditorId: delta.creditorId,
-          debtorId: delta.debtorId,
-        );
-      }
-      for (final delta in debtDeltas) {
-        _writeDebtDelta(
-          transaction: transaction,
-          firestore: activeFirestore,
-          wgId: wgId,
-          creditorId: delta.creditorId,
-          debtorId: delta.debtorId,
-          deltaAmountInEuro: delta.amountInEuro,
-          currentAmountInCents: debtCurrentAmounts[delta]!,
-        );
-      }
-
-      return expense;
-    });
-  }
-
-  /// UC-13 – Kosten aufteilen (AF-06 Saldo berechnen).
-  ///
-  /// Design-Entscheidung: Debt besitzt laut D1.8 keinen Verweis auf die
-  /// ausloesende Expense (kein expenseId-Feld). Statt einer Debt pro
-  /// Expense-Teilnehmer-Paar wird daher EIN aggregiertes Netto-Debt pro
-  /// gerichtetem Schuldner-Glaeubiger-Paar gefuehrt (ID = creditorId_debtorId).
-  /// Jede Expense-Erstellung/-Aenderung addiert bzw. subtrahiert die
-  /// Differenz des jeweiligen ExpenseShare-Betrags auf dieses eine Dokument,
-  /// statt eine neue Debt pro Ausgabe anzulegen. Das entspricht AF-06
-  /// ("Der Saldo zeigt, wer Geld erhaelt und wer Geld schuldet") und bleibt
-  /// mit dem in D1.8 vorgegebenen Attributsatz kompatibel.
-  ///
-  /// Wird innerhalb derselben Transaktion wie das Expense/ExpenseShare-
-  /// Schreiben aufgerufen (Read vor Write, siehe A08 8.3). [deltaAmount]
-  /// ist der zu addierende Betrag in Euro; negative Werte reduzieren eine
-  /// bestehende Schuld (z.B. bei UC-12, wenn ein Anteil sinkt oder ein
-  /// Teilnehmer entfernt wird).
-  ///
-  /// Sinkt der Betrag auf 0 oder darunter, wird die Debt nicht geloescht,
-  /// sondern auf 0 gesetzt und bleibt mit status 'open' bestehen. Ein
-  /// Loeschen wuerde die Historie verlieren; UC-15 (Schuld als bezahlt
-  /// markieren) ist ohnehin ausserhalb dieses Scopes und bleibt unberuehrt.
-  /// Liest den aktuellen Stand einer Debt (in Cent), falls vorhanden.
-  /// Muss vor allen Firestore-Writes der Transaktion aufgerufen werden
-  /// (Firestore erlaubt keine Reads nach dem ersten Write in einer
-  /// Transaktion).
-  Future<int> _readDebtAmountInCents({
-    required Transaction transaction,
-    required FirebaseFirestore firestore,
-    required String wgId,
-    required String creditorId,
-    required String debtorId,
-  }) async {
-    if (creditorId == debtorId) {
-      return 0;
-    }
-    final debtRef = firestore
-        .collection('wgs')
-        .doc(wgId)
-        .collection('debts')
-        .doc('${creditorId}_$debtorId');
-
-    final debtSnapshot = await transaction.get(debtRef);
-    if (!debtSnapshot.exists) {
-      return 0;
-    }
-    final existingDebt = Debt.fromMap(debtSnapshot.id, debtSnapshot.data()!);
-    return ExpenseCalculator.euroToCents(existingDebt.amount);
-  }
-
-  /// Schreibt eine Debt basierend auf dem zuvor gelesenen Stand
-  /// ([currentAmountInCents]) und dem anzuwendenden Delta. Enthaelt keine
-  /// eigenen Reads und darf daher nach beliebigen anderen Writes derselben
-  /// Transaktion aufgerufen werden.
-  void _writeDebtDelta({
-    required Transaction transaction,
-    required FirebaseFirestore firestore,
-    required String wgId,
-    required String creditorId,
-    required String debtorId,
-    required double deltaAmountInEuro,
-    required int currentAmountInCents,
-  }) {
-    if (creditorId == debtorId || deltaAmountInEuro == 0) {
-      return;
-    }
-
-    final debtRef = firestore
-        .collection('wgs')
-        .doc(wgId)
-        .collection('debts')
-        .doc('${creditorId}_$debtorId');
-
-    final deltaInCents = ExpenseCalculator.euroToCents(deltaAmountInEuro);
-    final updatedAmountInCents =
-        (currentAmountInCents + deltaInCents).clamp(0, 1000000000000);
-
-    if (currentAmountInCents == 0) {
-      // Erstmaliges Anlegen der Debt fuer dieses Personenpaar. Auch wenn
-      // das Delta rechnerisch auf 0 geklemmt wird (z.B. wenn die erste
-      // beobachtete Aenderung fuer dieses Paar negativ ist), wird das
-      // Dokument angelegt statt uebersprungen. Ohne dieses Dokument haette
-      // jede folgende Transaktion wieder currentAmountInCents == 0 gelesen
-      // und waere in derselben Situation gelandet - ein sich selbst
-      // perpetuierender Zustand, in dem nie eine Debt entsteht.
-      final debt = Debt(
-        id: debtRef.id,
-        wgId: wgId,
-        creditorId: creditorId,
-        debtorId: debtorId,
-        amount: updatedAmountInCents / 100,
-        status: DebtStatus.open,
-        createdAt: DateTime.now(),
-      );
-      transaction.set(debtRef, {
-        ...debt.toMap(),
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      return;
-    }
-
-    transaction.update(debtRef, {
-      'amount': updatedAmountInCents / 100,
-      'status': DebtStatus.open.name,
-    });
-  }
-
-  Future<bool> _isWgMember(String wgId, String userId) {
-    if (_membershipChecker != null) {
-      return _membershipChecker(wgId, userId);
-    }
-    return firestore
-        .collection('wgs')
-        .doc(wgId)
-        .collection('memberships')
-        .doc(userId)
-        .get()
-        .then((snapshot) => snapshot.exists);
-  }
-
-  /// Erzeugt eine lokale ID ohne Firestore-Zugriff (nur für den Testpfad mit
-  /// injiziertem Persistence-Callback; der echte Firestore-Pfad vergibt die
-  /// ID weiterhin über ein Firestore-Dokument).
-  String _generateFallbackExpenseId() =>
-      DateTime.now().microsecondsSinceEpoch.toString();
-
-  Future<List<Expense>> getExpenses({required String wgId}) async {
-    final trimmedWgId = wgId.trim();
-    if (trimmedWgId.isEmpty) {
-      throw ArgumentError('Die WG-ID darf nicht leer sein.');
-    }
-
-    final snapshot = await firestore
-        .collection('wgs')
-        .doc(trimmedWgId)
-        .collection('expenses')
-        .get();
-
-    final expenses = snapshot.docs
-        .map((doc) => Expense.fromMap(doc.id, doc.data()))
-        .toList()
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-    return expenses;
-  }
-
-  /// Lädt die gespeicherten Kostenanteile einer Ausgabe.
-  /// Wird für das Vorbelegen des Bearbeitungsformulars in UC-12 verwendet.
-  Future<List<ExpenseShare>> getExpenseShares({
-    required String wgId,
-    required String expenseId,
-  }) async {
-    final trimmedWgId = wgId.trim();
-    final trimmedExpenseId = expenseId.trim();
-
-    if (trimmedWgId.isEmpty) {
-      throw ArgumentError('Die WG-ID darf nicht leer sein.');
-    }
-    if (trimmedExpenseId.isEmpty) {
-      throw ArgumentError('Die Ausgabe-ID darf nicht leer sein.');
-    }
-
-    final snapshot = await firestore
-        .collection('wgs')
-        .doc(trimmedWgId)
-        .collection('expenses')
-        .doc(trimmedExpenseId)
-        .collection('expenseShares')
-        .get();
-
-    return snapshot.docs
-        .map((doc) => ExpenseShare.fromMap(doc.id, doc.data()))
-        .toList();
-  }
-
-  /// UC-13 (Saldenanzeige) / Vorbereitung fuer UC-14. Laedt alle offenen
-  /// und bezahlten Debts einer WG, in denen [userId] entweder Glaeubiger
-  /// oder Schuldner ist.
-  Future<List<Debt>> getDebtsForUser({
-    required String wgId,
-    required String userId,
-  }) async {
-    final trimmedWgId = wgId.trim();
-    final trimmedUserId = userId.trim();
-
-    if (trimmedWgId.isEmpty) {
-      throw ArgumentError('Die WG-ID darf nicht leer sein.');
-    }
-    if (trimmedUserId.isEmpty) {
-      throw ArgumentError('Die Benutzer-ID darf nicht leer sein.');
-    }
-
-    final debtsRef =
-        firestore.collection('wgs').doc(trimmedWgId).collection('debts');
-
-    final asCreditor =
-        await debtsRef.where('creditorId', isEqualTo: trimmedUserId).get();
-    final asDebtor =
-        await debtsRef.where('debtorId', isEqualTo: trimmedUserId).get();
-
-    final debts = <Debt>[
-      ...asCreditor.docs.map((doc) => Debt.fromMap(doc.id, doc.data())),
-      ...asDebtor.docs.map((doc) => Debt.fromMap(doc.id, doc.data())),
-    ];
-
-    return debts;
-  }
-
   /// Erfasst eine neue Ausgabe (UC-11) inklusive cent-genauer Kostenaufteilung
-  /// (AF-01, siehe [ExpenseCalculator]) und der dafür erforderlichen
-  /// ExpenseShares.
-  ///
-  /// Erzeugt zusätzlich die Debt-Deltas für UC-13 (siehe DebtDeltaCalculator
-  /// und _applyDebtDelta). Die Operation bleibt atomar innerhalb derselben
-  /// Firestore-Transaktion und speichert Expense, ExpenseShares und die
-  /// betroffenen Debt-Dokumente gemeinsam.
+  /// (AF-01, siehe [ExpenseCalculator]) und der dafuer erforderlichen
+  /// ExpenseShares. Erzeugt zusaetzlich die Debt-Dokumente fuer UC-13 (siehe
+  /// DebtProjection und A09 ADR-07). Die Operation bleibt atomar innerhalb
+  /// derselben Firestore-Transaktion und speichert Expense, ExpenseShares
+  /// und die zugehoerigen Debt-Dokumente gemeinsam.
   Future<Expense> createExpense({
     required String wgId,
     required double amount,
@@ -547,10 +294,107 @@ class ExpenseService {
     );
   }
 
-  /// Bearbeitet eine bestehende Ausgabe (UC-12).
+  Future<Expense> _persistExpenseWithFirestore({
+    required String wgId,
+    required Expense expense,
+    required Map<String, double> shares,
+    required List<String> participantUserIds,
+  }) async {
+    final activeFirestore = firestore;
+    final expenseRef = activeFirestore
+        .collection('wgs')
+        .doc(wgId)
+        .collection('expenses')
+        .doc(expense.id);
+
+    return activeFirestore.runTransaction<Expense>((transaction) async {
+      // PHASE 1: alle Reads.
+      final payerMembershipRef = activeFirestore
+          .collection('wgs')
+          .doc(wgId)
+          .collection('memberships')
+          .doc(expense.paidBy);
+      final payerMembershipSnapshot = await transaction.get(payerMembershipRef);
+      if (!payerMembershipSnapshot.exists) {
+        throw const ExpensePayerNotMemberException();
+      }
+
+      for (final participantId in participantUserIds) {
+        final participantMembershipRef = activeFirestore
+            .collection('wgs')
+            .doc(wgId)
+            .collection('memberships')
+            .doc(participantId);
+        final participantMembershipSnapshot =
+            await transaction.get(participantMembershipRef);
+        if (!participantMembershipSnapshot.exists) {
+          throw ExpenseParticipantNotMemberException(participantId);
+        }
+      }
+
+      // PHASE 2: reine Berechnung im Speicher.
+      final debtEntries = DebtProjection.forExpense(
+        paidBy: expense.paidBy,
+        shares: shares,
+      );
+
+      // PHASE 3: alle Writes.
+      transaction.set(expenseRef, {
+        ...expense.toMap(),
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      for (final participantId in participantUserIds) {
+        final shareRef =
+            expenseRef.collection('expenseShares').doc(participantId);
+        final share = ExpenseShare(
+          id: shareRef.id,
+          expenseId: expenseRef.id,
+          userId: participantId,
+          shareAmount: shares[participantId]!,
+        );
+        transaction.set(shareRef, share.toMap());
+      }
+
+      for (final entry in debtEntries) {
+        final debtRef = activeFirestore
+            .collection('wgs')
+            .doc(wgId)
+            .collection('debts')
+            .doc(Debt.buildId(
+              expenseId: expenseRef.id,
+              debtorId: entry.debtorId,
+            ));
+        final debt = Debt(
+          id: debtRef.id,
+          wgId: wgId,
+          expenseId: expenseRef.id,
+          creditorId: entry.creditorId,
+          debtorId: entry.debtorId,
+          amount: entry.amountInEuro,
+          status: DebtStatus.open,
+          createdAt: DateTime.now(),
+        );
+        transaction.set(debtRef, {
+          ...debt.toMap(),
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+
+      return expense;
+    });
+  }
+
+  /// Bearbeitet eine bestehende Ausgabe (UC-12). Betrag, Beschreibung,
+  /// Zahler und Beteiligte koennen geaendert werden. Die ExpenseShares
+  /// werden anschliessend gemaess AF-01 neu berechnet, und die zu dieser
+  /// Ausgabe gehoerenden Debt-Dokumente (UC-13) werden synchronisiert.
   ///
-  /// Betrag, Beschreibung, Zahler und Beteiligte können geändert werden.
-  /// Die ExpenseShares werden anschließend gemäß AF-01 neu berechnet.
+  /// Ist mindestens eine der zu dieser Ausgabe gehoerenden Debts bereits
+  /// bezahlt (status == paid), wird die Bearbeitung verweigert
+  /// (ExpenseAlreadySettledException), damit die bezahlte Historie
+  /// (UC-14/UC-15) nicht rueckwirkend veraendert wird.
   Future<Expense> updateExpense({
     required Expense originalExpense,
     required double amount,
@@ -568,11 +412,9 @@ class ExpenseService {
     if (trimmedWgId.isEmpty) {
       throw ArgumentError('Die WG-ID darf nicht leer sein.');
     }
-
     if (trimmedExpenseId.isEmpty) {
       throw ArgumentError('Die Ausgabe-ID darf nicht leer sein.');
     }
-
     if (trimmedPaidBy.isEmpty) {
       throw ArgumentError('Die Zahler-ID darf nicht leer sein.');
     }
@@ -591,11 +433,9 @@ class ExpenseService {
         'Es muss mindestens ein beteiligtes Mitglied ausgewaehlt werden.',
       );
     }
-
     if (trimmedParticipants.any((id) => id.isEmpty)) {
       throw ArgumentError('Teilnehmer-IDs duerfen nicht leer sein.');
     }
-
     if (trimmedParticipants.toSet().length != trimmedParticipants.length) {
       throw ArgumentError(
         'Teilnehmer duerfen nicht doppelt ausgewaehlt werden.',
@@ -609,7 +449,6 @@ class ExpenseService {
     if (!await _isWgMember(trimmedWgId, trimmedPaidBy)) {
       throw const ExpensePayerNotMemberException();
     }
-
     for (final participantId in trimmedParticipants) {
       if (!await _isWgMember(trimmedWgId, participantId)) {
         throw ExpenseParticipantNotMemberException(participantId);
@@ -617,12 +456,10 @@ class ExpenseService {
     }
 
     final amountInCents = ExpenseCalculator.euroToCents(amount);
-
     final sharesInCents = ExpenseCalculator.splitInCents(
       amountInCents: amountInCents,
       participantIds: trimmedParticipants,
     );
-
     final shares = {
       for (final entry in sharesInCents.entries) entry.key: entry.value / 100,
     };
@@ -655,7 +492,6 @@ class ExpenseService {
         shares: shares,
       );
     }
-
     return _updateExpenseWithFirestore(
       originalExpense: originalExpense,
       amount: amount,
@@ -666,7 +502,7 @@ class ExpenseService {
     );
   }
 
-  Future<Expense> _updateExpenseWithFirestore({
+    Future<Expense> _updateExpenseWithFirestore({
     required Expense originalExpense,
     required double amount,
     required String description,
@@ -675,46 +511,68 @@ class ExpenseService {
     required Map<String, double> shares,
   }) async {
     final activeFirestore = firestore;
-
     final expenseRef = activeFirestore
         .collection('wgs')
         .doc(originalExpense.wgId)
         .collection('expenses')
         .doc(originalExpense.id);
+    final debtsCollectionRef =
+        activeFirestore.collection('wgs').doc(originalExpense.wgId).collection('debts');
 
-    final _ExpenseTransactionResult result;
+    // Die Menge der bisherigen Teilnehmer ist vor der Transaktion nicht
+    // bekannt (dynamische Query), daher werden ihre IDs ausserhalb ermittelt.
+    // Die Firestore-IDs der zugehoerigen ExpenseShare- und Debt-Dokumente
+    // sind deterministisch (userId bzw. expenseId_userId) und werden
+    // anschliessend innerhalb der Transaktion gezielt per get() erneut
+    // gelesen, damit Firestore eine zwischenzeitliche Aenderung an genau
+    // diesen Dokumenten als Konflikt erkennen kann.
     final existingSharesQuery =
         await expenseRef.collection('expenseShares').get();
-    final existingShareRefs = existingSharesQuery.docs
-        .map((doc) => doc.reference)
-        .toList(growable: false);
+    final oldParticipantIds =
+        existingSharesQuery.docs.map((doc) => doc.id).toList(growable: false);
 
-    final existingSharesByUserId = <String, double>{
-      for (final doc in existingSharesQuery.docs)
-        (doc.data())['userId'] as String:
-            ((doc.data())['shareAmount'] as num).toDouble(),
-    };
+    final _ExpenseTransactionResult result;
     try {
       result = await activeFirestore.runTransaction<_ExpenseTransactionResult>(
         (transaction) async {
+          // PHASE 1: alle Reads.
           final expenseSnapshot = await transaction.get(expenseRef);
-
           if (!expenseSnapshot.exists || expenseSnapshot.data() == null) {
             return const _ExpenseTransactionResult.notFound();
           }
 
-          final serverExpense = Expense.fromMap(
-            expenseSnapshot.id,
-            expenseSnapshot.data()!,
-          );
+          final serverExpense =
+              Expense.fromMap(expenseSnapshot.id, expenseSnapshot.data()!);
 
           if (serverExpense.effectiveUpdatedAt.microsecondsSinceEpoch !=
               originalExpense.effectiveUpdatedAt.microsecondsSinceEpoch) {
             return _ExpenseTransactionResult.conflict(serverExpense);
           }
 
-          for (final ref in existingShareRefs) {
-            await transaction.get(ref);
+          for (final oldParticipantId in oldParticipantIds) {
+            await transaction.get(
+              expenseRef.collection('expenseShares').doc(oldParticipantId),
+            );
+          }
+
+          // Paid-Protection: sobald eine zu dieser Expense gehoerende Debt
+          // bereits bezahlt ist, wird die Bearbeitung verweigert (siehe
+          // A08 8.5 und A09 ADR-07).
+          for (final oldParticipantId in oldParticipantIds) {
+            final debtRef = debtsCollectionRef.doc(
+              Debt.buildId(
+                expenseId: originalExpense.id,
+                debtorId: oldParticipantId,
+              ),
+            );
+            final debtSnapshot = await transaction.get(debtRef);
+            if (debtSnapshot.exists) {
+              final existingDebt =
+                  Debt.fromMap(debtSnapshot.id, debtSnapshot.data()!);
+              if (existingDebt.status == DebtStatus.paid) {
+                return const _ExpenseTransactionResult.alreadySettled();
+              }
+            }
           }
 
           final payerMembershipRef = activeFirestore
@@ -722,10 +580,8 @@ class ExpenseService {
               .doc(originalExpense.wgId)
               .collection('memberships')
               .doc(paidBy);
-
           final payerMembershipSnapshot =
               await transaction.get(payerMembershipRef);
-
           if (!payerMembershipSnapshot.exists) {
             return const _ExpenseTransactionResult.payerNotMember();
           }
@@ -734,16 +590,13 @@ class ExpenseService {
             if (participantId == paidBy) {
               continue;
             }
-
             final participantMembershipRef = activeFirestore
                 .collection('wgs')
                 .doc(originalExpense.wgId)
                 .collection('memberships')
                 .doc(participantId);
-
             final participantMembershipSnapshot =
                 await transaction.get(participantMembershipRef);
-
             if (!participantMembershipSnapshot.exists) {
               return _ExpenseTransactionResult.participantNotMember(
                 participantId,
@@ -751,28 +604,17 @@ class ExpenseService {
             }
           }
 
-          final debtDeltas = DebtDeltaCalculator.forUpdate(
-            oldPaidBy: originalExpense.paidBy,
-            oldShares: existingSharesByUserId,
-            newPaidBy: paidBy,
-            newShares: shares,
+          // PHASE 2: reine Berechnung im Speicher.
+          final debtEntries = DebtProjection.forExpense(
+            paidBy: paidBy,
+            shares: shares,
           );
-          final debtCurrentAmounts = <DebtDelta, int>{};
-          for (final delta in debtDeltas) {
-            debtCurrentAmounts[delta] = await _readDebtAmountInCents(
-              transaction: transaction,
-              firestore: activeFirestore,
-              wgId: originalExpense.wgId,
-              creditorId: delta.creditorId,
-              debtorId: delta.debtorId,
-            );
-          }
+          final newDebtorIds = debtEntries.map((e) => e.debtorId).toSet();
+          final removedParticipantIds = oldParticipantIds
+              .where((id) => !participantUserIds.contains(id))
+              .toSet();
 
-          // Ab hier folgen ausschliesslich Writes (siehe A08 8.3 und die
-          // Firestore-Regel "alle Reads vor allen Writes einer
-          // Transaktion").
           final now = DateTime.now();
-
           final updatedExpense = originalExpense.copyWith(
             amount: amount,
             description: description,
@@ -780,6 +622,7 @@ class ExpenseService {
             updatedAt: now,
           );
 
+          // PHASE 3: alle Writes.
           transaction.update(expenseRef, {
             'amount': amount,
             'description': description,
@@ -787,33 +630,68 @@ class ExpenseService {
             'updatedAt': FieldValue.serverTimestamp(),
           });
 
-          for (final oldShareRef in existingShareRefs) {
-            transaction.delete(oldShareRef);
+          for (final oldParticipantId in oldParticipantIds) {
+            transaction.delete(
+              expenseRef.collection('expenseShares').doc(oldParticipantId),
+            );
           }
-
           for (final participantId in participantUserIds) {
-            final shareRef = expenseRef.collection('expenseShares').doc();
-
+            final shareRef =
+                expenseRef.collection('expenseShares').doc(participantId);
             final share = ExpenseShare(
               id: shareRef.id,
               expenseId: expenseRef.id,
               userId: participantId,
               shareAmount: shares[participantId]!,
             );
-
             transaction.set(shareRef, share.toMap());
           }
 
-          for (final delta in debtDeltas) {
-            _writeDebtDelta(
-              transaction: transaction,
-              firestore: activeFirestore,
-              wgId: originalExpense.wgId,
-              creditorId: delta.creditorId,
-              debtorId: delta.debtorId,
-              deltaAmountInEuro: delta.amountInEuro,
-              currentAmountInCents: debtCurrentAmounts[delta]!,
+          // Debts fuer entfernte Teilnehmer loeschen (nur wenn noch offen -
+          // durch die Paid-Protection oben bereits sichergestellt).
+          for (final removedId in removedParticipantIds) {
+            final debtRef = debtsCollectionRef.doc(
+              Debt.buildId(expenseId: originalExpense.id, debtorId: removedId),
             );
+            transaction.delete(debtRef);
+          }
+
+          // Debts fuer nicht mehr beteiligte alte Nicht-Zahler, die aber
+          // jetzt selbst Zahler sind, ebenfalls entfernen.
+          for (final oldParticipantId in oldParticipantIds) {
+            if (oldParticipantId == paidBy &&
+                !newDebtorIds.contains(oldParticipantId)) {
+              final debtRef = debtsCollectionRef.doc(
+                Debt.buildId(
+                  expenseId: originalExpense.id,
+                  debtorId: oldParticipantId,
+                ),
+              );
+              transaction.delete(debtRef);
+            }
+          }
+
+          // Aktuelle Debts fuer alle Nicht-Zahler-Teilnehmer setzen
+          // (Create oder Overwrite - unproblematisch, da nur offene Debts
+          // diese Stelle erreichen, siehe Paid-Protection oben).
+          for (final entry in debtEntries) {
+            final debtRef = debtsCollectionRef.doc(
+              Debt.buildId(expenseId: originalExpense.id, debtorId: entry.debtorId),
+            );
+            final debt = Debt(
+              id: debtRef.id,
+              wgId: originalExpense.wgId,
+              expenseId: originalExpense.id,
+              creditorId: entry.creditorId,
+              debtorId: entry.debtorId,
+              amount: entry.amountInEuro,
+              status: DebtStatus.open,
+              createdAt: now,
+            );
+            transaction.set(debtRef, {
+              ...debt.toMap(),
+              'createdAt': FieldValue.serverTimestamp(),
+            });
           }
 
           return _ExpenseTransactionResult.success(updatedExpense);
@@ -839,8 +717,92 @@ class ExpenseService {
         throw ExpenseParticipantNotMemberException(
           result.conflictingParticipantId!,
         );
+      case _ExpenseTransactionOutcome.alreadySettled:
+        throw const ExpenseAlreadySettledException();
       case _ExpenseTransactionOutcome.success:
         return result.expense!;
     }
+  }
+
+  Future<List<Expense>> getExpenses({required String wgId}) async {
+    final trimmedWgId = wgId.trim();
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+
+    final snapshot = await firestore
+        .collection('wgs')
+        .doc(trimmedWgId)
+        .collection('expenses')
+        .get();
+
+    final expenses = snapshot.docs
+        .map((doc) => Expense.fromMap(doc.id, doc.data()))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    return expenses;
+  }
+
+  /// Laedt die gespeicherten Kostenanteile einer Ausgabe.
+  /// Wird fuer das Vorbelegen des Bearbeitungsformulars in UC-12 verwendet.
+  Future<List<ExpenseShare>> getExpenseShares({
+    required String wgId,
+    required String expenseId,
+  }) async {
+    final trimmedWgId = wgId.trim();
+    final trimmedExpenseId = expenseId.trim();
+
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+    if (trimmedExpenseId.isEmpty) {
+      throw ArgumentError('Die Ausgabe-ID darf nicht leer sein.');
+    }
+
+    final snapshot = await firestore
+        .collection('wgs')
+        .doc(trimmedWgId)
+        .collection('expenses')
+        .doc(trimmedExpenseId)
+        .collection('expenseShares')
+        .get();
+
+    return snapshot.docs
+        .map((doc) => ExpenseShare.fromMap(doc.id, doc.data()))
+        .toList();
+  }
+
+  /// UC-13 (Saldenanzeige) / Vorbereitung fuer UC-14. Laedt alle offenen
+  /// und bezahlten Debts einer WG, in denen [userId] entweder Glaeubiger
+  /// oder Schuldner ist.
+  Future<List<Debt>> getDebtsForUser({
+    required String wgId,
+    required String userId,
+  }) async {
+    final trimmedWgId = wgId.trim();
+    final trimmedUserId = userId.trim();
+
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+    if (trimmedUserId.isEmpty) {
+      throw ArgumentError('Die Benutzer-ID darf nicht leer sein.');
+    }
+
+    final debtsRef =
+        firestore.collection('wgs').doc(trimmedWgId).collection('debts');
+
+    final asCreditor =
+        await debtsRef.where('creditorId', isEqualTo: trimmedUserId).get();
+    final asDebtor =
+        await debtsRef.where('debtorId', isEqualTo: trimmedUserId).get();
+
+    final debts = <Debt>[
+      ...asCreditor.docs.map((doc) => Debt.fromMap(doc.id, doc.data())),
+      ...asDebtor.docs.map((doc) => Debt.fromMap(doc.id, doc.data())),
+    ];
+
+    return debts;
   }
 }
