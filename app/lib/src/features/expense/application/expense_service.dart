@@ -502,7 +502,7 @@ class ExpenseService {
     );
   }
 
-    Future<Expense> _updateExpenseWithFirestore({
+  Future<Expense> _updateExpenseWithFirestore({
     required Expense originalExpense,
     required double amount,
     required String description,
@@ -516,8 +516,10 @@ class ExpenseService {
         .doc(originalExpense.wgId)
         .collection('expenses')
         .doc(originalExpense.id);
-    final debtsCollectionRef =
-        activeFirestore.collection('wgs').doc(originalExpense.wgId).collection('debts');
+    final debtsCollectionRef = activeFirestore
+        .collection('wgs')
+        .doc(originalExpense.wgId)
+        .collection('debts');
 
     // Die Menge der bisherigen Teilnehmer ist vor der Transaktion nicht
     // bekannt (dynamische Query), daher werden ihre IDs ausserhalb ermittelt.
@@ -676,7 +678,8 @@ class ExpenseService {
           // diese Stelle erreichen, siehe Paid-Protection oben).
           for (final entry in debtEntries) {
             final debtRef = debtsCollectionRef.doc(
-              Debt.buildId(expenseId: originalExpense.id, debtorId: entry.debtorId),
+              Debt.buildId(
+                  expenseId: originalExpense.id, debtorId: entry.debtorId),
             );
             final debt = Debt(
               id: debtRef.id,

@@ -635,4 +635,43 @@ void main() {
       }
     });
   });
+
+  group('UC-13: ExpenseService.updateExpense settled expense protection', () {
+    test('gibt ExpenseAlreadySettledException korrekt weiter', () async {
+      final service = ExpenseService(
+        membershipChecker: (wgId, userId) async => true,
+        updatePersistence: ({
+          required originalExpense,
+          required amount,
+          required description,
+          required paidBy,
+          required participantUserIds,
+          required shares,
+        }) async {
+          throw const ExpenseAlreadySettledException();
+        },
+      );
+
+      final expense = Expense(
+        id: 'expense-1',
+        wgId: 'wg-1',
+        amount: 10,
+        description: 'Einkauf',
+        paidBy: 'user-1',
+        createdAt: DateTime(2026, 1, 1),
+        updatedAt: DateTime(2026, 1, 1),
+      );
+
+      await expectLater(
+        () => service.updateExpense(
+          originalExpense: expense,
+          amount: 12,
+          description: 'Einkauf',
+          paidBy: 'user-1',
+          participantUserIds: ['user-1', 'user-2'],
+        ),
+        throwsA(isA<ExpenseAlreadySettledException>()),
+      );
+    });
+  });
 }
