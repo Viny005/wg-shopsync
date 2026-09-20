@@ -369,10 +369,17 @@ batch.set(shareRef, {
       .collection('debts')
       .doc(`${EXPENSE_ID}_${USER_B}`);
 
-    batch.update(expenseRef, {
-      updatedAt: serverTimestamp(),
-    });
-    batch.update(debtRef, { amount: 10 });
+batch.update(expenseRef, {
+  amount: 20,
+  description: 'Testausgabe',
+  paidBy: USER_A,
+  updatedAt: serverTimestamp(),
+});
+batch.update(debtRef, {
+  creditorId: USER_A,
+  amount: 10,
+  status: 'open',
+});
 
     await assertSucceeds(batch.commit());
   });
