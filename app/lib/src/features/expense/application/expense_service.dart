@@ -210,14 +210,25 @@ class ExpenseService {
         paidBy: expense.paidBy,
         shares: shares,
       );
+      final debtCurrentAmounts = <DebtDelta, int>{};
       for (final delta in debtDeltas) {
-        await _applyDebtDelta(
+        debtCurrentAmounts[delta] = await _readDebtAmountInCents(
+          transaction: transaction,
+          firestore: activeFirestore,
+          wgId: wgId,
+          creditorId: delta.creditorId,
+          debtorId: delta.debtorId,
+        );
+      }
+      for (final delta in debtDeltas) {
+        _writeDebtDelta(
           transaction: transaction,
           firestore: activeFirestore,
           wgId: wgId,
           creditorId: delta.creditorId,
           debtorId: delta.debtorId,
           deltaAmountInEuro: delta.amountInEuro,
+          currentAmountInCents: debtCurrentAmounts[delta]!,
         );
       }
 
@@ -247,14 +258,47 @@ class ExpenseService {
   /// sondern auf 0 gesetzt und bleibt mit status 'open' bestehen. Ein
   /// Loeschen wuerde die Historie verlieren; UC-15 (Schuld als bezahlt
   /// markieren) ist ohnehin ausserhalb dieses Scopes und bleibt unberuehrt.
-  Future<void> _applyDebtDelta({
+  /// Liest den aktuellen Stand einer Debt (in Cent), falls vorhanden.
+  /// Muss vor allen Firestore-Writes der Transaktion aufgerufen werden
+  /// (Firestore erlaubt keine Reads nach dem ersten Write in einer
+  /// Transaktion).
+  Future<int> _readDebtAmountInCents({
+    required Transaction transaction,
+    required FirebaseFirestore firestore,
+    required String wgId,
+    required String creditorId,
+    required String debtorId,
+  }) async {
+    if (creditorId == debtorId) {
+      return 0;
+    }
+    final debtRef = firestore
+        .collection('wgs')
+        .doc(wgId)
+        .collection('debts')
+        .doc('${creditorId}_$debtorId');
+
+    final debtSnapshot = await transaction.get(debtRef);
+    if (!debtSnapshot.exists) {
+      return 0;
+    }
+    final existingDebt = Debt.fromMap(debtSnapshot.id, debtSnapshot.data()!);
+    return ExpenseCalculator.euroToCents(existingDebt.amount);
+  }
+
+  /// Schreibt eine Debt basierend auf dem zuvor gelesenen Stand
+  /// ([currentAmountInCents]) und dem anzuwendenden Delta. Enthaelt keine
+  /// eigenen Reads und darf daher nach beliebigen anderen Writes derselben
+  /// Transaktion aufgerufen werden.
+  void _writeDebtDelta({
     required Transaction transaction,
     required FirebaseFirestore firestore,
     required String wgId,
     required String creditorId,
     required String debtorId,
     required double deltaAmountInEuro,
-  }) async {
+    required int currentAmountInCents,
+  }) {
     if (creditorId == debtorId || deltaAmountInEuro == 0) {
       return;
     }
@@ -265,12 +309,12 @@ class ExpenseService {
         .collection('debts')
         .doc('${creditorId}_$debtorId');
 
-    final debtSnapshot = await transaction.get(debtRef);
     final deltaInCents = ExpenseCalculator.euroToCents(deltaAmountInEuro);
+    final updatedAmountInCents =
+        (currentAmountInCents + deltaInCents).clamp(0, 1 << 62);
 
-    if (!debtSnapshot.exists) {
-      final newAmountInCents = deltaInCents > 0 ? deltaInCents : 0;
-      if (newAmountInCents == 0) {
+    if (currentAmountInCents == 0) {
+      if (updatedAmountInCents == 0) {
         return;
       }
       final debt = Debt(
@@ -278,7 +322,7 @@ class ExpenseService {
         wgId: wgId,
         creditorId: creditorId,
         debtorId: debtorId,
-        amount: newAmountInCents / 100,
+        amount: updatedAmountInCents / 100,
         status: DebtStatus.open,
         createdAt: DateTime.now(),
       );
@@ -288,15 +332,6 @@ class ExpenseService {
       });
       return;
     }
-
-    final existingDebt = Debt.fromMap(
-      debtSnapshot.id,
-      debtSnapshot.data()!,
-    );
-    final existingAmountInCents =
-        ExpenseCalculator.euroToCents(existingDebt.amount);
-    final updatedAmountInCents =
-        (existingAmountInCents + deltaInCents).clamp(0, 1 << 62);
 
     transaction.update(debtRef, {
       'amount': updatedAmountInCents / 100,
@@ -649,6 +684,7 @@ class ExpenseService {
     final existingShareRefs = existingSharesQuery.docs
         .map((doc) => doc.reference)
         .toList(growable: false);
+
     final existingSharesByUserId = <String, double>{
       for (final doc in existingSharesQuery.docs)
         (doc.data())['userId'] as String:
@@ -657,10 +693,6 @@ class ExpenseService {
     try {
       result = await activeFirestore.runTransaction<_ExpenseTransactionResult>(
         (transaction) async {
-          // Alle transaktionalen Lesezugriffe erfolgen vor den Schreibzugriffen
-          // (siehe A08 8.3 und die bestehende Konvention in
-          // ShoppingListService): zuerst die Expense, danach die bestehenden
-          // ExpenseShares, danach die Memberships. Erst danach folgen writes.
           final expenseSnapshot = await transaction.get(expenseRef);
 
           if (!expenseSnapshot.exists || expenseSnapshot.data() == null) {
@@ -677,12 +709,6 @@ class ExpenseService {
             return _ExpenseTransactionResult.conflict(serverExpense);
           }
 
-          // Die Menge der bestehenden Shares ist vor der Transaktion nicht
-          // bekannt (dynamische Query), daher werden die IDs ausserhalb
-          // ermittelt und die einzelnen Dokumente anschliessend innerhalb
-          // der Transaktion erneut gelesen. Das gibt Firestore die
-          // Moeglichkeit, eine zwischenzeitliche Aenderung an genau diesen
-          // Share-Dokumenten als Konflikt zu erkennen (Retry der Transaktion).
           for (final ref in existingShareRefs) {
             await transaction.get(ref);
           }
@@ -721,6 +747,26 @@ class ExpenseService {
             }
           }
 
+          final debtDeltas = DebtDeltaCalculator.forUpdate(
+            oldPaidBy: originalExpense.paidBy,
+            oldShares: existingSharesByUserId,
+            newPaidBy: paidBy,
+            newShares: shares,
+          );
+          final debtCurrentAmounts = <DebtDelta, int>{};
+          for (final delta in debtDeltas) {
+            debtCurrentAmounts[delta] = await _readDebtAmountInCents(
+              transaction: transaction,
+              firestore: activeFirestore,
+              wgId: originalExpense.wgId,
+              creditorId: delta.creditorId,
+              debtorId: delta.debtorId,
+            );
+          }
+
+          // Ab hier folgen ausschliesslich Writes (siehe A08 8.3 und die
+          // Firestore-Regel "alle Reads vor allen Writes einer
+          // Transaktion").
           final now = DateTime.now();
 
           final updatedExpense = originalExpense.copyWith(
@@ -754,27 +800,15 @@ class ExpenseService {
             transaction.set(shareRef, share.toMap());
           }
 
-          // UC-13: Debt-Deltas anwenden. Bei Zahlerwechsel wird die
-          // vollstaendige alte Zuordnung storniert und die neue
-          // vollstaendig aufgebaut (siehe Design-Entscheidung bei
-          // _applyDebtDelta). Bleibt der Zahler gleich, wird nur die
-          // Differenz zwischen altem und neuem Anteil je Teilnehmer
-          // angewendet.
-
-          final debtDeltas = DebtDeltaCalculator.forUpdate(
-            oldPaidBy: originalExpense.paidBy,
-            oldShares: existingSharesByUserId,
-            newPaidBy: paidBy,
-            newShares: shares,
-          );
           for (final delta in debtDeltas) {
-            await _applyDebtDelta(
+            _writeDebtDelta(
               transaction: transaction,
               firestore: activeFirestore,
               wgId: originalExpense.wgId,
               creditorId: delta.creditorId,
               debtorId: delta.debtorId,
               deltaAmountInEuro: delta.amountInEuro,
+              currentAmountInCents: debtCurrentAmounts[delta]!,
             );
           }
 
