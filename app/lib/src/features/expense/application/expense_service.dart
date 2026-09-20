@@ -560,7 +560,11 @@ class ExpenseService {
           // Paid-Protection: sobald eine zu dieser Expense gehoerende Debt
           // bereits bezahlt ist, wird die Bearbeitung verweigert (siehe
           // A08 8.5 und A09 ADR-07).
+          final existingDebtCreatedAt = <String, DateTime>{};
           for (final oldParticipantId in oldParticipantIds) {
+            if (oldParticipantId == originalExpense.paidBy) {
+              continue;
+            }
             final debtRef = debtsCollectionRef.doc(
               Debt.buildId(
                 expenseId: originalExpense.id,
@@ -574,6 +578,7 @@ class ExpenseService {
               if (existingDebt.status == DebtStatus.paid) {
                 return const _ExpenseTransactionResult.alreadySettled();
               }
+              existingDebtCreatedAt[oldParticipantId] = existingDebt.createdAt;
             }
           }
 
@@ -632,7 +637,20 @@ class ExpenseService {
             'updatedAt': FieldValue.serverTimestamp(),
           });
 
+          // Teilnehmer, die vor UND nach der Bearbeitung beteiligt sind,
+          // werden per update() nur im Betrag angepasst (nicht geloescht und
+          // neu erstellt), da ein delete()+set() auf dasselbe Dokument im
+          // selben Batch bei komplexen Security Rules (Zugriff auf mehrere
+          // verschachtelte Dokumente im selben Vorgang) zu nicht
+          // auswertbaren Rules-Bedingungen fuehren kann.
+          final unchangedParticipantIds = oldParticipantIds
+              .toSet()
+              .intersection(participantUserIds.toSet());
+
           for (final oldParticipantId in oldParticipantIds) {
+            if (unchangedParticipantIds.contains(oldParticipantId)) {
+              continue;
+            }
             transaction.delete(
               expenseRef.collection('expenseShares').doc(oldParticipantId),
             );
@@ -640,6 +658,12 @@ class ExpenseService {
           for (final participantId in participantUserIds) {
             final shareRef =
                 expenseRef.collection('expenseShares').doc(participantId);
+            if (unchangedParticipantIds.contains(participantId)) {
+              transaction.update(shareRef, {
+                'shareAmount': shares[participantId]!,
+              });
+              continue;
+            }
             final share = ExpenseShare(
               id: shareRef.id,
               expenseId: expenseRef.id,
@@ -658,43 +682,56 @@ class ExpenseService {
             transaction.delete(debtRef);
           }
 
-          // Debts fuer nicht mehr beteiligte alte Nicht-Zahler, die aber
-          // jetzt selbst Zahler sind, ebenfalls entfernen.
-          for (final oldParticipantId in oldParticipantIds) {
-            if (oldParticipantId == paidBy &&
-                !newDebtorIds.contains(oldParticipantId)) {
-              final debtRef = debtsCollectionRef.doc(
-                Debt.buildId(
-                  expenseId: originalExpense.id,
-                  debtorId: oldParticipantId,
-                ),
-              );
-              transaction.delete(debtRef);
-            }
+          // Bei einem Zahlerwechsel besass der neue Zahler zuvor unter
+          // Umstaenden selbst eine offene Debt (als alter Nicht-Zahler-
+          // Teilnehmer). Diese muss entfernt werden, da er nun nicht mehr
+          // Schuldner, sondern Glaeubiger dieser Expense ist. Bleibt der
+          // Zahler unveraendert, existiert fuer ihn nie eine Debt und
+          // dieser Block bleibt folgenlos.
+          if (originalExpense.paidBy != paidBy &&
+              oldParticipantIds.contains(paidBy) &&
+              !newDebtorIds.contains(paidBy)) {
+            final debtRef = debtsCollectionRef.doc(
+              Debt.buildId(expenseId: originalExpense.id, debtorId: paidBy),
+            );
+            transaction.delete(debtRef);
           }
 
-          // Aktuelle Debts fuer alle Nicht-Zahler-Teilnehmer setzen
-          // (Create oder Overwrite - unproblematisch, da nur offene Debts
-          // diese Stelle erreichen, siehe Paid-Protection oben).
+          // Aktuelle Debts fuer alle Nicht-Zahler-Teilnehmer setzen. Existiert
+          // bereits eine offene Debt fuer dieses Personenpaar (siehe
+          // existingDebtCreatedAt oben), wird nur aktualisiert und createdAt
+          // bleibt unveraendert - sonst wuerde jede Bearbeitung faelschlich
+          // einen neuen createdAt-Zeitstempel setzen, was die Firestore-Rule
+          // request.resource.data.createdAt == resource.data.createdAt
+          // verletzt. Fuer neue Personenpaare wird die Debt neu angelegt.
           for (final entry in debtEntries) {
             final debtRef = debtsCollectionRef.doc(
               Debt.buildId(
                   expenseId: originalExpense.id, debtorId: entry.debtorId),
             );
-            final debt = Debt(
-              id: debtRef.id,
-              wgId: originalExpense.wgId,
-              expenseId: originalExpense.id,
-              creditorId: entry.creditorId,
-              debtorId: entry.debtorId,
-              amount: entry.amountInEuro,
-              status: DebtStatus.open,
-              createdAt: now,
-            );
-            transaction.set(debtRef, {
-              ...debt.toMap(),
-              'createdAt': FieldValue.serverTimestamp(),
-            });
+
+            if (existingDebtCreatedAt.containsKey(entry.debtorId)) {
+              transaction.update(debtRef, {
+                'creditorId': entry.creditorId,
+                'amount': entry.amountInEuro,
+                'status': DebtStatus.open.name,
+              });
+            } else {
+              final debt = Debt(
+                id: debtRef.id,
+                wgId: originalExpense.wgId,
+                expenseId: originalExpense.id,
+                creditorId: entry.creditorId,
+                debtorId: entry.debtorId,
+                amount: entry.amountInEuro,
+                status: DebtStatus.open,
+                createdAt: now,
+              );
+              transaction.set(debtRef, {
+                ...debt.toMap(),
+                'createdAt': FieldValue.serverTimestamp(),
+              });
+            }
           }
 
           return _ExpenseTransactionResult.success(updatedExpense);
@@ -801,9 +838,22 @@ class ExpenseService {
     final asDebtor =
         await debtsRef.where('debtorId', isEqualTo: trimmedUserId).get();
 
+    // Aeltere Debt-Dokumente aus dem frueheren aggregierten Paar-Modell
+    // (vor A09 ADR-07) besitzen kein expenseId-Feld und koennen mit dem
+    // aktuellen Schema nicht geparst werden. Sie werden hier uebersprungen,
+    // statt die gesamte Abfrage abzubrechen; eine manuelle Bereinigung
+    // dieser Legacy-Dokumente ist im Projektbericht dokumentiert.
+    Debt? tryParse(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+      try {
+        return Debt.fromMap(doc.id, doc.data());
+      } catch (_) {
+        return null;
+      }
+    }
+
     final debts = <Debt>[
-      ...asCreditor.docs.map((doc) => Debt.fromMap(doc.id, doc.data())),
-      ...asDebtor.docs.map((doc) => Debt.fromMap(doc.id, doc.data())),
+      ...asCreditor.docs.map(tryParse).whereType<Debt>(),
+      ...asDebtor.docs.map(tryParse).whereType<Debt>(),
     ];
 
     return debts;
