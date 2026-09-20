@@ -5,7 +5,7 @@ import 'package:wg_shopsync/src/domain/models/debt.dart';
 void main() {
   final createdAt = DateTime(2026, 9, 19);
 
-    Debt debt({
+  Debt debt({
     required String creditorId,
     required String debtorId,
     required double amount,
