@@ -311,12 +311,16 @@ class ExpenseService {
 
     final deltaInCents = ExpenseCalculator.euroToCents(deltaAmountInEuro);
     final updatedAmountInCents =
-        (currentAmountInCents + deltaInCents).clamp(0, 1 << 62);
+        (currentAmountInCents + deltaInCents).clamp(0, 1000000000000);
 
     if (currentAmountInCents == 0) {
-      if (updatedAmountInCents == 0) {
-        return;
-      }
+      // Erstmaliges Anlegen der Debt fuer dieses Personenpaar. Auch wenn
+      // das Delta rechnerisch auf 0 geklemmt wird (z.B. wenn die erste
+      // beobachtete Aenderung fuer dieses Paar negativ ist), wird das
+      // Dokument angelegt statt uebersprungen. Ohne dieses Dokument haette
+      // jede folgende Transaktion wieder currentAmountInCents == 0 gelesen
+      // und waere in derselben Situation gelandet - ein sich selbst
+      // perpetuierender Zustand, in dem nie eine Debt entsteht.
       final debt = Debt(
         id: debtRef.id,
         wgId: wgId,
