@@ -21,3 +21,5 @@ firestore-debug.log
 .env
 .env.*
 *.keystore
+
+firestore-rules-tests/node_modules/
