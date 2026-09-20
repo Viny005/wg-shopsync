@@ -51,7 +51,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
     return _expenseService.getExpenses(wgId: widget.wgId);
   }
 
-  Future<BalanceSummary> _loadBalance() async {
+    Future<BalanceSummary> _loadBalance() async {
     final debts = await _expenseService.getDebtsForUser(
       wgId: widget.wgId,
       userId: widget.userId,
