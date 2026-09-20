@@ -161,10 +161,10 @@ match /wgs/{wgId}/debts/{debtId} {
   allow read: if isMember(wgId);
   allow create: if signedIn() && isMember(wgId) && isValidDebtData(request.resource.data, wgId, debtId);
   allow update: if signedIn() && isMember(wgId) && isValidDebtData(request.resource.data, wgId, debtId)
-    && request.resource.data.creditorId == resource.data.creditorId
-    && request.resource.data.debtorId == resource.data.debtorId
-    && request.resource.data.wgId == resource.data.wgId
-    && request.resource.data.createdAt == resource.data.createdAt;
+    && (!exists(/databases/$(database)/documents/wgs/$(wgId)/debts/$(debtId))
+        || (request.resource.data.creditorId == resource.data.creditorId
+            && request.resource.data.debtorId == resource.data.debtorId
+            && request.resource.data.wgId == resource.data.wgId));
   allow delete: if false;
 }
 
@@ -327,10 +327,6 @@ match /wgs/{wgId}/debts/{debtId} {
       allow update: if false;
 }
 
-    match /wgs/{wgId}/debts/{debtId} {
-      allow read: if false;
-      allow create: if false;
-      allow update, delete: if false;
-    }
+
   }
 }
