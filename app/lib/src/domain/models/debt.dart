@@ -13,11 +13,15 @@ enum DebtStatus {
   }
 }
 
-/// Eine offene oder bereits beglichene Forderung zwischen zwei Mitgliedern (siehe D1.8 / D2.7).
+/// Eine konkrete Forderung, die aus der Kostenaufteilung einer Ausgabe
+/// entsteht (siehe D1.8 / D2.7). Gehört zu genau einer Expense - zwischen
+/// denselben zwei Mitgliedern koennen mehrere Debts aus unterschiedlichen
+/// Ausgaben nebeneinander bestehen (siehe A09 ADR-07).
 class Debt {
   const Debt({
     required this.id,
     required this.wgId,
+    required this.expenseId,
     required this.creditorId,
     required this.debtorId,
     required this.amount,
@@ -28,6 +32,7 @@ class Debt {
 
   final String id;
   final String wgId;
+  final String expenseId;
   final String creditorId;
   final String debtorId;
   final double amount;
@@ -37,10 +42,18 @@ class Debt {
   final DateTime? paidAt;
   final DateTime createdAt;
 
+  /// Deterministische Dokument-ID: eindeutig pro Expense und Schuldner.
+  static String buildId({
+    required String expenseId,
+    required String debtorId,
+  }) =>
+      '${expenseId}_$debtorId';
+
   factory Debt.fromMap(String id, Map<String, dynamic> data) {
     return Debt(
       id: id,
       wgId: data['wgId'] as String,
+      expenseId: data['expenseId'] as String,
       creditorId: data['creditorId'] as String,
       debtorId: data['debtorId'] as String,
       amount: (data['amount'] as num).toDouble(),
@@ -53,6 +66,7 @@ class Debt {
   Map<String, dynamic> toMap() {
     return {
       'wgId': wgId,
+      'expenseId': expenseId,
       'creditorId': creditorId,
       'debtorId': debtorId,
       'amount': amount,
