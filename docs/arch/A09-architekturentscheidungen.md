@@ -12,6 +12,7 @@ Die folgenden ADRs dokumentieren die verbindlichen Architekturentscheidungen fü
 | ADR-04 | Kein eigener App-Server | accepted | 2026-09-07 |
 | ADR-05 | Server gewinnt bei Konflikten | accepted | 2026-09-07 |
 | ADR-06 | Einfache Rollenstruktur | accepted | 2026-09-07 |
+| ADR-07 | Expense-bezogene Debt-Dokumente | accepted | 2026-09-20 |
 
 Die Entscheidungen beziehen sich auf die fachlichen Anforderungen in `docs/spec/` und die Baustein-, Laufzeit- und Verteilungssichten in A05 bis A08. Es gibt aktuell keine separate Implementierung oder Ticket-ID, auf die verlinkt werden könnte; die Spezifikation und Architektur sind die verbindlichen Projektartefakte.
 
@@ -200,3 +201,38 @@ Die beiden Rollen reichen für Einladungscode, WG-Verwaltung und die normalen Fu
 - Die Rolle wird in `Membership.role` gespeichert.
 - Berechtigungen werden anhand der Membership und der WG-Zugehörigkeit geprüft.
 - Der letzte `admin` darf die WG nicht verlassen, solange kein anderer `admin` vorhanden ist.
+
+
+---
+
+## ADR-07: Expense-bezogene Debt-Dokumente
+
+**Status:** accepted
+**Datum:** 2026-09-20
+**Autoren:** Entwicklerteam WG-ShopSync
+
+### Kontext
+
+Die ursprüngliche UC-13-Umsetzung führte pro Mitgliederpaar genau eine aggregierte `Debt` (Gläubiger/Schuldner), die bei jeder Ausgabe um den jeweiligen Kostenanteil erhöht oder verringert wurde. Dieses Modell erfüllte D1.8, machte jedoch UC-14 (offene und bezahlte Schulden anzeigen) und UC-15 (eine einzelne Schuld als bezahlt markieren) fachlich unmöglich: Eine bereits bezahlte Schuld hätte beim nächsten Kostenanteil zwischen denselben Mitgliedern wieder geöffnet werden müssen, wodurch Betrag, Zahlungsdatum und Status der historischen Zahlung verloren gegangen wären.
+
+### Alternativen
+
+- Aggregierte Paar-Schuld pro Mitgliederpaar (bisheriges Modell)
+- Eine Schuld pro Ausgabe und beteiligtem Nicht-Zahler-Mitglied
+- Serverseitige Ledger-Lösung mit separaten Buchungssätzen
+
+### Entscheidung
+
+Jede Ausgabe erzeugt für jedes beteiligte Mitglied außer dem Zahler eine eigene `Debt`, die über `Debt.expenseId` der auslösenden Ausgabe zugeordnet ist. Die Dokument-ID wird deterministisch aus `expenseId` und `debtorId` gebildet.
+
+### Begründung
+
+Nur eine expense-bezogene Schuld erlaubt es, bezahlte Schulden unverändert als Historie zu erhalten (UC-14), eine einzelne Schuld gezielt als bezahlt zu markieren (UC-15) und Firestore Security Rules so zu gestalten, dass eine Schuld nur zusammen mit ihrer Ausgabe erzeugt oder verändert werden kann. Die serverseitige Ledger-Lösung wurde verworfen, da sie eine zusätzliche Infrastrukturkomponente erfordert hätte, die für den Funktionsumfang des MVP nicht erforderlich ist.
+
+### Konsequenzen
+
+- `Debt` besitzt zusätzlich das Attribut `expenseId` (siehe D1.8).
+- Zwischen denselben zwei Mitgliedern können mehrere offene und bezahlte Schulden aus unterschiedlichen Ausgaben nebeneinander bestehen.
+- Der Saldo (AF-06) wird zur Laufzeit als Summe aller offenen Schulden zwischen zwei Mitgliedern gebildet, nicht aus einem einzelnen gespeicherten Wert gelesen.
+- Eine Bearbeitung einer Ausgabe, deren Schulden bereits bezahlt sind, verändert diese Schulden nicht mehr.
+- Firestore Security Rules validieren eine Schuld gegen die zugehörige Ausgabe und deren Kostenanteil.

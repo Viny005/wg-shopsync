@@ -64,8 +64,8 @@ Die fachlichen Bausteine arbeiten auf den Entitäten aus [D1 – Datenmodell](..
 |---|---|
 | WGService | `WG` und `Membership`; Einladungscode, Rollen und die Regel für den letzten `admin`. |
 | ShoppingListService | `ShoppingItem`; CRUD, Kategorien, Mengen und Status `open`/`bought`. |
-| ExpenseService | `Expense` und `ExpenseShare`; Zahler und gleichmäßige Kostenaufteilung auf Beteiligte. |
-| Debt/Saldo-Logik | `Debt`; offene und bezahlte Schulden sowie eigene Forderungen und Verbindlichkeiten. |
+| ExpenseService | `Expense`, `ExpenseShare` und die aus einer Ausgabe abgeleiteten `Debt`-Dokumente; Zahler, gleichmäßige Kostenaufteilung auf Beteiligte und expense-bezogene Schuldenerzeugung. |
+| Debt/Saldo-Logik | Laufzeitberechnung des Saldos aus den offenen `Debt`-Dokumenten mehrerer Ausgaben; bezahlte Schulden bleiben als Historie erhalten. |
 | FirestoreRepository | Persistenz, Abfragen, Streams und Transaktionen; keine fachliche UI-Logik. |
 
 Ein `Expense` gehört genau einer WG und besitzt einen oder mehrere `ExpenseShare`-Einträge. `paidBy`, `creditorId` und `debtorId` müssen Mitglieder derselben WG referenzieren. Die konkreten Attribute und Kardinalitäten sind in D1 und D2 normativ beschrieben.
