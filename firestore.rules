@@ -220,10 +220,17 @@ function updatesValidDebt(wgId, expenseId, debtId) {
 // wurde). Eine bezahlte Debt kann nicht geloescht werden.
 function deletesValidDebt(wgId, expenseId) {
   let expensePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId);
+  let sharePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId)/expenseShares/$(resource.data.debtorId);
+
   return isMember(wgId)
     && resource.data.status == 'open'
+    && resource.data.expenseId == expenseId
     && existsAfter(expensePath)
-    && getAfter(expensePath).data.updatedAt == request.time;
+    && getAfter(expensePath).data.updatedAt == request.time
+    && (
+      !existsAfter(sharePath)
+      || getAfter(expensePath).data.paidBy == resource.data.debtorId
+    );
 }
 
 match /wgs/{wgId}/debts/{debtId} {

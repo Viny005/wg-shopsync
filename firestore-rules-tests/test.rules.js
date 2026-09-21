@@ -432,7 +432,7 @@ describe('UC-13 Firestore Rules - Valid create and update', () => {
     );
   });
 
-    it('Schuldner darf beim Bezahlen den Betrag NICHT veraendern', async () => {
+  it('Schuldner darf beim Bezahlen den Betrag NICHT veraendern', async () => {
     const db = ctxAs(USER_B);
 
     await assertFails(
@@ -466,6 +466,57 @@ describe('UC-13 Firestore Rules - Valid create and update', () => {
     );
   });
 
+  it('offene Debt darf NICHT geloescht werden solange der ExpenseShare bestehen bleibt', async () => {
+    const db = ctxAs(USER_A);
+    const batch = db.batch();
+
+    const expenseRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('expenses')
+      .doc(EXPENSE_ID);
+
+    const debtRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('debts')
+      .doc(`${EXPENSE_ID}_${USER_B}`);
+
+    batch.update(expenseRef, {
+      updatedAt: serverTimestamp(),
+    });
+
+    batch.delete(debtRef);
+
+    await assertFails(batch.commit());
+  });
+
+    it('offene Debt darf geloescht werden wenn der Schuldner neuer Zahler wird', async () => {
+    const db = ctxAs(USER_A);
+    const batch = db.batch();
+
+    const expenseRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('expenses')
+      .doc(EXPENSE_ID);
+
+    const debtRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('debts')
+      .doc(`${EXPENSE_ID}_${USER_B}`);
+
+    batch.update(expenseRef, {
+      paidBy: USER_B,
+      updatedAt: serverTimestamp(),
+    });
+
+    batch.delete(debtRef);
+
+    await assertSucceeds(batch.commit());
+  });
+
   it('gueltiges Loeschen einer offenen Debt im selben Batch wie das Expense-Update wird erlaubt', async () => {
     const db = ctxAs(USER_A);
     const batch = db.batch();
@@ -480,12 +531,21 @@ describe('UC-13 Firestore Rules - Valid create and update', () => {
       .collection('debts')
       .doc(`${EXPENSE_ID}_${USER_B}`);
 
+          const shareRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('expenses')
+      .doc(EXPENSE_ID)
+      .collection('expenseShares')
+      .doc(USER_B);
+
     batch.update(expenseRef, {
       amount: 20,
       description: 'Testausgabe',
       paidBy: USER_A,
       updatedAt: serverTimestamp(),
     });
+        batch.delete(shareRef);
     batch.delete(debtRef);
 
     await assertSucceeds(batch.commit());
