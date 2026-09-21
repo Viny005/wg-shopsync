@@ -70,6 +70,7 @@ Triviale, allgemeine Datentypen wie Text, Integer, Boolean, Email, Timestamp, UR
 | shoppingItemId | Identifier | 0..1 | Optional verknüpfter Einkaufsartikel |
 | receiptUrl | URL | 0..1 | Optionaler Beleg |
 | createdAt | Timestamp | 1 | Zeitpunkt der Erfassung |
+| updatedAt | Timestamp | 1 | Zeitpunkt der letzten fachlichen Änderung; Grundlage für die Konflikterkennung bei UC-12 |
 
 ---
 
@@ -90,6 +91,7 @@ Triviale, allgemeine Datentypen wie Text, Integer, Boolean, Email, Timestamp, UR
 |-----------|------|--------|--------------|
 | id | Identifier | 1 | Eindeutige ID der Schuld |
 | wgId | Identifier | 1 | Zugehörige WG |
+| expenseId | Identifier | 1 | Zugehörige Ausgabe, aus deren Kostenaufteilung die Schuld entstanden ist |
 | creditorId | Identifier | 1 | Gläubiger |
 | debtorId | Identifier | 1 | Schuldner |
 | amount | Decimal | 1 | Betrag der Forderung |
@@ -241,6 +243,7 @@ erDiagram
     WG ||--o{ SHOPPING_ITEM : enthaelt
     WG ||--o{ EXPENSE : hat
     EXPENSE ||--|{ EXPENSE_SHARE : verteilt
+    EXPENSE ||--o{ DEBT : erzeugt
     WG ||--o{ DEBT : fuehrt
     USER ||--o{ EXPENSE : bezahlt
     USER ||--o{ EXPENSE_SHARE : traegt

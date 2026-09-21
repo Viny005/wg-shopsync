@@ -55,7 +55,7 @@ Technische Details werden protokolliert, aber nicht direkt angezeigt. Die Benutz
 
 Beträge werden mit zwei Nachkommastellen verarbeitet. Die Kostenaufteilung erfolgt gleichmäßig auf alle oder ausgewählte Mitglieder. Cent-Rundungsdifferenzen werden so ausgeglichen, dass die Summe der `ExpenseShare`-Beträge exakt der Ausgabe entspricht.
 
-Für eine Ausgabe werden Kostenanteile und daraus entstehende Schuldbeziehungen gespeichert oder aktualisiert. Der Saldo berücksichtigt nur Schulden mit Status `open`; Schulden mit Status `paid` werden nicht erneut als offen angezeigt. Die Schuldensicht zeigt jedem Benutzer nur seine eigenen Forderungen und Verbindlichkeiten.
+Jede Ausgabe erzeugt für jedes beteiligte Mitglied außer dem Zahler eine eigene, der Ausgabe zugeordnete Schuld (`Debt.expenseId`) in Höhe seines Kostenanteils. Zwischen denselben zwei Mitgliedern können mehrere Schulden aus unterschiedlichen Ausgaben nebeneinander bestehen; sie werden nicht zu einer einzigen Schuld zusammengefasst. Der Saldo berücksichtigt nur Schulden mit Status `open` und wird zur Laufzeit als Summe dieser offenen Schulden gebildet; Schulden mit Status `paid` werden nicht erneut als offen angezeigt, bleiben aber als Historie erhalten. Sobald eine Schuld einer Ausgabe den Status `paid` besitzt, wird sie durch eine spätere Bearbeitung derselben Ausgabe nicht mehr verändert. Die Schuldensicht zeigt jedem Benutzer nur eigene Forderungen und Verbindlichkeiten; Firestore Security Rules erlauben das Lesen einer Schuld nur dem Gläubiger und dem Schuldner.
 
 ## 8.6 Datenschutz und Passwortschutz
 

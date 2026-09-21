@@ -80,24 +80,39 @@ service cloud.firestore {
 
     // UC-11 – Ausgabe erfassen.
     function isValidExpenseData(data, wgId) {
-      return data.keys().hasOnly(['wgId', 'amount', 'description', 'paidBy', 'shoppingItemId', 'receiptUrl', 'createdAt'])
-        && data.wgId == wgId
-        && data.amount is number
-        && data.amount > 0
-        && data.description is string
-        && data.description.matches('.*[^ \\t\\r\\n].*')
-        && data.paidBy is string
-        && isUserMember(wgId, data.paidBy)
-        && (!('shoppingItemId' in data) || data.shoppingItemId == null || data.shoppingItemId is string)
-        && (!('receiptUrl' in data) || data.receiptUrl == null || data.receiptUrl is string)
-        && data.createdAt is timestamp;
-    }
+  return data.keys().hasOnly(['wgId', 'amount', 'description', 'paidBy', 'shoppingItemId', 'receiptUrl', 'createdAt', 'updatedAt'])
+    && data.wgId == wgId
+    && data.amount is number
+    && data.amount > 0
+    && data.description is string
+    && data.description.matches('.*[^ \\t\\r\\n].*')
+    && data.paidBy is string
+    && isUserMember(wgId, data.paidBy)
+    && (!('shoppingItemId' in data) || data.shoppingItemId == null || data.shoppingItemId is string)
+    && (!('receiptUrl' in data) || data.receiptUrl == null || data.receiptUrl is string)
+    && data.createdAt is timestamp
+    && (!('updatedAt' in data) || data.updatedAt is timestamp);
+}
 
-    function createsValidExpense(wgId) {
-      return isMember(wgId)
-        && request.resource.data.createdAt == request.time
-        && isValidExpenseData(request.resource.data, wgId);
-    }
+function createsValidExpense(wgId) {
+  return isMember(wgId)
+    && request.resource.data.createdAt == request.time
+    && request.resource.data.updatedAt == request.time
+    && isValidExpenseData(request.resource.data, wgId);
+}
+
+// UC-12 – Ausgabe bearbeiten: Betrag, Beschreibung und Zahler duerfen sich
+// aendern; wgId, createdAt, shoppingItemId und receiptUrl bleiben unveraendert.
+function updatesValidExpense(wgId, expenseId) {
+  return isMember(wgId)
+    && request.resource.data.wgId == resource.data.wgId
+    && request.resource.data.createdAt == resource.data.createdAt
+    && request.resource.data.shoppingItemId == resource.data.shoppingItemId
+    && request.resource.data.receiptUrl == resource.data.receiptUrl
+    && request.resource.data.updatedAt == request.time
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['amount', 'description', 'paidBy', 'updatedAt'])
+    && isValidExpenseData(request.resource.data, wgId);
+}
 
     function isValidExpenseShareData(data, wgId, expenseId) {
       return data.keys().hasOnly(['expenseId', 'userId', 'shareAmount'])
@@ -108,11 +123,167 @@ service cloud.firestore {
         && data.shareAmount >= 0;
     }
 
-    function createsValidExpenseShare(wgId, expenseId) {
-      return isMember(wgId)
-        && existsAfter(/databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId))
-        && isValidExpenseShareData(request.resource.data, wgId, expenseId);
-    }
+// UC-13 – Kosten aufteilen (AF-06 Saldo berechnen).
+//
+// Debt gehoert zu genau einer Expense (Debt.expenseId, siehe D1.8 /
+// A09 ADR-07). Die Dokument-ID ist deterministisch aus expenseId und
+// debtorId gebildet, wodurch sie eindeutig an eine konkrete
+// Kostenaufteilung gebunden ist. Zwischen denselben zwei Mitgliedern
+// koennen mehrere Debts aus unterschiedlichen Ausgaben nebeneinander
+// bestehen.
+function isValidDebtData(data, wgId, debtId) {
+  return data.keys().hasOnly(['wgId', 'expenseId', 'creditorId', 'debtorId', 'amount', 'status', 'paidAt', 'createdAt'])
+    && data.wgId == wgId
+    && data.expenseId is string
+    && data.creditorId is string
+    && data.debtorId is string
+    && data.creditorId != data.debtorId
+    && debtId == data.expenseId + '_' + data.debtorId
+    && isUserMember(wgId, data.creditorId)
+    && isUserMember(wgId, data.debtorId)
+    && data.amount is number
+    && data.amount > 0
+    && data.status is string
+    && data.status in ['open', 'paid']
+    && (data.status == 'open' ? (!('paidAt' in data) || data.paidAt == null) : data.paidAt is timestamp)
+    && data.createdAt is timestamp;
+}
+
+// Eine Debt darf nur zusammen mit ihrer Parent-Expense erzeugt werden: die
+// Expense muss im selben atomaren Vorgang existieren, ihr paidBy muss dem
+// Glaeubiger entsprechen, ihr updatedAt muss auf den aktuellen Request
+// zeigen (schliesst aus, dass eine Debt zu einer unveraenderten,
+// laengst abgeschlossenen Expense nachtraeglich erzeugt wird), und der
+// deklarierte Betrag muss exakt dem persistierten ExpenseShare des
+// Schuldners entsprechen.
+function createsValidDebt(wgId, expenseId, debtId) {
+  let expensePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId);
+  let sharePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId)/expenseShares/$(request.resource.data.debtorId);
+  return isMember(wgId)
+    && isValidDebtData(request.resource.data, wgId, debtId)
+    && request.resource.data.status == 'open'
+    && request.resource.data.expenseId == expenseId
+    && existsAfter(expensePath)
+    && getAfter(expensePath).data.paidBy == request.resource.data.creditorId
+    && getAfter(expensePath).data.updatedAt == request.time
+    && existsAfter(sharePath)
+    && getAfter(sharePath).data.userId == request.resource.data.debtorId
+    && getAfter(sharePath).data.shareAmount == request.resource.data.amount;
+}
+
+// Update ist auf zwei Faelle beschraenkt: (a) UC-13 passt eine noch
+// offene, zur aktuellen Kostenaufteilung gehoerende Debt an eine
+// veraenderte Expense an (wgId/expenseId/debtorId/createdAt bleiben
+// unveraendert, status bleibt open, amount muss wieder exakt dem
+// aktuellen ExpenseShare entsprechen); (b) UC-15 markiert eine offene
+// Debt als bezahlt (nur status und paidAt aendern sich). Eine bereits
+// bezahlte Debt kann durch diese Funktion nicht mehr veraendert werden.
+function updatesValidDebt(wgId, expenseId, debtId) {
+  let expensePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId);
+  let sharePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId)/expenseShares/$(resource.data.debtorId);
+  return isMember(wgId)
+    && resource.data.status == 'open'
+    && request.resource.data.wgId == resource.data.wgId
+    && request.resource.data.expenseId == resource.data.expenseId
+    && request.resource.data.debtorId == resource.data.debtorId
+    && request.resource.data.createdAt == resource.data.createdAt
+    && (
+      (
+        // Fall (a): UC-13 aktualisiert die Debt zusammen mit ihrer Expense.
+        isValidDebtData(request.resource.data, wgId, debtId)
+        && request.resource.data.status == 'open'
+        && existsAfter(expensePath)
+        && getAfter(expensePath).data.paidBy == request.resource.data.creditorId
+        && getAfter(expensePath).data.updatedAt == request.time
+        && existsAfter(sharePath)
+        && getAfter(sharePath).data.userId == request.resource.data.debtorId
+        && getAfter(sharePath).data.shareAmount == request.resource.data.amount
+            ) || (
+        // Fall (b): UC-15 – nur der Schuldner darf seine eigene offene
+        // Debt als bezahlt markieren. Dabei duerfen ausschliesslich
+        // status und paidAt geaendert werden.
+        isValidDebtData(request.resource.data, wgId, debtId)
+        && request.auth.uid == resource.data.debtorId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'paidAt'
+        ])
+        && request.resource.data.status == 'paid'
+        && request.resource.data.paidAt == request.time
+      )
+    );
+}
+
+// Loeschen ist nur fuer eine noch offene Debt erlaubt, und nur im selben
+// atomaren Vorgang, in dem die Parent-Expense aktualisiert wird (z.B.
+// weil der Schuldner nicht mehr beteiligt ist oder selbst zum Zahler
+// wurde). Eine bezahlte Debt kann nicht geloescht werden.
+function deletesValidDebt(wgId, expenseId) {
+  let expensePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId);
+  let sharePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId)/expenseShares/$(resource.data.debtorId);
+
+  return isMember(wgId)
+    && resource.data.status == 'open'
+    && resource.data.expenseId == expenseId
+    && existsAfter(expensePath)
+    && getAfter(expensePath).data.updatedAt == request.time
+    && (
+      !existsAfter(sharePath)
+      || getAfter(expensePath).data.paidBy == resource.data.debtorId
+    );
+}
+
+match /wgs/{wgId}/debts/{debtId} {
+  allow read: if isMember(wgId)
+    && (resource.data.creditorId == request.auth.uid || resource.data.debtorId == request.auth.uid);
+  allow create: if signedIn() && createsValidDebt(wgId, request.resource.data.expenseId, debtId);
+  allow update: if signedIn() && updatesValidDebt(wgId, resource.data.expenseId, debtId);
+  allow delete: if signedIn() && deletesValidDebt(wgId, resource.data.expenseId);
+}
+
+
+
+    function createsValidExpenseShare(wgId, expenseId, shareId) {
+  let expensePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId);
+
+  return isMember(wgId)
+    && shareId == request.resource.data.userId
+    && existsAfter(expensePath)
+    && getAfter(expensePath).data.updatedAt == request.time
+    && isValidExpenseShareData(request.resource.data, wgId, expenseId);
+}
+
+    // UC-12 loescht bestehende ExpenseShares nur im selben atomaren Vorgang,
+    // in dem auch die zugehoerige Parent-Expense aktualisiert wird
+    // (updatedAt == request.time). Ein isoliertes Loeschen einzelner Shares
+    // ausserhalb einer Expense-Aktualisierung bleibt damit ausgeschlossen.
+    function deletesValidExpenseShare(wgId, expenseId, shareId) {
+  let expensePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId);
+
+  return isMember(wgId)
+    && resource.data.expenseId == expenseId
+    && shareId == resource.data.userId
+    && existsAfter(expensePath)
+    && getAfter(expensePath).data.updatedAt == request.time;
+}
+
+// UC-12 aktualisiert den Betrag eines bestehenden ExpenseShare nur im
+// selben atomaren Vorgang, in dem auch die zugehoerige Parent-Expense
+// aktualisiert wird. userId und expenseId bleiben unveraendert.
+function updatesValidExpenseShare(wgId, expenseId, shareId) {
+    let expensePath = /databases/$(database)/documents/wgs/$(wgId)/expenses/$(expenseId);
+
+  return isMember(wgId)
+    && resource.data.expenseId == expenseId
+    && shareId == resource.data.userId
+    && shareId == request.resource.data.userId
+    && request.resource.data.expenseId == resource.data.expenseId
+    && request.resource.data.userId == resource.data.userId
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['shareAmount'])
+    && isValidExpenseShareData(request.resource.data,wgId,expenseId)
+    && existsAfter(expensePath)
+    && getAfter(expensePath).data.updatedAt == request.time;
+}
 
     function createsWgWithReservedInviteCode(wgId) {
       return signedIn()
@@ -245,19 +416,15 @@ service cloud.firestore {
     match /wgs/{wgId}/expenses/{expenseId} {
       allow read: if isMember(wgId);
       allow create: if signedIn() && createsValidExpense(wgId);
-      allow update, delete: if false;
-    }
+      allow update: if signedIn() && updatesValidExpense(wgId, expenseId);
+      allow delete: if false;
+}
 
     match /wgs/{wgId}/expenses/{expenseId}/expenseShares/{shareId} {
       allow read: if isMember(wgId);
-      allow create: if signedIn() && createsValidExpenseShare(wgId, expenseId);
-      allow update, delete: if false;
-    }
-
-    match /wgs/{wgId}/debts/{debtId} {
-      allow read: if false;
-      allow create: if false;
-      allow update, delete: if false;
+      allow create: if signedIn() && createsValidExpenseShare(wgId, expenseId, shareId);
+      allow delete: if signedIn() && deletesValidExpenseShare(wgId, expenseId, shareId);
+      allow update: if signedIn() && updatesValidExpenseShare(wgId, expenseId, shareId);
     }
   }
 }

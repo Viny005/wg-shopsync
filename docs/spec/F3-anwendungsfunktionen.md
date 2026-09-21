@@ -88,7 +88,7 @@ Im Gegensatz zu den Anwendungsfällen (F2) beschreiben Anwendungsfunktionen kein
 | Zweck | Berechnet Forderungen und Verbindlichkeiten zwischen Mitgliedern einer Wohngemeinschaft. |
 | Eingaben | Ausgaben, Kostenanteile und persistierte Schulden mit Zahlungsstatus |
 | Ausgaben | Aktuelle Salden der Mitglieder |
-| Regeln | - Für jede Ausgabe werden Kostenanteile berücksichtigt.<br>- Bei der Kostenaufteilung werden die berechneten Schulden gespeichert oder aktualisiert.<br>- Bereits bezahlte Schulden werden nicht mehr als offen berücksichtigt.<br>- Der Saldo zeigt, wer Geld erhält und wer Geld schuldet. |
+| Regeln | - Jede Ausgabe erzeugt für jedes beteiligte Mitglied außer dem Zahler eine eigene, der Ausgabe zugeordnete Schuld in Höhe seines Kostenanteils.<br>- Zwischen denselben zwei Mitgliedern können mehrere Schulden aus unterschiedlichen Ausgaben nebeneinander bestehen.<br>- Der Saldo wird zur Laufzeit als Summe aller offenen Schulden zwischen zwei Mitgliedern gebildet.<br>- Bereits bezahlte Schulden werden nicht mehr in den offenen Saldo eingerechnet, bleiben aber für die Schuldenhistorie (UC-14) erhalten.<br>- Der Saldo zeigt, wer Geld erhält und wer Geld schuldet. |
 | Verwendet von | [UC-14 Schulden anzeigen](F2-anwendungsfaelle.md#uc-14--schulden-anzeigen), [UC-15 Schuld als bezahlt markieren](F2-anwendungsfaelle.md#uc-15--schuld-als-bezahlt-markieren), [UC-16 Kostenübersicht anzeigen](F2-anwendungsfaelle.md#uc-16--kostenubersicht-anzeigen) |
 
 ---

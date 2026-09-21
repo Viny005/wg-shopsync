@@ -71,6 +71,7 @@ flowchart TD
 ```
 
 Der `ExpenseService` prüft vor der Berechnung die WG-Zugehörigkeit, den Betrag und mindestens ein beteiligtes Mitglied. Cent-Rundungen werden ausgeglichen, sodass die Summe der `ExpenseShares` exakt dem Ausgabebetrag entspricht.
+Für jedes beteiligte Mitglied außer dem Zahler erzeugt der `ExpenseService` eine eigene, der Ausgabe zugeordnete `Debt` in Höhe des jeweiligen Kostenanteils. Bei einer Änderung der Ausgabe werden ausschließlich die dieser Ausgabe zugeordneten, noch offenen `Debt`-Dokumente angepasst; bereits bezahlte Schulden bleiben unverändert erhalten. Alle Lesezugriffe innerhalb der Firestore-Transaktion (Mitgliedschaften, bestehende Kostenanteile, betroffene Schulden) erfolgen vor jedem Schreibzugriff.
 
 ## 5. Offline-Änderung
 

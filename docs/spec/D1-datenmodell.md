@@ -138,6 +138,7 @@ Repräsentiert eine Ausgabe innerhalb einer Wohngemeinschaft.
 - Gehört genau zu einer WG.
 - Wurde von genau einem User bezahlt.
 - Besitzt einen oder mehrere ExpenseShares.
+- Kann null oder mehrere Debts erzeugen.
 
 ### Attribute
 
@@ -149,6 +150,7 @@ Repräsentiert eine Ausgabe innerhalb einer Wohngemeinschaft.
 - shoppingItemId
 - receiptUrl
 - createdAt
+- updatedAt
 
 ---
 
@@ -172,23 +174,34 @@ Repräsentiert den Anteil eines Mitglieds an einer Ausgabe.
 
 ## D1.8 Debt
 
-Repräsentiert eine Forderung zwischen zwei Mitgliedern.
+Repräsentiert eine konkrete Forderung, die aus der Kostenaufteilung einer
+Ausgabe entsteht. Jede Ausgabe erzeugt für jedes beteiligte Mitglied
+(außer dem Zahler) genau eine Debt in Höhe seines Kostenanteils.
 
 ### Beziehungen
 
-- Verweist auf einen Gläubiger.
-- Verweist auf einen Schuldner.
+- Gehört zu genau einer Expense.
+- Verweist auf einen Gläubiger (den Zahler der Expense).
+- Verweist auf einen Schuldner (ein beteiligtes Mitglied, nicht der Zahler).
 
 ### Attribute
 
 - id
 - wgId
+- expenseId
 - creditorId
 - debtorId
 - amount
 - status
 - paidAt
 - createdAt
+
+### Hinweis
+
+Zwischen denselben zwei Mitgliedern können mehrere Debt-Datensätze aus
+unterschiedlichen Ausgaben existieren. Eine Debt wird nicht über mehrere
+Ausgaben hinweg aggregiert, damit bereits bezahlte Schulden (Status
+`paid`) unverändert als Historie erhalten bleiben (siehe UC-14, UC-15).
 
 ---
 
@@ -206,8 +219,8 @@ User
              ├── ShoppingItem
              │
              ├── Expense
-             │      │
-             │      └── ExpenseShare
+             │
+             ├── ExpenseShare
              │
              └── Debt
 ```
@@ -224,6 +237,8 @@ WG        1 --- n ShoppingItem
 WG        1 --- n Expense
 
 Expense   1 --- n ExpenseShare
+
+Expense   1 --- 0..n Debt
 
 User      1 --- n ExpenseShare
 
