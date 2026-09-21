@@ -491,7 +491,7 @@ describe('UC-13 Firestore Rules - Valid create and update', () => {
     await assertFails(batch.commit());
   });
 
-    it('offene Debt darf geloescht werden wenn der Schuldner neuer Zahler wird', async () => {
+  it('offene Debt darf geloescht werden wenn der Schuldner neuer Zahler wird', async () => {
     const db = ctxAs(USER_A);
     const batch = db.batch();
 
@@ -531,7 +531,7 @@ describe('UC-13 Firestore Rules - Valid create and update', () => {
       .collection('debts')
       .doc(`${EXPENSE_ID}_${USER_B}`);
 
-          const shareRef = db
+    const shareRef = db
       .collection('wgs')
       .doc(WG_ID)
       .collection('expenses')
@@ -545,9 +545,161 @@ describe('UC-13 Firestore Rules - Valid create and update', () => {
       paidBy: USER_A,
       updatedAt: serverTimestamp(),
     });
-        batch.delete(shareRef);
+    batch.delete(shareRef);
     batch.delete(debtRef);
 
     await assertSucceeds(batch.commit());
+  });
+
+  it('ExpenseShare darf NICHT isoliert zu einer bestehenden Expense angelegt werden', async () => {
+    const db = ctxAs(USER_A);
+
+    await assertFails(
+      db
+        .collection('wgs')
+        .doc(WG_ID)
+        .collection('expenses')
+        .doc(EXPENSE_ID)
+        .collection('expenseShares')
+        .doc(USER_C)
+        .set({
+          expenseId: EXPENSE_ID,
+          userId: USER_C,
+          shareAmount: 5,
+        })
+    );
+  });
+
+  it('ExpenseShare-Dokument-ID muss der userId entsprechen', async () => {
+    const db = ctxAs(USER_A);
+    const batch = db.batch();
+
+    const expenseRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('expenses')
+      .doc(EXPENSE_ID);
+
+    const forgedShareRef = expenseRef
+      .collection('expenseShares')
+      .doc('forged-share-id');
+
+    batch.update(expenseRef, {
+      updatedAt: serverTimestamp(),
+    });
+
+    batch.set(forgedShareRef, {
+      expenseId: EXPENSE_ID,
+      userId: USER_C,
+      shareAmount: 5,
+    });
+
+    await assertFails(batch.commit());
+  });
+
+    it('ExpenseShare-Update darf kein zusaetzliches Feld einschleusen', async () => {
+    const db = ctxAs(USER_A);
+    const batch = db.batch();
+
+    const expenseRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('expenses')
+      .doc(EXPENSE_ID);
+
+    const shareRef = expenseRef
+      .collection('expenseShares')
+      .doc(USER_B);
+
+    batch.update(expenseRef, {
+      updatedAt: serverTimestamp(),
+    });
+
+    batch.update(shareRef, {
+      shareAmount: 10,
+      manipulated: true,
+    });
+
+    await assertFails(batch.commit());
+  });
+
+  it('ExpenseShare mit falscher Dokument-ID darf NICHT aktualisiert werden', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .collection('wgs')
+        .doc(WG_ID)
+        .collection('expenses')
+        .doc(EXPENSE_ID)
+        .collection('expenseShares')
+        .doc('forged-share-id')
+        .set({
+          expenseId: EXPENSE_ID,
+          userId: USER_C,
+          shareAmount: 5,
+        });
+    });
+
+    const db = ctxAs(USER_A);
+    const batch = db.batch();
+
+    const expenseRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('expenses')
+      .doc(EXPENSE_ID);
+
+    const forgedShareRef = expenseRef
+      .collection('expenseShares')
+      .doc('forged-share-id');
+
+    batch.update(expenseRef, {
+      updatedAt: serverTimestamp(),
+    });
+
+    batch.update(forgedShareRef, {
+      shareAmount: 7,
+    });
+
+    await assertFails(batch.commit());
+  });
+
+  it('ExpenseShare mit falscher Dokument-ID darf NICHT geloescht werden', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context
+        .firestore()
+        .collection('wgs')
+        .doc(WG_ID)
+        .collection('expenses')
+        .doc(EXPENSE_ID)
+        .collection('expenseShares')
+        .doc('forged-share-id')
+        .set({
+          expenseId: EXPENSE_ID,
+          userId: USER_C,
+          shareAmount: 5,
+        });
+    });
+
+    const db = ctxAs(USER_A);
+    const batch = db.batch();
+
+    const expenseRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('expenses')
+      .doc(EXPENSE_ID);
+
+    const forgedShareRef = expenseRef
+      .collection('expenseShares')
+      .doc('forged-share-id');
+
+    batch.update(expenseRef, {
+      updatedAt: serverTimestamp(),
+    });
+
+    batch.delete(forgedShareRef);
+
+    await assertFails(batch.commit());
   });
 });
