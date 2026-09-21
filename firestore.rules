@@ -198,12 +198,18 @@ function updatesValidDebt(wgId, expenseId, debtId) {
         && existsAfter(sharePath)
         && getAfter(sharePath).data.userId == request.resource.data.debtorId
         && getAfter(sharePath).data.shareAmount == request.resource.data.amount
-      ) || (
-        // Fall (b): UC-15 markiert als bezahlt, sonst bleibt alles gleich.
-        request.resource.data.status == 'paid'
+            ) || (
+        // Fall (b): UC-15 – nur der Schuldner darf seine eigene offene
+        // Debt als bezahlt markieren. Dabei duerfen ausschliesslich
+        // status und paidAt geaendert werden.
+        isValidDebtData(request.resource.data, wgId, debtId)
+        && request.auth.uid == resource.data.debtorId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'paidAt'
+        ])
+        && request.resource.data.status == 'paid'
         && request.resource.data.paidAt == request.time
-        && request.resource.data.creditorId == resource.data.creditorId
-        && request.resource.data.amount == resource.data.amount
       )
     );
 }

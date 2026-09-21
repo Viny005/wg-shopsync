@@ -65,20 +65,20 @@ async function seedBaseState() {
         });
     }
     await db
-  .collection('wgs')
-  .doc(WG_ID)
-  .collection('expenses')
-  .doc(EXPENSE_ID)
-  .set({
-    wgId: WG_ID,
-    amount: 20,
-    description: 'Testausgabe',
-    paidBy: USER_A,
-    shoppingItemId: null,
-    receiptUrl: null,
-    createdAt: new Date(),
-    updatedAt: serverTimestamp(),
-  });
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('expenses')
+      .doc(EXPENSE_ID)
+      .set({
+        wgId: WG_ID,
+        amount: 20,
+        description: 'Testausgabe',
+        paidBy: USER_A,
+        shoppingItemId: null,
+        receiptUrl: null,
+        createdAt: new Date(),
+        updatedAt: serverTimestamp(),
+      });
     await db
       .collection('wgs')
       .doc(WG_ID)
@@ -322,35 +322,35 @@ describe('UC-13 Firestore Rules - Valid create and update', () => {
       .collection('debts')
       .doc(`${EXPENSE_ID}_${USER_C}`);
 
-batch.update(expenseRef, {
-  amount: 20,
-  description: 'Testausgabe',
-  paidBy: USER_A,
-  updatedAt: serverTimestamp(),
-});
-batch.set(debtRef, {
-  wgId: WG_ID,
-  expenseId: EXPENSE_ID,
-  creditorId: USER_A,
-  debtorId: USER_C,
-  amount: 5,
-  status: 'open',
-  paidAt: null,
-  createdAt: serverTimestamp(),
-});
-const shareRef = db
-  .collection('wgs')
-  .doc(WG_ID)
-  .collection('expenses')
-  .doc(EXPENSE_ID)
-  .collection('expenseShares')
-  .doc(USER_C);
+    batch.update(expenseRef, {
+      amount: 20,
+      description: 'Testausgabe',
+      paidBy: USER_A,
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(debtRef, {
+      wgId: WG_ID,
+      expenseId: EXPENSE_ID,
+      creditorId: USER_A,
+      debtorId: USER_C,
+      amount: 5,
+      status: 'open',
+      paidAt: null,
+      createdAt: serverTimestamp(),
+    });
+    const shareRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('expenses')
+      .doc(EXPENSE_ID)
+      .collection('expenseShares')
+      .doc(USER_C);
 
-batch.set(shareRef, {
-  expenseId: EXPENSE_ID,
-  userId: USER_C,
-  shareAmount: 5,
-});
+    batch.set(shareRef, {
+      expenseId: EXPENSE_ID,
+      userId: USER_C,
+      shareAmount: 5,
+    });
 
     await assertSucceeds(batch.commit());
   });
@@ -369,30 +369,100 @@ batch.set(shareRef, {
       .collection('debts')
       .doc(`${EXPENSE_ID}_${USER_B}`);
 
-batch.update(expenseRef, {
-  amount: 20,
-  description: 'Testausgabe',
-  paidBy: USER_A,
-  updatedAt: serverTimestamp(),
-});
-batch.update(debtRef, {
-  creditorId: USER_A,
-  amount: 10,
-  status: 'open',
-});
+    batch.update(expenseRef, {
+      amount: 20,
+      description: 'Testausgabe',
+      paidBy: USER_A,
+      updatedAt: serverTimestamp(),
+    });
+    batch.update(debtRef, {
+      creditorId: USER_A,
+      amount: 10,
+      status: 'open',
+    });
 
     await assertSucceeds(batch.commit());
   });
 
-  it('gueltiges Markieren als bezahlt (UC-15-Fall, ohne Expense-Aenderung) wird erlaubt', async () => {
-    const db = ctxAs(USER_A);
+  it('Schuldner darf eigene offene Debt als bezahlt markieren', async () => {
+    const db = ctxAs(USER_B);
+
     await assertSucceeds(
       db
         .collection('wgs')
         .doc(WG_ID)
         .collection('debts')
         .doc(`${EXPENSE_ID}_${USER_B}`)
-        .update({ status: 'paid', paidAt: serverTimestamp() })
+        .update({
+          status: 'paid',
+          paidAt: serverTimestamp(),
+        })
+    );
+  });
+
+  it('Glaeubiger darf Debt des Schuldners NICHT als bezahlt markieren', async () => {
+    const db = ctxAs(USER_A);
+
+    await assertFails(
+      db
+        .collection('wgs')
+        .doc(WG_ID)
+        .collection('debts')
+        .doc(`${EXPENSE_ID}_${USER_B}`)
+        .update({
+          status: 'paid',
+          paidAt: serverTimestamp(),
+        })
+    );
+  });
+
+  it('unbeteiligtes WG-Mitglied darf Debt NICHT als bezahlt markieren', async () => {
+    const db = ctxAs(USER_C);
+
+    await assertFails(
+      db
+        .collection('wgs')
+        .doc(WG_ID)
+        .collection('debts')
+        .doc(`${EXPENSE_ID}_${USER_B}`)
+        .update({
+          status: 'paid',
+          paidAt: serverTimestamp(),
+        })
+    );
+  });
+
+    it('Schuldner darf beim Bezahlen den Betrag NICHT veraendern', async () => {
+    const db = ctxAs(USER_B);
+
+    await assertFails(
+      db
+        .collection('wgs')
+        .doc(WG_ID)
+        .collection('debts')
+        .doc(`${EXPENSE_ID}_${USER_B}`)
+        .update({
+          status: 'paid',
+          paidAt: serverTimestamp(),
+          amount: 999,
+        })
+    );
+  });
+
+  it('Schuldner darf beim Bezahlen kein zusaetzliches Feld einschleusen', async () => {
+    const db = ctxAs(USER_B);
+
+    await assertFails(
+      db
+        .collection('wgs')
+        .doc(WG_ID)
+        .collection('debts')
+        .doc(`${EXPENSE_ID}_${USER_B}`)
+        .update({
+          status: 'paid',
+          paidAt: serverTimestamp(),
+          manipulated: true,
+        })
     );
   });
 
@@ -410,12 +480,12 @@ batch.update(debtRef, {
       .collection('debts')
       .doc(`${EXPENSE_ID}_${USER_B}`);
 
-  batch.update(expenseRef, {
-  amount: 20,
-  description: 'Testausgabe',
-  paidBy: USER_A,
-  updatedAt: serverTimestamp(),
-});
+    batch.update(expenseRef, {
+      amount: 20,
+      description: 'Testausgabe',
+      paidBy: USER_A,
+      updatedAt: serverTimestamp(),
+    });
     batch.delete(debtRef);
 
     await assertSucceeds(batch.commit());
