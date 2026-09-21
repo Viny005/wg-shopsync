@@ -138,6 +138,7 @@ Repräsentiert eine Ausgabe innerhalb einer Wohngemeinschaft.
 - Gehört genau zu einer WG.
 - Wurde von genau einem User bezahlt.
 - Besitzt einen oder mehrere ExpenseShares.
+- Kann null oder mehrere Debts erzeugen.
 
 ### Attribute
 
@@ -149,6 +150,7 @@ Repräsentiert eine Ausgabe innerhalb einer Wohngemeinschaft.
 - shoppingItemId
 - receiptUrl
 - createdAt
+- updatedAt
 
 ---
 
