@@ -1,3 +1,4 @@
+import 'package:wg_shopsync/src/domain/models/debt.dart';
 import 'package:wg_shopsync/src/domain/models/expense.dart';
 import 'package:wg_shopsync/src/domain/models/expense_share.dart';
 import 'package:wg_shopsync/src/features/expense/application/expense_service.dart';
@@ -6,8 +7,10 @@ class FakeExpenseService extends ExpenseService {
   FakeExpenseService({
     this.expenses = const [],
     this.shares = const [],
+    this.debts = const [],
     this.getExpensesError,
     this.getExpenseSharesError,
+    this.getDebtsForUserError,
     this.createExpenseError,
     this.updateExpenseError,
     this.createExpenseResult,
@@ -16,9 +19,11 @@ class FakeExpenseService extends ExpenseService {
 
   List<Expense> expenses;
   List<ExpenseShare> shares;
+  List<Debt> debts;
 
   Object? getExpensesError;
   Object? getExpenseSharesError;
+  Object? getDebtsForUserError;
   Object? createExpenseError;
   Object? updateExpenseError;
 
@@ -27,8 +32,12 @@ class FakeExpenseService extends ExpenseService {
 
   int getExpensesCalls = 0;
   int getExpenseSharesCalls = 0;
+  int getDebtsForUserCalls = 0;
   int createExpenseCalls = 0;
   int updateExpenseCalls = 0;
+
+  String? lastDebtsWgId;
+  String? lastDebtsUserId;
 
   String? lastAmountWgId;
   double? lastAmount;
@@ -59,38 +68,17 @@ class FakeExpenseService extends ExpenseService {
   }
 
   @override
-  Future<Expense> createExpense({
+  Future<List<Debt>> getDebtsForUser({
     required String wgId,
-    required double amount,
-    required String description,
-    required String paidBy,
-    required List<String> participantUserIds,
-    String? shoppingItemId,
-    String? receiptUrl,
+    required String userId,
   }) async {
-    createExpenseCalls++;
-    lastAmountWgId = wgId;
-    lastAmount = amount;
-    lastDescription = description;
-    lastPaidBy = paidBy;
-    lastParticipantUserIds = participantUserIds;
-
-    if (createExpenseError != null) {
-      throw createExpenseError!;
+    getDebtsForUserCalls++;
+    lastDebtsWgId = wgId;
+    lastDebtsUserId = userId;
+    if (getDebtsForUserError != null) {
+      throw getDebtsForUserError!;
     }
-
-    return createExpenseResult ??
-        Expense(
-          id: 'fake-expense-id',
-          wgId: wgId,
-          amount: amount,
-          description: description,
-          paidBy: paidBy,
-          shoppingItemId: shoppingItemId,
-          receiptUrl: receiptUrl,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
+    return debts;
   }
 
   @override
