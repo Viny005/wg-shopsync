@@ -68,6 +68,41 @@ class FakeExpenseService extends ExpenseService {
   }
 
   @override
+  Future<Expense> createExpense({
+    required String wgId,
+    required double amount,
+    required String description,
+    required String paidBy,
+    required List<String> participantUserIds,
+    String? shoppingItemId,
+    String? receiptUrl,
+  }) async {
+    createExpenseCalls++;
+    lastAmountWgId = wgId;
+    lastAmount = amount;
+    lastDescription = description;
+    lastPaidBy = paidBy;
+    lastParticipantUserIds = participantUserIds;
+
+    if (createExpenseError != null) {
+      throw createExpenseError!;
+    }
+
+    return createExpenseResult ??
+        Expense(
+          id: 'fake-expense-id',
+          wgId: wgId,
+          amount: amount,
+          description: description,
+          paidBy: paidBy,
+          shoppingItemId: shoppingItemId,
+          receiptUrl: receiptUrl,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+  }
+
+  @override
   Future<List<Debt>> getDebtsForUser({
     required String wgId,
     required String userId,
