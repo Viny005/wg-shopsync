@@ -40,26 +40,48 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
   @override
   void initState() {
     super.initState();
-    _expensesFuture = _loadExpenses();
-    _debtsFuture = _loadDebts();
+    _reloadFinancialData();
   }
 
-  Future<List<Expense>> _loadExpenses() async {
+  /// Laedt Mitgliedsnamen, Ausgaben und Schulden koordiniert neu.
+  ///
+  /// Die Mitgliedsnamen werden zuerst geladen und erst danach werden
+  /// [_expensesFuture] und [_debtsFuture] gesetzt. Andernfalls koennte die
+  /// Schulden-/Ausgabenanzeige (die beide [_labelFor] verwenden) fertig
+  /// sein, bevor [_memberLabels] befuellt ist, und faelschlich dauerhaft
+  /// "Unbekanntes Mitglied" anzeigen, obwohl das Mitglied existiert.
+  ///
+  /// Zentrale Methode, die nach jeder Aenderung (Ausgabe erstellen/
+  /// bearbeiten, Schuld bezahlen) sowie beim Retry nach einem Ladefehler
+  /// erneut aufgerufen wird, damit UC-16 spaeter keinen eigenen,
+  /// abweichenden Reload-Pfad braucht.
+  Future<void> _reloadFinancialData() async {
+    final membersFuture = _loadMembers();
+
+    final expensesFuture = membersFuture.then(
+      (_) => _expenseService.getExpenses(wgId: widget.wgId),
+    );
+    final debtsFuture = membersFuture.then(
+      (_) => _expenseService.getDebtsForUser(
+        wgId: widget.wgId,
+        userId: widget.userId,
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _expensesFuture = expensesFuture;
+      _debtsFuture = debtsFuture;
+    });
+  }
+
+  Future<void> _loadMembers() async {
     final members = await _wgService.loadWgMembers(wgId: widget.wgId);
     _memberLabels = {
       for (final member in members) member.userId: member.displayLabel,
     };
-    return _expenseService.getExpenses(wgId: widget.wgId);
-  }
-
-  /// UC-14: laedt alle Debts, an denen der aktuelle Nutzer beteiligt ist.
-  /// Dient sowohl der Saldoanzeige (UC-13) als auch der Einzelschulden-
-  /// uebersicht mit Status "Offen"/"Bezahlt" (UC-14).
-  Future<List<Debt>> _loadDebts() {
-    return _expenseService.getDebtsForUser(
-      wgId: widget.wgId,
-      userId: widget.userId,
-    );
   }
 
   String _labelFor(String userId) =>
@@ -68,41 +90,33 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
   Future<void> _openAddExpense() async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder:
-            (context) => ExpenseFormPage(
-              wgId: widget.wgId,
-              userId: widget.userId,
-              expenseService: _expenseService,
-            ),
+        builder: (context) => ExpenseFormPage(
+          wgId: widget.wgId,
+          userId: widget.userId,
+          expenseService: _expenseService,
+        ),
       ),
     );
 
     if (result == true && mounted) {
-      setState(() {
-        _expensesFuture = _loadExpenses();
-        _debtsFuture = _loadDebts();
-      });
+      await _reloadFinancialData();
     }
   }
 
   Future<void> _openEditExpense(Expense expense) async {
     final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
-        builder:
-            (context) => ExpenseEditPage(
-              expense: expense,
-              userId: widget.userId,
-              wgService: _wgService,
-              expenseService: _expenseService,
-            ),
+        builder: (context) => ExpenseEditPage(
+          expense: expense,
+          userId: widget.userId,
+          wgService: _wgService,
+          expenseService: _expenseService,
+        ),
       ),
     );
 
     if (result == true && mounted) {
-      setState(() {
-        _expensesFuture = _loadExpenses();
-        _debtsFuture = _loadDebts();
-      });
+      await _reloadFinancialData();
     }
   }
 
@@ -136,19 +150,17 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
                 final label = _labelFor(entry.key);
                 final amount = entry.value;
                 final isPositive = amount > 0;
-                final text =
-                    isPositive
-                        ? '$label schuldet dir ${amount.toStringAsFixed(2)} €'
-                        : '${amount.abs().toStringAsFixed(2)} € an $label offen';
+                final text = isPositive
+                    ? '$label schuldet dir ${amount.toStringAsFixed(2)} €'
+                    : '${amount.abs().toStringAsFixed(2)} € an $label offen';
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
                   child: Text(
                     text,
                     style: TextStyle(
-                      color:
-                          isPositive
-                              ? Colors.green.shade700
-                              : Colors.red.shade700,
+                      color: isPositive
+                          ? Colors.green.shade700
+                          : Colors.red.shade700,
                     ),
                   ),
                 );
@@ -175,9 +187,19 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
         }
 
         if (snapshot.hasError) {
-          return const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text('Schulden konnten nicht geladen werden.'),
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Schulden konnten nicht geladen werden.'),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: _reloadFinancialData,
+                  child: const Text('Erneut versuchen'),
+                ),
+              ],
+            ),
           );
         }
 
@@ -207,10 +229,9 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
                 constraints: const BoxConstraints(maxHeight: 260),
                 child: ListView(
                   shrinkWrap: true,
-                  children:
-                      debts
-                          .map((debt) => _buildDebtTile(context, debt))
-                          .toList(),
+                  children: debts
+                      .map((debt) => _buildDebtTile(context, debt))
+                      .toList(),
                 ),
               ),
             ],
@@ -226,10 +247,9 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
     final counterpartyLabel = _labelFor(counterpartyId);
     final isPaid = debt.status == DebtStatus.paid;
 
-    final title =
-        isCreditor
-            ? '$counterpartyLabel schuldet dir ${debt.amount.toStringAsFixed(2)} €'
-            : 'Du schuldest $counterpartyLabel ${debt.amount.toStringAsFixed(2)} €';
+    final title = isCreditor
+        ? '$counterpartyLabel schuldet dir ${debt.amount.toStringAsFixed(2)} €'
+        : 'Du schuldest $counterpartyLabel ${debt.amount.toStringAsFixed(2)} €';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -237,10 +257,9 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
         title: Text(title),
         trailing: Chip(
           label: Text(isPaid ? 'Bezahlt' : 'Offen'),
-          backgroundColor:
-              isPaid
-                  ? Colors.grey.shade300
-                  : (isCreditor ? Colors.green.shade100 : Colors.red.shade100),
+          backgroundColor: isPaid
+              ? Colors.grey.shade300
+              : (isCreditor ? Colors.green.shade100 : Colors.red.shade100),
         ),
       ),
     );

@@ -14,6 +14,7 @@ class FakeWgService extends WgService {
   Object? leaveWgError;
   List<Membership> members = const [];
   int loadWgMembersCalls = 0;
+  Duration? loadWgMembersDelay;
 
   int loadCurrentWgCalls = 0;
   int leaveWgCalls = 0;
@@ -43,11 +44,15 @@ class FakeWgService extends WgService {
       throw leaveWgError!;
     }
   }
+
   @override
   Future<List<Membership>> loadWgMembers({
     required String wgId,
   }) async {
     loadWgMembersCalls++;
+    if (loadWgMembersDelay != null) {
+      await Future<void>.delayed(loadWgMembersDelay!);
+    }
     return members;
   }
 }

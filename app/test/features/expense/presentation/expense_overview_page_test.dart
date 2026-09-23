@@ -151,6 +151,53 @@ void main() {
       );
     });
 
+    testWidgets('zeigt Retry-Button bei Ladefehler und laedt danach neu',
+        (tester) async {
+      final expenseService = FakeExpenseService(
+        getDebtsForUserError: Exception('offline'),
+      );
+      await pumpPage(tester, expenseService: expenseService);
+
+      expect(find.text('Erneut versuchen'), findsOneWidget);
+      expect(expenseService.getDebtsForUserCalls, 1);
+
+      expenseService.getDebtsForUserError = null;
+      await tester.tap(find.text('Erneut versuchen'));
+      await tester.pumpAndSettle();
+
+      expect(expenseService.getDebtsForUserCalls, 2);
+      expect(find.text('Erneut versuchen'), findsNothing);
+    });
+
+    testWidgets(
+        'zeigt Mitgliedsnamen statt Unbekanntes Mitglied, auch wenn Debts vor den Mitgliedsdaten laden',
+        (tester) async {
+      final wgService = buildWgService()
+        ..loadWgMembersDelay = const Duration(milliseconds: 50);
+
+      await pumpPage(
+        tester,
+        expenseService: FakeExpenseService(
+          debts: [
+            Debt(
+              id: 'expense-1_$otherUid',
+              wgId: wgId,
+              expenseId: 'expense-1',
+              creditorId: currentUid,
+              debtorId: otherUid,
+              amount: 8.5,
+              status: DebtStatus.open,
+              createdAt: DateTime(2026, 9, 18),
+            ),
+          ],
+        ),
+        wgService: wgService,
+      );
+
+      expect(find.textContaining('Unbekanntes Mitglied'), findsNothing);
+      expect(find.textContaining('Tom Beispiel'), findsWidgets);
+    });
+
     testWidgets('zeigt niemals eine rohe UID im Text an', (tester) async {
       await pumpPage(
         tester,
