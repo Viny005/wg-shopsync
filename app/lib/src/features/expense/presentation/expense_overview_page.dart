@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/balance_summary.dart';
@@ -48,10 +50,27 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
   late Future<List<Expense>> _expensesFuture;
   late Future<List<Debt>> _debtsFuture;
   late Future<_OwnSharesLoadResult> _ownSharesFuture;
+
+  StreamSubscription<List<Expense>>? _expensesSubscription;
+
   @override
   void initState() {
     super.initState();
+
     _reloadFinancialData();
+
+    _expensesSubscription =
+        _expenseService.watchExpenses(wgId: widget.wgId).listen((_) {
+      if (mounted) {
+        _reloadFinancialData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _expensesSubscription?.cancel();
+    super.dispose();
   }
 
   Future<_OwnSharesLoadResult> _loadOwnShares(

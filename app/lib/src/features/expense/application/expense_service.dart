@@ -802,6 +802,28 @@ class ExpenseService {
     return expenses;
   }
 
+  Stream<List<Expense>> watchExpenses({required String wgId}) {
+    final trimmedWgId = wgId.trim();
+
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+
+    return firestore
+        .collection('wgs')
+        .doc(trimmedWgId)
+        .collection('expenses')
+        .snapshots()
+        .map((snapshot) {
+      final expenses = snapshot.docs
+          .map((doc) => Expense.fromMap(doc.id, doc.data()))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      return expenses;
+    });
+  }
+
   /// Laedt die gespeicherten Kostenanteile einer Ausgabe.
   /// Wird fuer das Vorbelegen des Bearbeitungsformulars in UC-12 verwendet.
   Future<List<ExpenseShare>> getExpenseShares({
