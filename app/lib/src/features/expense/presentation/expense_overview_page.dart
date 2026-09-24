@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../domain/models/balance_summary.dart';
+import '../../../domain/models/debt.dart';
 import '../../../domain/models/expense.dart';
 import '../../wg/application/wg_service.dart';
 import '../application/expense_service.dart';
@@ -34,29 +35,53 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
   Map<String, String> _memberLabels = const {};
 
   late Future<List<Expense>> _expensesFuture;
-  late Future<BalanceSummary> _balanceFuture;
+  late Future<List<Debt>> _debtsFuture;
 
   @override
   void initState() {
     super.initState();
-    _expensesFuture = _loadExpenses();
-    _balanceFuture = _loadBalance();
+    _reloadFinancialData();
   }
 
-  Future<List<Expense>> _loadExpenses() async {
+  /// Laedt Mitgliedsnamen, Ausgaben und Schulden koordiniert neu.
+  ///
+  /// Die Mitgliedsnamen werden zuerst geladen und erst danach werden
+  /// [_expensesFuture] und [_debtsFuture] gesetzt. Andernfalls koennte die
+  /// Schulden-/Ausgabenanzeige (die beide [_labelFor] verwenden) fertig
+  /// sein, bevor [_memberLabels] befuellt ist, und faelschlich dauerhaft
+  /// "Unbekanntes Mitglied" anzeigen, obwohl das Mitglied existiert.
+  ///
+  /// Zentrale Methode, die nach jeder Aenderung (Ausgabe erstellen/
+  /// bearbeiten, Schuld bezahlen) sowie beim Retry nach einem Ladefehler
+  /// erneut aufgerufen wird, damit UC-16 spaeter keinen eigenen,
+  /// abweichenden Reload-Pfad braucht.
+  Future<void> _reloadFinancialData() async {
+    final membersFuture = _loadMembers();
+
+    final expensesFuture = membersFuture.then(
+      (_) => _expenseService.getExpenses(wgId: widget.wgId),
+    );
+    final debtsFuture = membersFuture.then(
+      (_) => _expenseService.getDebtsForUser(
+        wgId: widget.wgId,
+        userId: widget.userId,
+      ),
+    );
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _expensesFuture = expensesFuture;
+      _debtsFuture = debtsFuture;
+    });
+  }
+
+  Future<void> _loadMembers() async {
     final members = await _wgService.loadWgMembers(wgId: widget.wgId);
     _memberLabels = {
       for (final member in members) member.userId: member.displayLabel,
     };
-    return _expenseService.getExpenses(wgId: widget.wgId);
-  }
-
-  Future<BalanceSummary> _loadBalance() async {
-    final debts = await _expenseService.getDebtsForUser(
-      wgId: widget.wgId,
-      userId: widget.userId,
-    );
-    return BalanceSummary.fromDebts(userId: widget.userId, debts: debts);
   }
 
   String _labelFor(String userId) =>
@@ -74,10 +99,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
     );
 
     if (result == true && mounted) {
-      setState(() {
-        _expensesFuture = _loadExpenses();
-        _balanceFuture = _loadBalance();
-      });
+      await _reloadFinancialData();
     }
   }
 
@@ -94,24 +116,27 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
     );
 
     if (result == true && mounted) {
-      setState(() {
-        _expensesFuture = _loadExpenses();
-        _balanceFuture = _loadBalance();
-      });
+      await _reloadFinancialData();
     }
   }
 
   Widget _buildBalanceBar(BuildContext context) {
-    return FutureBuilder<BalanceSummary>(
-      future: _balanceFuture,
-      builder: (context, balanceSnapshot) {
-        if (balanceSnapshot.connectionState != ConnectionState.done ||
-            !balanceSnapshot.hasData ||
-            balanceSnapshot.data!.balances.isEmpty) {
+    return FutureBuilder<List<Debt>>(
+      future: _debtsFuture,
+      builder: (context, debtSnapshot) {
+        if (debtSnapshot.connectionState != ConnectionState.done ||
+            !debtSnapshot.hasData) {
           return const SizedBox.shrink();
         }
 
-        final summary = balanceSnapshot.data!;
+        final summary = BalanceSummary.fromDebts(
+          userId: widget.userId,
+          debts: debtSnapshot.data!,
+        );
+        if (summary.balances.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
@@ -119,10 +144,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Saldo',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text('Saldo', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               ...summary.balances.entries.map((entry) {
                 final label = _labelFor(entry.key);
@@ -147,6 +169,99 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
           ),
         );
       },
+    );
+  }
+
+  /// UC-14 – Schulden anzeigen. Zeigt jede Debt einzeln mit Gegenpartei,
+  /// Betrag und Status (Offen/Bezahlt). Offene Schulden werden zuerst
+  /// angezeigt, bezahlte Schulden bleiben als Historie sichtbar.
+  Widget _buildDebtSection(BuildContext context) {
+    return FutureBuilder<List<Debt>>(
+      future: _debtsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Schulden konnten nicht geladen werden.'),
+                const SizedBox(height: 8),
+                OutlinedButton(
+                  onPressed: _reloadFinancialData,
+                  child: const Text('Erneut versuchen'),
+                ),
+              ],
+            ),
+          );
+        }
+
+        final debts = List<Debt>.of(snapshot.data ?? const <Debt>[]);
+        if (debts.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Keine Schulden vorhanden.'),
+          );
+        }
+
+        debts.sort((a, b) {
+          if (a.status != b.status) {
+            return a.status == DebtStatus.open ? -1 : 1;
+          }
+          return b.createdAt.compareTo(a.createdAt);
+        });
+
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Schulden', style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 260),
+                child: ListView(
+                  shrinkWrap: true,
+                  children: debts
+                      .map((debt) => _buildDebtTile(context, debt))
+                      .toList(),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDebtTile(BuildContext context, Debt debt) {
+    final isCreditor = debt.creditorId == widget.userId;
+    final counterpartyId = isCreditor ? debt.debtorId : debt.creditorId;
+    final counterpartyLabel = _labelFor(counterpartyId);
+    final isPaid = debt.status == DebtStatus.paid;
+
+    final title = isCreditor
+        ? '$counterpartyLabel schuldet dir ${debt.amount.toStringAsFixed(2)} €'
+        : 'Du schuldest $counterpartyLabel ${debt.amount.toStringAsFixed(2)} €';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListTile(
+        title: Text(title),
+        trailing: Chip(
+          label: Text(isPaid ? 'Bezahlt' : 'Offen'),
+          backgroundColor: isPaid
+              ? Colors.grey.shade300
+              : (isCreditor ? Colors.green.shade100 : Colors.red.shade100),
+        ),
+      ),
     );
   }
 
@@ -237,12 +352,12 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.wgName),
-      ),
+      appBar: AppBar(title: Text(widget.wgName)),
       body: Column(
         children: [
           _buildBalanceBar(context),
+          _buildDebtSection(context),
+          const Divider(height: 1),
           Expanded(child: _buildExpenseList(context)),
         ],
       ),
