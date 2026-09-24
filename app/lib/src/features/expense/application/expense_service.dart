@@ -50,6 +50,24 @@ class ExpenseAlreadySettledException implements Exception {
   const ExpenseAlreadySettledException();
 }
 
+/// Wird geworfen, wenn die zu bezahlende Schuld nicht mehr existiert.
+class DebtNotFoundException implements Exception {
+  const DebtNotFoundException();
+}
+
+/// Wird geworfen, wenn die Schuld bereits als bezahlt markiert wurde
+/// (UC-15 A2: keine erneute Aenderung einer bereits beglichenen Schuld).
+class DebtAlreadyPaidException implements Exception {
+  const DebtAlreadyPaidException();
+}
+
+/// Wird geworfen, wenn der aktuelle Nutzer nicht der Schuldner der
+/// angegebenen Debt ist. Rein defensiv - die eigentliche Autorisierung
+/// erfolgt serverseitig durch Firestore Security Rules.
+class DebtNotOwnedByUserException implements Exception {
+  const DebtNotOwnedByUserException();
+}
+
 enum _ExpenseTransactionOutcome {
   success,
   notFound,
@@ -857,5 +875,65 @@ class ExpenseService {
     ];
 
     return debts;
+  }
+
+  /// UC-15 – Schuld als bezahlt markieren (AF-05). Nur der Schuldner darf
+  /// seine eigene offene Schuld als bezahlt markieren; das wird zusaetzlich
+  /// serverseitig durch Firestore Security Rules erzwungen (siehe
+  /// firestore.rules, updatesValidDebt Fall b). Der Betrag sowie
+  /// creditorId, debtorId und expenseId bleiben unveraendert.
+  ///
+  /// Verwendet eine Firestore-Transaction, damit ein gleichzeitiger
+  /// zweiter Bezahlversuch (z.B. von einem anderen Tab) nicht zu einem
+  /// inkonsistenten Zustand fuehrt: der Status wird innerhalb derselben
+  /// Transaktion gelesen und geprueft, bevor geschrieben wird.
+  Future<void> markDebtAsPaid({
+    required String wgId,
+    required String debtId,
+  }) async {
+    final trimmedWgId = wgId.trim();
+    final trimmedDebtId = debtId.trim();
+
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+    if (trimmedDebtId.isEmpty) {
+      throw ArgumentError('Die Debt-ID darf nicht leer sein.');
+    }
+
+    final activeFirestore = firestore;
+    final debtRef = activeFirestore
+        .collection('wgs')
+        .doc(trimmedWgId)
+        .collection('debts')
+        .doc(trimmedDebtId);
+
+    try {
+      await activeFirestore.runTransaction<void>((transaction) async {
+        final debtSnapshot = await transaction.get(debtRef);
+
+        if (!debtSnapshot.exists || debtSnapshot.data() == null) {
+          throw const DebtNotFoundException();
+        }
+
+        final debt = Debt.fromMap(debtSnapshot.id, debtSnapshot.data()!);
+
+        if (debt.status == DebtStatus.paid) {
+          throw const DebtAlreadyPaidException();
+        }
+
+        transaction.update(debtRef, {
+          'status': DebtStatus.paid.name,
+          'paidAt': FieldValue.serverTimestamp(),
+        });
+      });
+    } on FirebaseException catch (error) {
+      if (error.code == 'unavailable') {
+        throw const ExpenseRequiresConnectionException();
+      }
+      rethrow;
+    } on TimeoutException {
+      throw const ExpenseRequiresConnectionException();
+    }
   }
 }
