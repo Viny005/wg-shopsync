@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:wg_shopsync/src/domain/models/debt.dart';
 import 'package:wg_shopsync/src/domain/models/membership.dart';
 import 'package:wg_shopsync/src/features/expense/presentation/expense_overview_page.dart';
+import 'package:wg_shopsync/src/domain/models/expense.dart';
+import 'package:wg_shopsync/src/domain/models/expense_share.dart';
 
 import '../../../support/fake_expense_service.dart';
 import '../../../support/fake_wg_service.dart';
@@ -363,5 +365,141 @@ void main() {
       );
       expect(find.textContaining('permission-denied'), findsNothing);
     });
+  });
+
+  group('UC-16: Kostenübersicht anzeigen', () {
+    Expense buildExpense({
+      String id = 'expense-1',
+      String paidBy = currentUid,
+      double amount = 30,
+      String description = 'Lebensmittel',
+    }) {
+      return Expense(
+        id: id,
+        wgId: wgId,
+        amount: amount,
+        description: description,
+        paidBy: paidBy,
+        createdAt: DateTime(2026, 9, 24),
+        updatedAt: DateTime(2026, 9, 24),
+      );
+    }
+
+    testWidgets(
+      'zeigt eigenen Kostenanteil auch wenn Nutzer Zahler und Teilnehmer ist',
+      (tester) async {
+        final service = FakeExpenseService(
+          expenses: [
+            buildExpense(),
+          ],
+          shares: [
+            const ExpenseShare(
+              id: 'share-current',
+              expenseId: 'expense-1',
+              userId: currentUid,
+              shareAmount: 10,
+            ),
+            const ExpenseShare(
+              id: 'share-other',
+              expenseId: 'expense-1',
+              userId: otherUid,
+              shareAmount: 20,
+            ),
+          ],
+        );
+
+        await pumpPage(
+          tester,
+          expenseService: service,
+        );
+
+        expect(
+          find.textContaining('Dein Anteil: 10.00 €'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'zeigt keinen eigenen Kostenanteil wenn Nutzer nicht beteiligt ist',
+      (tester) async {
+        final service = FakeExpenseService(
+          expenses: [
+            buildExpense(paidBy: otherUid),
+          ],
+          shares: [
+            const ExpenseShare(
+              id: 'share-other',
+              expenseId: 'expense-1',
+              userId: otherUid,
+              shareAmount: 30,
+            ),
+          ],
+        );
+
+        await pumpPage(
+          tester,
+          expenseService: service,
+        );
+
+        expect(find.textContaining('Dein Anteil:'), findsNothing);
+        expect(find.textContaining('30.00 €'), findsWidgets);
+      },
+    );
+
+    testWidgets(
+      'Expense-Ladefehler zeigt Retry und erneutes Laden funktioniert',
+      (tester) async {
+        final service = FakeExpenseService(
+          getExpensesError: Exception('offline'),
+        );
+
+        await pumpPage(
+          tester,
+          expenseService: service,
+        );
+
+        expect(
+          find.text('Ausgaben konnten nicht geladen werden.'),
+          findsOneWidget,
+        );
+        expect(find.text('Erneut versuchen'), findsOneWidget);
+        expect(service.getExpensesCalls, 1);
+
+        service.getExpensesError = null;
+
+        await tester.tap(find.text('Erneut versuchen'));
+        await tester.pumpAndSettle();
+
+        expect(service.getExpensesCalls, 2);
+        expect(
+          find.text('Ausgaben konnten nicht geladen werden.'),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'Fehler beim Laden der Kostenanteile zeigt Retry',
+      (tester) async {
+        final service = FakeExpenseService(
+          expenses: [
+            buildExpense(),
+          ],
+          getExpenseSharesError: Exception('offline'),
+        );
+
+        await pumpPage(
+          tester,
+          expenseService: service,
+        );
+
+        expect(
+          find.text('Kostenanteile konnten nicht geladen werden.'),
+          findsOneWidget,
+        );
+        expect(find.text('Erneut versuchen'), findsOneWidget);
+      },
+    );
   });
 }

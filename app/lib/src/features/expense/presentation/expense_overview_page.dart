@@ -8,6 +8,17 @@ import '../application/expense_service.dart';
 import 'expense_edit_page.dart';
 import 'expense_form_page.dart';
 
+class _OwnSharesLoadResult {
+  const _OwnSharesLoadResult.success(this.shares) : hasError = false;
+
+  const _OwnSharesLoadResult.failure()
+      : shares = const <String, double>{},
+        hasError = true;
+
+  final Map<String, double> shares;
+  final bool hasError;
+}
+
 class ExpenseOverviewPage extends StatefulWidget {
   const ExpenseOverviewPage({
     super.key,
@@ -36,31 +47,58 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
 
   late Future<List<Expense>> _expensesFuture;
   late Future<List<Debt>> _debtsFuture;
-
+  late Future<_OwnSharesLoadResult> _ownSharesFuture;
   @override
   void initState() {
     super.initState();
     _reloadFinancialData();
   }
 
+  Future<_OwnSharesLoadResult> _loadOwnShares(
+    Future<List<Expense>> expensesFuture,
+  ) async {
+    try {
+      final expenses = await expensesFuture;
+
+      final results = await Future.wait(
+        expenses.map((expense) async {
+          final shares = await _expenseService.getExpenseShares(
+            wgId: widget.wgId,
+            expenseId: expense.id,
+          );
+
+          for (final share in shares) {
+            if (share.userId == widget.userId) {
+              return MapEntry<String, double>(
+                expense.id,
+                share.shareAmount,
+              );
+            }
+          }
+
+          return null;
+        }),
+      );
+
+      final ownShares = <String, double>{
+        for (final entry in results.whereType<MapEntry<String, double>>())
+          entry.key: entry.value,
+      };
+
+      return _OwnSharesLoadResult.success(ownShares);
+    } catch (_) {
+      return const _OwnSharesLoadResult.failure();
+    }
+  }
+
   /// Laedt Mitgliedsnamen, Ausgaben und Schulden koordiniert neu.
-  ///
-  /// Die Mitgliedsnamen werden zuerst geladen und erst danach werden
-  /// [_expensesFuture] und [_debtsFuture] gesetzt. Andernfalls koennte die
-  /// Schulden-/Ausgabenanzeige (die beide [_labelFor] verwenden) fertig
-  /// sein, bevor [_memberLabels] befuellt ist, und faelschlich dauerhaft
-  /// "Unbekanntes Mitglied" anzeigen, obwohl das Mitglied existiert.
-  ///
-  /// Zentrale Methode, die nach jeder Aenderung (Ausgabe erstellen/
-  /// bearbeiten, Schuld bezahlen) sowie beim Retry nach einem Ladefehler
-  /// erneut aufgerufen wird, damit UC-16 spaeter keinen eigenen,
-  /// abweichenden Reload-Pfad braucht.
   Future<void> _reloadFinancialData() async {
     final membersFuture = _loadMembers();
 
     final expensesFuture = membersFuture.then(
       (_) => _expenseService.getExpenses(wgId: widget.wgId),
     );
+
     final debtsFuture = membersFuture.then(
       (_) => _expenseService.getDebtsForUser(
         wgId: widget.wgId,
@@ -68,12 +106,16 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
       ),
     );
 
+    final ownSharesFuture = _loadOwnShares(expensesFuture);
+
     if (!mounted) {
       return;
     }
+
     setState(() {
       _expensesFuture = expensesFuture;
       _debtsFuture = debtsFuture;
+      _ownSharesFuture = ownSharesFuture;
     });
   }
 
@@ -172,9 +214,6 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
     );
   }
 
-  /// UC-14 – Schulden anzeigen. Zeigt jede Debt einzeln mit Gegenpartei,
-  /// Betrag und Status (Offen/Bezahlt). Offene Schulden werden zuerst
-  /// angezeigt, bezahlte Schulden bleiben als Historie sichtbar.
   Widget _buildDebtSection(BuildContext context) {
     return FutureBuilder<List<Debt>>(
       future: _debtsFuture,
@@ -187,18 +226,23 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
         }
 
         if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Schulden konnten nicht geladen werden.'),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: _reloadFinancialData,
-                  child: const Text('Erneut versuchen'),
-                ),
-              ],
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Schulden konnten nicht geladen werden.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _reloadFinancialData,
+                    child: const Text('Erneut versuchen'),
+                  ),
+                ],
+              ),
             ),
           );
         }
@@ -241,7 +285,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
     );
   }
 
-   Widget _buildDebtTile(BuildContext context, Debt debt) {
+  Widget _buildDebtTile(BuildContext context, Debt debt) {
     final isCreditor = debt.creditorId == widget.userId;
     final counterpartyId = isCreditor ? debt.debtorId : debt.creditorId;
     final counterpartyLabel = _labelFor(counterpartyId);
@@ -262,9 +306,6 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
               ? Colors.grey.shade300
               : (isCreditor ? Colors.green.shade100 : Colors.red.shade100),
         ),
-        // UC-15: Nur der Schuldner darf seine eigene offene Schuld als
-        // bezahlt markieren. Der Glaeubiger und Dritte sehen die Debt,
-        // aber keine Aktion dafuer.
         subtitle: (!isPaid && isOwnDebt)
             ? Align(
                 alignment: Alignment.centerLeft,
@@ -299,11 +340,11 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
       ),
     );
 
-    if (confirmed != true || !mounted) {
+    if (confirmed != true || !context.mounted) {
       return;
     }
 
-       final messenger = ScaffoldMessenger.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       await _expenseService.markDebtAsPaid(
@@ -339,9 +380,19 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text(
-                'Ausgaben konnten nicht geladen werden.',
-                textAlign: TextAlign.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Ausgaben konnten nicht geladen werden.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _reloadFinancialData,
+                    child: const Text('Erneut versuchen'),
+                  ),
+                ],
               ),
             ),
           );
@@ -374,36 +425,78 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: expenses.length + 1,
-          itemBuilder: (context, index) {
-            if (index == expenses.length) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: FilledButton.icon(
-                  onPressed: _openAddExpense,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Ausgabe hinzufügen'),
+        return FutureBuilder<_OwnSharesLoadResult>(
+          future: _ownSharesFuture,
+          builder: (context, shareSnapshot) {
+            if (shareSnapshot.connectionState != ConnectionState.done) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            final shareResult = shareSnapshot.data;
+
+            if (shareSnapshot.hasError ||
+                shareResult == null ||
+                shareResult.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Kostenanteile konnten nicht geladen werden.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: _reloadFinancialData,
+                        child: const Text('Erneut versuchen'),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }
 
-            final expense = expenses[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                title: Text(expense.description),
-                subtitle: Text(
-                  '${_labelFor(expense.paidBy)} • ${expense.amount.toStringAsFixed(2)} €',
-                ),
-                trailing: IconButton(
-                  tooltip: 'Ausgabe bearbeiten',
-                  icon: const Icon(Icons.edit),
-                  onPressed: () => _openEditExpense(expense),
-                ),
-                onTap: () => _openEditExpense(expense),
-              ),
+            final ownShareByExpenseId = shareResult.shares;
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: expenses.length + 1,
+              itemBuilder: (context, index) {
+                if (index == expenses.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: FilledButton.icon(
+                      onPressed: _openAddExpense,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Ausgabe hinzufügen'),
+                    ),
+                  );
+                }
+
+                final expense = expenses[index];
+                final ownShare = ownShareByExpenseId[expense.id];
+                final subtitleText = ownShare == null
+                    ? '${_labelFor(expense.paidBy)} • ${expense.amount.toStringAsFixed(2)} €'
+                    : '${_labelFor(expense.paidBy)} • ${expense.amount.toStringAsFixed(2)} € • Dein Anteil: ${ownShare.toStringAsFixed(2)} €';
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    title: Text(expense.description),
+                    subtitle: Text(subtitleText),
+                    trailing: IconButton(
+                      tooltip: 'Ausgabe bearbeiten',
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _openEditExpense(expense),
+                    ),
+                    onTap: () => _openEditExpense(expense),
+                  ),
+                );
+              },
             );
           },
         );
