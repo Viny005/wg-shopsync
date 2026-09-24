@@ -8,6 +8,17 @@ import '../application/expense_service.dart';
 import 'expense_edit_page.dart';
 import 'expense_form_page.dart';
 
+class _OwnSharesLoadResult {
+  const _OwnSharesLoadResult.success(this.shares) : hasError = false;
+
+  const _OwnSharesLoadResult.failure()
+      : shares = const <String, double>{},
+        hasError = true;
+
+  final Map<String, double> shares;
+  final bool hasError;
+}
+
 class ExpenseOverviewPage extends StatefulWidget {
   const ExpenseOverviewPage({
     super.key,
@@ -36,11 +47,48 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
 
   late Future<List<Expense>> _expensesFuture;
   late Future<List<Debt>> _debtsFuture;
-
+  late Future<_OwnSharesLoadResult> _ownSharesFuture;
   @override
   void initState() {
     super.initState();
     _reloadFinancialData();
+  }
+
+  Future<_OwnSharesLoadResult> _loadOwnShares(
+    Future<List<Expense>> expensesFuture,
+  ) async {
+    try {
+      final expenses = await expensesFuture;
+
+      final results = await Future.wait(
+        expenses.map((expense) async {
+          final shares = await _expenseService.getExpenseShares(
+            wgId: widget.wgId,
+            expenseId: expense.id,
+          );
+
+          for (final share in shares) {
+            if (share.userId == widget.userId) {
+              return MapEntry<String, double>(
+                expense.id,
+                share.shareAmount,
+              );
+            }
+          }
+
+          return null;
+        }),
+      );
+
+      final ownShares = <String, double>{
+        for (final entry in results.whereType<MapEntry<String, double>>())
+          entry.key: entry.value,
+      };
+
+      return _OwnSharesLoadResult.success(ownShares);
+    } catch (_) {
+      return const _OwnSharesLoadResult.failure();
+    }
   }
 
   /// Laedt Mitgliedsnamen, Ausgaben und Schulden koordiniert neu.
@@ -50,6 +98,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
     final expensesFuture = membersFuture.then(
       (_) => _expenseService.getExpenses(wgId: widget.wgId),
     );
+
     final debtsFuture = membersFuture.then(
       (_) => _expenseService.getDebtsForUser(
         wgId: widget.wgId,
@@ -57,12 +106,16 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
       ),
     );
 
+    final ownSharesFuture = _loadOwnShares(expensesFuture);
+
     if (!mounted) {
       return;
     }
+
     setState(() {
       _expensesFuture = expensesFuture;
       _debtsFuture = debtsFuture;
+      _ownSharesFuture = ownSharesFuture;
     });
   }
 
@@ -180,7 +233,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Text(
-                    'Ausgaben konnten nicht geladen werden.',
+                    'Schulden konnten nicht geladen werden.',
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
@@ -287,7 +340,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
       ),
     );
 
-    if (confirmed != true || !mounted) {
+    if (confirmed != true || !context.mounted) {
       return;
     }
 
@@ -327,9 +380,19 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Text(
-                'Ausgaben konnten nicht geladen werden.',
-                textAlign: TextAlign.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Ausgaben konnten nicht geladen werden.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _reloadFinancialData,
+                    child: const Text('Erneut versuchen'),
+                  ),
+                ],
               ),
             ),
           );
@@ -362,13 +425,42 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
           );
         }
 
-        return FutureBuilder<List<Debt>>(
-          future: _debtsFuture,
-          builder: (context, debtSnapshot) {
-            final ownShareByExpenseId = <String, double>{
-              for (final debt in debtSnapshot.data ?? const <Debt>[])
-                if (debt.debtorId == widget.userId) debt.expenseId: debt.amount,
-            };
+        return FutureBuilder<_OwnSharesLoadResult>(
+          future: _ownSharesFuture,
+          builder: (context, shareSnapshot) {
+            if (shareSnapshot.connectionState != ConnectionState.done) {
+              return const Center(
+                child: CircularProgressIndicator(),
+              );
+            }
+
+            final shareResult = shareSnapshot.data;
+
+            if (shareSnapshot.hasError ||
+                shareResult == null ||
+                shareResult.hasError) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        'Kostenanteile konnten nicht geladen werden.',
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      OutlinedButton(
+                        onPressed: _reloadFinancialData,
+                        child: const Text('Erneut versuchen'),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            final ownShareByExpenseId = shareResult.shares;
 
             return ListView.builder(
               padding: const EdgeInsets.all(16),
