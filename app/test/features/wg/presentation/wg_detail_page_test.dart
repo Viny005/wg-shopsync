@@ -6,7 +6,7 @@ import 'package:wg_shopsync/src/features/expense/presentation/expense_overview_p
 import 'package:wg_shopsync/src/features/shopping_list/presentation/shopping_list_page.dart';
 import 'package:wg_shopsync/src/features/wg/application/wg_service.dart';
 import 'package:wg_shopsync/src/features/wg/presentation/wg_detail_page.dart';
-
+import '../../../support/fake_expense_service.dart';
 import '../../../support/fake_shopping_list_service.dart';
 import '../../../support/fake_wg_service.dart';
 
@@ -273,8 +273,7 @@ void main() {
         ),
       );
 
-      await tester
-          .tap(find.text('Einkaufsliste öffnen'));
+      await tester.tap(find.text('Einkaufsliste öffnen'));
       await tester.pumpAndSettle();
 
       expect(find.byType(ShoppingListPage), findsOneWidget);
@@ -292,12 +291,17 @@ void main() {
         createdAt: DateTime(2026, 9, 13),
       );
 
+      final expenseService = FakeExpenseService();
+      final wgService = FakeWgService();
+
       await tester.pumpWidget(
         MaterialApp(
           home: WgDetailPage(
             wg: wg,
             role: MembershipRole.admin,
             userId: 'admin-user',
+            wgService: wgService,
+            expenseService: expenseService,
           ),
         ),
       );
