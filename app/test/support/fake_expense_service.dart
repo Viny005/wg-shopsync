@@ -15,6 +15,7 @@ class FakeExpenseService extends ExpenseService {
     this.updateExpenseError,
     this.createExpenseResult,
     this.updateExpenseResult,
+    this.markDebtAsPaidError,
   });
 
   List<Expense> expenses;
@@ -29,6 +30,10 @@ class FakeExpenseService extends ExpenseService {
 
   Expense? createExpenseResult;
   Expense? updateExpenseResult;
+  Object? markDebtAsPaidError;
+  int markDebtAsPaidCalls = 0;
+  String? lastPaidWgId;
+  String? lastPaidDebtId;
 
   int getExpensesCalls = 0;
   int getExpenseSharesCalls = 0;
@@ -142,5 +147,19 @@ class FakeExpenseService extends ExpenseService {
           paidBy: paidBy,
           updatedAt: DateTime.now(),
         );
+  }
+
+  @override
+  Future<void> markDebtAsPaid({
+    required String wgId,
+    required String debtId,
+  }) async {
+    markDebtAsPaidCalls++;
+    lastPaidWgId = wgId;
+    lastPaidDebtId = debtId;
+
+    if (markDebtAsPaidError != null) {
+      throw markDebtAsPaidError!;
+    }
   }
 }

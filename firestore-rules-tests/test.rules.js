@@ -466,6 +466,22 @@ describe('UC-13 Firestore Rules - Valid create and update', () => {
     );
   });
 
+  it('Nutzer aus fremder WG darf Debt NICHT als bezahlt markieren', async () => {
+      const db = testEnv.authenticatedContext('user-outsider').firestore();
+
+      await assertFails(
+        db
+          .collection('wgs')
+          .doc(WG_ID)
+          .collection('debts')
+          .doc(`${EXPENSE_ID}_${USER_B}`)
+          .update({
+            status: 'paid',
+            paidAt: serverTimestamp(),
+          })
+      );
+    });
+
   it('offene Debt darf NICHT geloescht werden solange der ExpenseShare bestehen bleibt', async () => {
     const db = ctxAs(USER_A);
     const batch = db.batch();

@@ -241,11 +241,12 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
     );
   }
 
-  Widget _buildDebtTile(BuildContext context, Debt debt) {
+   Widget _buildDebtTile(BuildContext context, Debt debt) {
     final isCreditor = debt.creditorId == widget.userId;
     final counterpartyId = isCreditor ? debt.debtorId : debt.creditorId;
     final counterpartyLabel = _labelFor(counterpartyId);
     final isPaid = debt.status == DebtStatus.paid;
+    final isOwnDebt = debt.debtorId == widget.userId;
 
     final title = isCreditor
         ? '$counterpartyLabel schuldet dir ${debt.amount.toStringAsFixed(2)} €'
@@ -261,8 +262,69 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
               ? Colors.grey.shade300
               : (isCreditor ? Colors.green.shade100 : Colors.red.shade100),
         ),
+        // UC-15: Nur der Schuldner darf seine eigene offene Schuld als
+        // bezahlt markieren. Der Glaeubiger und Dritte sehen die Debt,
+        // aber keine Aktion dafuer.
+        subtitle: (!isPaid && isOwnDebt)
+            ? Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => _confirmMarkAsPaid(context, debt),
+                  child: const Text('Als bezahlt markieren'),
+                ),
+              )
+            : null,
       ),
     );
+  }
+
+  Future<void> _confirmMarkAsPaid(BuildContext context, Debt debt) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Schuld als bezahlt markieren?'),
+        content: const Text(
+          'Moechtest du diese Schuld wirklich als bezahlt markieren?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Als bezahlt markieren'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+       final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      await _expenseService.markDebtAsPaid(
+        wgId: widget.wgId,
+        debtId: debt.id,
+      );
+      if (!mounted) {
+        return;
+      }
+      await _reloadFinancialData();
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Die Schuld konnte nicht als bezahlt markiert werden.'),
+        ),
+      );
+      await _reloadFinancialData();
+    }
   }
 
   Widget _buildExpenseList(BuildContext context) {

@@ -232,4 +232,136 @@ void main() {
       expect(service.lastDebtsUserId, currentUid);
     });
   });
+
+  group('UC-15: ExpenseOverviewPage Schuld als bezahlt markieren', () {
+    Debt buildOpenDebt({required String creditorId, required String debtorId}) {
+      return Debt(
+        id: 'expense-1_$debtorId',
+        wgId: wgId,
+        expenseId: 'expense-1',
+        creditorId: creditorId,
+        debtorId: debtorId,
+        amount: 8.5,
+        status: DebtStatus.open,
+        createdAt: DateTime(2026, 9, 18),
+      );
+    }
+
+    testWidgets(
+        'zeigt Als-bezahlt-markieren-Button fuer eigene offene Schuld als Schuldner',
+        (tester) async {
+      await pumpPage(
+        tester,
+        expenseService: FakeExpenseService(
+          debts: [buildOpenDebt(creditorId: otherUid, debtorId: currentUid)],
+        ),
+      );
+
+      expect(find.text('Als bezahlt markieren'), findsOneWidget);
+    });
+
+    testWidgets('zeigt KEINEN Button wenn Nutzer Glaeubiger ist',
+        (tester) async {
+      await pumpPage(
+        tester,
+        expenseService: FakeExpenseService(
+          debts: [buildOpenDebt(creditorId: currentUid, debtorId: otherUid)],
+        ),
+      );
+
+      expect(find.text('Als bezahlt markieren'), findsNothing);
+    });
+
+    testWidgets('zeigt KEINEN Button bei bereits bezahlter Schuld',
+        (tester) async {
+      final debt = Debt(
+        id: 'expense-1_$currentUid',
+        wgId: wgId,
+        expenseId: 'expense-1',
+        creditorId: otherUid,
+        debtorId: currentUid,
+        amount: 8.5,
+        status: DebtStatus.paid,
+        paidAt: DateTime(2026, 9, 19),
+        createdAt: DateTime(2026, 9, 18),
+      );
+      await pumpPage(
+        tester,
+        expenseService: FakeExpenseService(debts: [debt]),
+      );
+
+      expect(find.text('Als bezahlt markieren'), findsNothing);
+    });
+
+    testWidgets('Klick oeffnet Bestaetigungsdialog', (tester) async {
+      await pumpPage(
+        tester,
+        expenseService: FakeExpenseService(
+          debts: [buildOpenDebt(creditorId: otherUid, debtorId: currentUid)],
+        ),
+      );
+
+      await tester.tap(find.text('Als bezahlt markieren'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Schuld als bezahlt markieren?'), findsOneWidget);
+      expect(find.text('Abbrechen'), findsOneWidget);
+    });
+
+    testWidgets('Abbrechen fuehrt zu keinem Update', (tester) async {
+      final service = FakeExpenseService(
+        debts: [buildOpenDebt(creditorId: otherUid, debtorId: currentUid)],
+      );
+      await pumpPage(tester, expenseService: service);
+
+      await tester.tap(find.text('Als bezahlt markieren'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Abbrechen'));
+      await tester.pumpAndSettle();
+
+      expect(service.markDebtAsPaidCalls, 0);
+      expect(find.text('Bezahlt'), findsNothing);
+    });
+
+    testWidgets(
+        'Bestaetigen ruft markDebtAsPaid genau einmal auf und laedt neu',
+        (tester) async {
+      final service = FakeExpenseService(
+        debts: [buildOpenDebt(creditorId: otherUid, debtorId: currentUid)],
+      );
+      await pumpPage(tester, expenseService: service);
+
+      await tester.tap(find.text('Als bezahlt markieren'));
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.widgetWithText(FilledButton, 'Als bezahlt markieren'));
+      await tester.pumpAndSettle();
+
+      expect(service.markDebtAsPaidCalls, 1);
+      expect(service.lastPaidWgId, wgId);
+      expect(service.lastPaidDebtId, 'expense-1_$currentUid');
+      expect(service.getDebtsForUserCalls, 2);
+    });
+
+    testWidgets('Fehler beim Bezahlen zeigt verstaendliche Meldung',
+        (tester) async {
+      final service = FakeExpenseService(
+        debts: [buildOpenDebt(creditorId: otherUid, debtorId: currentUid)],
+        markDebtAsPaidError: Exception('permission-denied'),
+      );
+      await pumpPage(tester, expenseService: service);
+
+      await tester.tap(find.text('Als bezahlt markieren'));
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.widgetWithText(FilledButton, 'Als bezahlt markieren'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Die Schuld konnte nicht als bezahlt markiert werden.'),
+        findsOneWidget,
+      );
+      expect(find.textContaining('permission-denied'), findsNothing);
+    });
+  });
 }
