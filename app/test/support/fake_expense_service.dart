@@ -1,9 +1,12 @@
+import 'dart:async';
 import 'package:wg_shopsync/src/domain/models/debt.dart';
 import 'package:wg_shopsync/src/domain/models/expense.dart';
 import 'package:wg_shopsync/src/domain/models/expense_share.dart';
 import 'package:wg_shopsync/src/features/expense/application/expense_service.dart';
 
 class FakeExpenseService extends ExpenseService {
+  final StreamController<List<Expense>> _expensesStreamController =
+      StreamController<List<Expense>>.broadcast();
   FakeExpenseService({
     this.expenses = const [],
     this.shares = const [],
@@ -58,6 +61,15 @@ class FakeExpenseService extends ExpenseService {
       throw getExpensesError!;
     }
     return expenses;
+  }
+
+  @override
+  Stream<List<Expense>> watchExpenses({required String wgId}) {
+    return _expensesStreamController.stream;
+  }
+
+  void emitExpenseChange() {
+    _expensesStreamController.add(expenses);
   }
 
   @override

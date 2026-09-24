@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-
 import '../../../domain/models/wg.dart';
 import '../../../domain/models/membership.dart';
 import '../../expense/presentation/expense_overview_page.dart';
+import '../../expense/application/expense_service.dart';
+
 import '../../shopping_list/application/shopping_list_service.dart';
 import '../../shopping_list/presentation/shopping_list_page.dart';
 import '../application/wg_service.dart';
@@ -15,6 +16,7 @@ class WgDetailPage extends StatefulWidget {
     required this.userId,
     this.wgService,
     this.shoppingListService,
+    this.expenseService,
   });
 
   final WG wg;
@@ -22,6 +24,7 @@ class WgDetailPage extends StatefulWidget {
   final String userId;
   final WgService? wgService;
   final ShoppingListService? shoppingListService;
+  final ExpenseService? expenseService;
 
   @override
   State<WgDetailPage> createState() => _WgDetailPageState();
@@ -149,6 +152,8 @@ class _WgDetailPageState extends State<WgDetailPage> {
                         wgId: widget.wg.id,
                         wgName: widget.wg.name,
                         userId: widget.userId,
+                        expenseService: widget.expenseService,
+                        wgService: _wgService,
                       ),
                     ),
                   );
