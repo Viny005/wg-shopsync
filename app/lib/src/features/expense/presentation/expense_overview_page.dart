@@ -44,17 +44,6 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
   }
 
   /// Laedt Mitgliedsnamen, Ausgaben und Schulden koordiniert neu.
-  ///
-  /// Die Mitgliedsnamen werden zuerst geladen und erst danach werden
-  /// [_expensesFuture] und [_debtsFuture] gesetzt. Andernfalls koennte die
-  /// Schulden-/Ausgabenanzeige (die beide [_labelFor] verwenden) fertig
-  /// sein, bevor [_memberLabels] befuellt ist, und faelschlich dauerhaft
-  /// "Unbekanntes Mitglied" anzeigen, obwohl das Mitglied existiert.
-  ///
-  /// Zentrale Methode, die nach jeder Aenderung (Ausgabe erstellen/
-  /// bearbeiten, Schuld bezahlen) sowie beim Retry nach einem Ladefehler
-  /// erneut aufgerufen wird, damit UC-16 spaeter keinen eigenen,
-  /// abweichenden Reload-Pfad braucht.
   Future<void> _reloadFinancialData() async {
     final membersFuture = _loadMembers();
 
@@ -172,9 +161,6 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
     );
   }
 
-  /// UC-14 – Schulden anzeigen. Zeigt jede Debt einzeln mit Gegenpartei,
-  /// Betrag und Status (Offen/Bezahlt). Offene Schulden werden zuerst
-  /// angezeigt, bezahlte Schulden bleiben als Historie sichtbar.
   Widget _buildDebtSection(BuildContext context) {
     return FutureBuilder<List<Debt>>(
       future: _debtsFuture,
@@ -187,18 +173,23 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
         }
 
         if (snapshot.hasError) {
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Schulden konnten nicht geladen werden.'),
-                const SizedBox(height: 8),
-                OutlinedButton(
-                  onPressed: _reloadFinancialData,
-                  child: const Text('Erneut versuchen'),
-                ),
-              ],
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    'Ausgaben konnten nicht geladen werden.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton(
+                    onPressed: _reloadFinancialData,
+                    child: const Text('Erneut versuchen'),
+                  ),
+                ],
+              ),
             ),
           );
         }
@@ -241,7 +232,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
     );
   }
 
-   Widget _buildDebtTile(BuildContext context, Debt debt) {
+  Widget _buildDebtTile(BuildContext context, Debt debt) {
     final isCreditor = debt.creditorId == widget.userId;
     final counterpartyId = isCreditor ? debt.debtorId : debt.creditorId;
     final counterpartyLabel = _labelFor(counterpartyId);
@@ -262,9 +253,6 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
               ? Colors.grey.shade300
               : (isCreditor ? Colors.green.shade100 : Colors.red.shade100),
         ),
-        // UC-15: Nur der Schuldner darf seine eigene offene Schuld als
-        // bezahlt markieren. Der Glaeubiger und Dritte sehen die Debt,
-        // aber keine Aktion dafuer.
         subtitle: (!isPaid && isOwnDebt)
             ? Align(
                 alignment: Alignment.centerLeft,
@@ -303,7 +291,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
       return;
     }
 
-       final messenger = ScaffoldMessenger.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
     try {
       await _expenseService.markDebtAsPaid(
@@ -374,36 +362,49 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          itemCount: expenses.length + 1,
-          itemBuilder: (context, index) {
-            if (index == expenses.length) {
-              return Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: FilledButton.icon(
-                  onPressed: _openAddExpense,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Ausgabe hinzufügen'),
-                ),
-              );
-            }
+        return FutureBuilder<List<Debt>>(
+          future: _debtsFuture,
+          builder: (context, debtSnapshot) {
+            final ownShareByExpenseId = <String, double>{
+              for (final debt in debtSnapshot.data ?? const <Debt>[])
+                if (debt.debtorId == widget.userId) debt.expenseId: debt.amount,
+            };
 
-            final expense = expenses[index];
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12),
-              child: ListTile(
-                title: Text(expense.description),
-                subtitle: Text(
-                  '${_labelFor(expense.paidBy)} • ${expense.amount.toStringAsFixed(2)} €',
-                ),
-                trailing: IconButton(
-                  tooltip: 'Ausgabe bearbeiten',
-                  icon: const Icon(Icons.edit),
-                  onPressed: () => _openEditExpense(expense),
-                ),
-                onTap: () => _openEditExpense(expense),
-              ),
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: expenses.length + 1,
+              itemBuilder: (context, index) {
+                if (index == expenses.length) {
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: FilledButton.icon(
+                      onPressed: _openAddExpense,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Ausgabe hinzufügen'),
+                    ),
+                  );
+                }
+
+                final expense = expenses[index];
+                final ownShare = ownShareByExpenseId[expense.id];
+                final subtitleText = ownShare == null
+                    ? '${_labelFor(expense.paidBy)} • ${expense.amount.toStringAsFixed(2)} €'
+                    : '${_labelFor(expense.paidBy)} • ${expense.amount.toStringAsFixed(2)} € • Dein Anteil: ${ownShare.toStringAsFixed(2)} €';
+
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    title: Text(expense.description),
+                    subtitle: Text(subtitleText),
+                    trailing: IconButton(
+                      tooltip: 'Ausgabe bearbeiten',
+                      icon: const Icon(Icons.edit),
+                      onPressed: () => _openEditExpense(expense),
+                    ),
+                    onTap: () => _openEditExpense(expense),
+                  ),
+                );
+              },
             );
           },
         );
