@@ -133,22 +133,22 @@ void main() {
     test('trims description before persisting', () async {
       final service = ExpenseService(
         membershipChecker: (wgId, userId) async => true,
-        persistence:
-            ({
-              required wgId,
-              required expense,
-              required shares,
-              required participantUserIds,
-            }) async => Expense(
-              id: expense.id,
-              wgId: expense.wgId,
-              amount: expense.amount,
-              description: expense.description,
-              paidBy: expense.paidBy,
-              shoppingItemId: expense.shoppingItemId,
-              receiptUrl: expense.receiptUrl,
-              createdAt: expense.createdAt,
-            ),
+        persistence: ({
+          required wgId,
+          required expense,
+          required shares,
+          required participantUserIds,
+        }) async =>
+            Expense(
+          id: expense.id,
+          wgId: expense.wgId,
+          amount: expense.amount,
+          description: expense.description,
+          paidBy: expense.paidBy,
+          shoppingItemId: expense.shoppingItemId,
+          receiptUrl: expense.receiptUrl,
+          createdAt: expense.createdAt,
+        ),
       );
 
       final created = await service.createExpense(
@@ -236,15 +236,15 @@ void main() {
 
     test('accepts a valid expense when all members are valid', () async {
       final service = ExpenseService(
-        membershipChecker:
-            (wgId, userId) async => ['user-1', 'user-2'].contains(userId),
-        persistence:
-            ({
-              required wgId,
-              required expense,
-              required shares,
-              required participantUserIds,
-            }) async => expense,
+        membershipChecker: (wgId, userId) async =>
+            ['user-1', 'user-2'].contains(userId),
+        persistence: ({
+          required wgId,
+          required expense,
+          required shares,
+          required participantUserIds,
+        }) async =>
+            expense,
       );
 
       await expectLater(
@@ -712,6 +712,24 @@ void main() {
     test('rejects whitespace-only userId', () {
       expect(
         () => service.getDebtsForUser(wgId: 'wg-1', userId: '   '),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+  });
+
+  group('UC-15: ExpenseService.markDebtAsPaid input validation', () {
+    final service = ExpenseService();
+
+    test('rejects empty wgId', () {
+      expect(
+        () => service.markDebtAsPaid(wgId: '', debtId: 'debt-1'),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('rejects empty debtId', () {
+      expect(
+        () => service.markDebtAsPaid(wgId: 'wg-1', debtId: ''),
         throwsA(isA<ArgumentError>()),
       );
     });
