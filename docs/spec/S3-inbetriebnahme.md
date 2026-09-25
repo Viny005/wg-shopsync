@@ -41,9 +41,9 @@ Der Zugriff auf WG-spezifische Daten wird über Memberships eingeschränkt. Benu
 
 ### WG-Beitritt per Einladungscode
 
-Die aktuellen Security Rules verhindern bewusst, dass der Flutter-Client eine Membership in einer bestehenden WG direkt erstellt. Vor dem Erstellen einer Membership muss der Einladungscode durch einen vertrauenswürdigen Backend-Prozess validiert werden.
+Die Security Rules verhindern bewusst, dass der Flutter-Client eine Membership in einer bestehenden WG direkt erstellt. Der Einladungscode wird stattdessen durch die Callable Cloud Function `joinWg` (Region `europe-west3`, siehe `functions/src/index.ts`) serverseitig validiert.
 
-Für diesen Prozess kann später beispielsweise eine Firebase Cloud Function eingesetzt werden. Eine solche serverlose Funktion ist kein klassischer eigener App-Server und bleibt mit der vorgesehenen Firebase-Architektur vereinbar. Der sichere WG-Beitritt über Einladungscode ist aktuell noch nicht vollständig implementiert.
+Die Funktion läuft mit Firebase-Admin-Rechten und umgeht dadurch kontrolliert die clientseitigen Security Rules, nachdem sie geprüft hat, dass der aufrufende Nutzer authentifiziert ist, noch keiner WG angehört und einen gültigen, existierenden Einladungscode angegeben hat. Membership und `userMemberships` werden innerhalb einer einzigen Firestore-Transaktion geschrieben, sodass konkurrierende Beitrittsversuche desselben Nutzers konsistent behandelt werden. Eine solche serverlose Funktion ist kein klassischer eigener App-Server und bleibt mit der vorgesehenen Firebase-Architektur vereinbar (siehe A09 ADR-08).
 
 ### Hardware-Anforderungen
 

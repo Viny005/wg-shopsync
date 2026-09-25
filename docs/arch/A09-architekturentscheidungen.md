@@ -13,6 +13,7 @@ Die folgenden ADRs dokumentieren die verbindlichen Architekturentscheidungen fü
 | ADR-05 | Server gewinnt bei Konflikten | accepted | 2026-09-07 |
 | ADR-06 | Einfache Rollenstruktur | accepted | 2026-09-07 |
 | ADR-07 | Expense-bezogene Debt-Dokumente | accepted | 2026-09-20 |
+| ADR-08 | Firebase Cloud Function fuer sicheren WG-Beitritt | accepted | 2026-09-25 |
 
 Die Entscheidungen beziehen sich auf die fachlichen Anforderungen in `docs/spec/` und die Baustein-, Laufzeit- und Verteilungssichten in A05 bis A08. Es gibt aktuell keine separate Implementierung oder Ticket-ID, auf die verlinkt werden könnte; die Spezifikation und Architektur sind die verbindlichen Projektartefakte.
 
@@ -236,3 +237,39 @@ Nur eine expense-bezogene Schuld erlaubt es, bezahlte Schulden unverändert als 
 - Der Saldo (AF-06) wird zur Laufzeit als Summe aller offenen Schulden zwischen zwei Mitgliedern gebildet, nicht aus einem einzelnen gespeicherten Wert gelesen.
 - Eine Bearbeitung einer Ausgabe, deren Schulden bereits bezahlt sind, verändert diese Schulden nicht mehr.
 - Firestore Security Rules validieren eine Schuld gegen die zugehörige Ausgabe und deren Kostenanteil.
+
+
+---
+
+## ADR-08: Firebase Cloud Function fuer sicheren WG-Beitritt
+
+**Status:** accepted
+**Datum:** 2026-09-25
+**Autoren:** Entwicklerteam WG-ShopSync
+
+### Kontext
+
+UC-04 (WG beitreten) erforderte bislang, dass der Flutter-Client selbst innerhalb einer Firestore-Transaktion sowohl das Membership-Dokument als auch das zugehoerige `userMemberships`-Dokument schreibt. Die Firestore Security Rule, die das absicherte (`createsOwnWgMemberMembership`), verglich lediglich den client-seitig mitgesendeten Einladungscode gegen den in der Ziel-WG hinterlegten Code. Das ist grundsaetzlich funktional, aber weniger robust als eine serverseitige Pruefung: ein Client bleibt fuer die Autorisierungslogik selbst verantwortlich, und konkurrierende Beitrittsversuche werden nur ueber die allgemeine Firestore-Transaktionssemantik behandelt, nicht ueber eine dedizierte serverseitige Regel.
+
+Docs/spec/S3-inbetriebnahme.md sah einen vertrauenswuerdigen Backend-Prozess fuer den WG-Beitritt bereits als vorgesehene, aber noch nicht umgesetzte Loesung vor. A09 ADR-04 haelt fest, dass die Einfuehrung von Firebase Cloud Functions fuer privilegierte serverseitige Logik eine eigene ADR erfordert.
+
+### Alternativen
+
+- Client-seitige Firestore-Transaktion mit Invite-Code-Abgleich in den Security Rules (bisheriger Zustand)
+- Firebase Cloud Function (Callable Function) mit Admin-Rechten
+- Eigener App-Server mit REST-API (von ADR-04 bereits ausgeschlossen)
+
+### Entscheidung
+
+Der WG-Beitritt (UC-04) laeuft ueber die Callable Cloud Function `joinWg` (Region `europe-west3`). Die Funktion validiert den Einladungscode serverseitig, prueft die Mitgliedschaft des aufrufenden Nutzers und schreibt Membership sowie `userMemberships` atomar innerhalb einer Firestore-Transaktion. Die Firestore Security Rule `createsOwnWgMemberMembership` wurde entfernt; ein Client kann seit dieser Entscheidung keine member-Rolle-Membership mehr direkt anlegen.
+
+### Begruendung
+
+Eine Cloud Function mit Admin-Rechten kapselt die gesamte Autorisierungslogik serverseitig und macht sie unabhaengig vom Client-Code pruefbar. Konkurrierende Beitrittsversuche werden durch eine einzige serverseitige Firestore-Transaktion konsistent behandelt, statt sich auf das clientseitige Zusammenspiel aus Transaktion und Security Rule zu verlassen. Der WG-Erstellen-Pfad (admin-Rolle) bleibt unveraendert client-seitig, da dort keine fremde WG betroffen ist und die bestehende Rule (`createsOwnWgAdminMembership`) ausreichend ist.
+
+### Konsequenzen
+
+- Neuer Projektbestandteil `functions/` (TypeScript, Firebase Functions v2, Node 24).
+- `WgService.joinWg` behaelt seine oeffentliche Signatur bei und ruft intern die Callable Function auf; bestehende UI (`JoinWgPage`) und deren Fehlerbehandlung sind unveraendert.
+- Deployment umfasst zusaetzlich `firebase deploy --only functions`.
+- Der Client kann keine member-Rolle-Membership mehr direkt anlegen, auch nicht mit einem passenden `userMemberships`-Batch (verifiziert durch Firestore-Rules-Tests).
