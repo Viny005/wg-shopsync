@@ -58,7 +58,20 @@ Für diesen Prozess kann später beispielsweise eine Firebase Cloud Function ein
 1. Die Cloud-Datenbank wird eingerichtet und konfiguriert.
 2. Firebase Authentication wird konfiguriert.
 3. Die erforderlichen Umgebungsvariablen werden gesetzt.
-4. Die Webanwendung wird als Flutter-Web-Build erstellt und über Firebase Hosting bereitgestellt.
+4. Die Webanwendung wird als Flutter-Web-Build erstellt und über Firebase Hosting bereitgestellt:
+
+```bash
+   cd app
+   flutter build web
+   cd ..
+   firebase deploy --only hosting --project wg-shopsync
+```
+
+   Die produktive URL lautet `https://wg-shopsync.web.app`. Firestore Security Rules werden separat deployed:
+
+```bash
+   firebase deploy --only firestore:rules --project wg-shopsync
+```
 5. Die Anwendung wird mit der produktiven Datenbank verbunden.
 6. Abschließende Betriebs- und Funktionstests werden durchgeführt:
 	- Registrierung eines Benutzers
