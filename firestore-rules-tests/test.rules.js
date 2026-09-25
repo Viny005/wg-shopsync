@@ -719,3 +719,87 @@ describe('UC-13 Firestore Rules - Valid create and update', () => {
     await assertFails(batch.commit());
   });
 });
+
+
+describe('UC-04 Firestore Rules - Secure WG join via Cloud Function only', () => {
+  beforeEach(seedBaseState);
+
+  const OUTSIDER = 'user-outsider-join';
+
+  it('Client kann KEINE member-Membership direkt in fremder WG anlegen', async () => {
+    const db = testEnv.authenticatedContext(OUTSIDER).firestore();
+
+    await assertFails(
+      db
+        .collection('wgs')
+        .doc(WG_ID)
+        .collection('memberships')
+        .doc(OUTSIDER)
+        .set({
+          id: OUTSIDER,
+          userId: OUTSIDER,
+          wgId: WG_ID,
+          role: 'member',
+          joinedAt: new Date(),
+        })
+    );
+  });
+
+  it('Client kann KEINE member-Membership anlegen, selbst mit passendem userMemberships-Batch', async () => {
+    const db = testEnv.authenticatedContext(OUTSIDER).firestore();
+    const batch = db.batch();
+
+    const membershipRef = db
+      .collection('wgs')
+      .doc(WG_ID)
+      .collection('memberships')
+      .doc(OUTSIDER);
+    const userMembershipRef = db.collection('userMemberships').doc(OUTSIDER);
+
+    batch.set(membershipRef, {
+      id: OUTSIDER,
+      userId: OUTSIDER,
+      wgId: WG_ID,
+      role: 'member',
+      joinedAt: new Date(),
+    });
+    batch.set(userMembershipRef, {
+      wgId: WG_ID,
+      inviteCode: 'ABC123',
+    });
+
+    await assertFails(batch.commit());
+  });
+
+  it('admin-Membership kann weiterhin direkt clientseitig angelegt werden (WG erstellen bleibt unveraendert)', async () => {
+    const newWgId = 'wg-new-admin-test';
+    const db = testEnv.authenticatedContext(OUTSIDER).firestore();
+    const batch = db.batch();
+
+    const wgRef = db.collection('wgs').doc(newWgId);
+    const membershipRef = wgRef.collection('memberships').doc(OUTSIDER);
+    const inviteCodeRef = db.collection('inviteCodes').doc('ZZZ999');
+    const userMembershipRef = db.collection('userMemberships').doc(OUTSIDER);
+
+    batch.set(wgRef, {
+      name: 'Neue WG',
+      inviteCode: 'ZZZ999',
+      createdBy: OUTSIDER,
+      createdAt: new Date(),
+    });
+    batch.set(inviteCodeRef, { wgId: newWgId, wgName: 'Neue WG' });
+    batch.set(membershipRef, {
+      id: OUTSIDER,
+      userId: OUTSIDER,
+      wgId: newWgId,
+      role: 'admin',
+      joinedAt: new Date(),
+    });
+    batch.set(userMembershipRef, {
+      wgId: newWgId,
+      inviteCode: 'ZZZ999',
+    });
+
+    await assertSucceeds(batch.commit());
+  });
+});
