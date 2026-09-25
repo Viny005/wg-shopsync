@@ -150,28 +150,31 @@ Die Anforderungen können mit der Webanwendung und den Firebase-SDKs umgesetzt w
 
 ### Kontext
 
-Mehrere WG-Mitglieder können dieselbe Einkaufsliste bearbeiten. Bei gleichzeitigem Offline- oder Online-Zugriff können unterschiedliche lokale und serverseitige Datenstände entstehen.
+Mehrere WG-Mitglieder können denselben Einkaufsartikel oder dieselbe Ausgabe nahezu gleichzeitig bearbeiten. Für UC-07, UC-09 und UC-12 muss verhindert werden, dass ein veralteter Clientstand eine zwischenzeitliche Serveränderung unbemerkt überschreibt.
+
+Die konfliktgeschützten Änderungen werden deshalb als Firestore-Transaktionen ausgeführt und benötigen eine aktive Verbindung.
 
 ### Alternativen
 
 - Automatische Zusammenführung konkurrierender Änderungen
 - Der zuletzt eintreffende Clientstand gewinnt
-- Der serverseitige Datenstand gewinnt
+- Der serverseitige Datenstand gewinnt und der Benutzer lädt den aktuellen Stand
 
 ### Entscheidung
 
-Bei konkurrierenden Änderungen gilt der serverseitige Datenstand.
+Bei einem erkannten Konkurrenzkonflikt gilt der serverseitige Datenstand.
 
 ### Begründung
 
-Alle Mitglieder einer WG sollen einen eindeutigen gemeinsamen Datenstand sehen. Eine automatische Zusammenführung könnte fachlich widersprüchliche Artikel- oder Statusänderungen erzeugen und wäre für den MVP unnötig komplex.
+Alle Mitglieder einer WG sollen einen eindeutigen gemeinsamen Datenstand sehen. Eine automatische Zusammenführung könnte fachlich widersprüchliche Artikel-, Status- oder Ausgabendaten erzeugen. Der serverseitige Stand als Ausgangspunkt verhindert stilles Überschreiben.
 
 ### Konsequenzen
 
-- Der Konflikt wird dem Benutzer als Konflikthinweis angezeigt.
-- Eine verworfene lokale Änderung wird nicht stillschweigend als erfolgreich behandelt.
-- Der Benutzer kann die lokale Änderung nach Prüfung erneut anwenden.
-
+- Ein veralteter Clientstand wird nicht still überschrieben.
+- Die Oberfläche informiert den Benutzer über den Konflikt.
+- Der aktuelle Serverstand kann geladen werden.
+- Eine gewünschte Änderung kann danach als neue Bearbeitung erneut durchgeführt werden.
+- Konfliktgeschützte Transaktionen benötigen eine aktive Verbindung.
 ## ADR-06: Einfache Rollenstruktur
 
 **Status:** accepted
@@ -180,13 +183,13 @@ Alle Mitglieder einer WG sollen einen eindeutigen gemeinsamen Datenstand sehen. 
 
 ### Kontext
 
-WG-ShopSync muss zwischen dem Ersteller einer WG und den übrigen Mitgliedern unterscheiden. Für den definierten Funktionsumfang ist kein komplexes Rollen- und Berechtigungsmodell erforderlich.
+WG-ShopSync muss den Ersteller einer WG von beitretenden Mitgliedern unterscheiden. Für den definierten Funktionsumfang ist kein komplexes Rollen- und Berechtigungssystem erforderlich.
 
 ### Alternativen
 
-- Keine Rollen, alle Mitglieder mit identischen Rechten
-- Komplexes rollenbasiertes Berechtigungssystem
-- Die Rollen `admin` und `member`
+- Keine Rollen, alle Mitglieder vollständig identisch
+- Komplexes rollenbasiertes Berechtigungssystem mit Rollenübertragung
+- Die Rollen `admin` und `member` ohne Rollenübertragung im MVP
 
 ### Entscheidung
 
@@ -194,17 +197,16 @@ Es gibt die beiden Rollen `admin` und `member`. Der WG-Ersteller erhält `admin`
 
 ### Begründung
 
-Die beiden Rollen reichen für Einladungscode, WG-Verwaltung und die normalen Funktionen der gemeinsamen Einkaufsliste und Kostenverwaltung aus. Die Rollen sind in D2 als fachlicher Datentyp definiert.
+Für Einkaufsliste, Ausgaben und eigene Schulden benötigen beide Rollen dieselben fachlichen Datenfunktionen. Die Erstellerrolle bleibt dennoch explizit erhalten, damit die Herkunft der WG eindeutig ist und verhindert werden kann, dass die WG im MVP ohne `admin` zurückbleibt.
 
 ### Konsequenzen
 
 - Die Rolle wird in `Membership.role` gespeichert.
-- Berechtigungen werden anhand der Membership und der WG-Zugehörigkeit geprüft.
-- Der letzte `admin` darf die WG nicht verlassen, solange kein anderer `admin` vorhanden ist.
-
-
----
-
+- `admin` und `member` dürfen den Einladungscode der eigenen WG sehen.
+- Datenzugriffe werden zusätzlich über die WG-Membership abgesichert.
+- `member` kann die WG verlassen.
+- `admin` kann die WG im MVP nicht verlassen.
+- Eine Rollenübertragung oder Ernennung eines weiteren `admin` ist nicht Bestandteil der ersten Version.
 ## ADR-07: Expense-bezogene Debt-Dokumente
 
 **Status:** accepted

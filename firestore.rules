@@ -123,7 +123,7 @@ function updatesValidExpense(wgId, expenseId) {
         && data.shareAmount >= 0;
     }
 
-// UC-13 – Kosten aufteilen (AF-06 Saldo berechnen).
+// UC-13 – Kosten aufteilen: Debt-Dokumente werden aus Expense und ExpenseShares abgeleitet.
 //
 // Debt gehoert zu genau einer Expense (Debt.expenseId, siehe D1.8 /
 // A09 ADR-07). Die Dokument-ID ist deterministisch aus expenseId und
@@ -189,7 +189,7 @@ function updatesValidDebt(wgId, expenseId, debtId) {
     && request.resource.data.createdAt == resource.data.createdAt
     && (
       (
-        // Fall (a): UC-13 aktualisiert die Debt zusammen mit ihrer Expense.
+        // Fall (a): Eine Änderung der Ausgabe/Kostenaufteilung aktualisiert eine offene Debt atomar zusammen mit ihrer Expense.
         isValidDebtData(request.resource.data, wgId, debtId)
         && request.resource.data.status == 'open'
         && existsAfter(expensePath)
@@ -410,9 +410,9 @@ function updatesValidExpenseShare(wgId, expenseId, shareId) {
       allow delete: if isMember(wgId);
     }
 
-    // UC-11 – Ausgabe erfassen: nur das Anlegen ist freigeschaltet. Lesen wird
-    // für den Screen ebenfalls nur WG-Mitgliedern erlaubt; spätere UC-12..UC-16
-    // bleiben weiterhin gesperrt.
+    // UC-11/UC-12 – Ausgaben erfassen und bearbeiten.
+    // Lesen ist auf WG-Mitglieder beschränkt; Create und Update werden durch
+    // die fachlichen Validierungsfunktionen der Rules geprüft.
     match /wgs/{wgId}/expenses/{expenseId} {
       allow read: if isMember(wgId);
       allow create: if signedIn() && createsValidExpense(wgId);

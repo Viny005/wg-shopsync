@@ -6,9 +6,10 @@ Dieses Kapitel beschreibt Konzepte, die mehrere Bausteine und Anwendungsfälle v
 
 Firebase Authentication verwaltet Registrierung, Anmeldung, Sitzung und Benutzer-ID. Firestore Security Rules prüfen bei jedem Zugriff, ob der authentifizierte Benutzer Mitglied der adressierten WG ist.
 
-- `admin` ist der Ersteller der WG und darf den Einladungscode anzeigen sowie die WG im vorgesehenen Umfang verwalten.
-- `member` darf Artikel und Ausgaben verwalten, Schulden einsehen und eigene Schulden als bezahlt markieren.
-- Der letzte `admin` darf die WG nicht verlassen, solange kein anderer `admin` vorhanden ist.
+- `admin` kennzeichnet den Ersteller der WG. Im MVP besitzt diese Rolle für Einkaufsliste, Ausgaben und eigene Schulden dieselben fachlichen Datenfunktionen wie `member`.
+- `admin` und `member` dürfen den Einladungscode der eigenen WG sehen.
+- `member` darf die WG verlassen; `admin` darf sie im MVP nicht verlassen, da keine Rollenübertragung oder Ernennung eines weiteren `admin` vorgesehen ist.
+- Nur der jeweilige Schuldner darf eine eigene offene Debt als bezahlt markieren.
 - `paidBy`, `creditorId` und `debtorId` dürfen nur auf Benutzer derselben WG verweisen.
 - Ein Benutzer darf keine Einkaufslisten, Ausgaben oder Schulden einer fremden WG lesen oder verändern.
 
@@ -36,20 +37,23 @@ Ungültige Eingaben werden nicht gespeichert. Fehlermeldungen unterscheiden Vali
 
 ## 8.3 Synchronisation und Offline-Modus
 
-Cloud Firestore stellt Realtime-Listener und Offline-Persistenz bereit. Unterstützt werden offline ausschließlich bereits synchronisierte Einkaufslistendaten. Registrierung, Login ohne lokale Sitzung, WG-Erstellung und WG-Beitritt benötigen eine Verbindung.
+Cloud Firestore stellt Realtime-Listener und Offline-Persistenz bereit. Bereits synchronisierte Einkaufslistendaten bleiben aus dem lokalen Cache lesbar.
 
-Nach Wiederherstellung der Verbindung werden lokale Änderungen automatisch synchronisiert. Bei konkurrierenden Änderungen gilt der serverseitige Datenstand. Der Konflikt wird dem Benutzer verständlich angezeigt; die lokale Änderung geht nicht stillschweigend verloren, sondern kann über eine erneute Aktion wie „Erneut anwenden“ nach Prüfung wieder an den Server gesendet werden. Ausgaben und Schulden besitzen im MVP keinen eigenständigen Offline-Workflow.
+Das Hinzufügen eines neuen Artikels kann offline als ausstehender Firestore-Schreibvorgang vorgemerkt werden. Der Realtime-Listener macht Cache-Zustand und `hasPendingWrites` für die Oberfläche sichtbar. Nach Wiederherstellung der Verbindung synchronisiert Firestore den ausstehenden Schreibvorgang.
 
+Artikel bearbeiten (UC-07) und als gekauft markieren (UC-09) verwenden Firestore-Transaktionen und benötigen eine aktive Verbindung. Ausgaben- und Schuldenänderungen besitzen ebenfalls keinen Offline-Schreibworkflow.
+
+Bei konkurrierenden Online-Änderungen gilt der serverseitige Datenstand. Der Benutzer wird über den Konflikt informiert und kann die aktuellen Serverdaten laden. Eine gewünschte Änderung kann anschließend als neue Bearbeitung durchgeführt werden.
 ## 8.4 Fehlerbehandlung
 
-Technische Details werden protokolliert, aber nicht direkt angezeigt. Die Benutzeroberfläche behandelt mindestens folgende Fehlerklassen:
+Technische Firebase- oder Exception-Details werden nicht ungefiltert in der Benutzeroberfläche angezeigt. Die Services und Screens behandeln insbesondere folgende Fehlerklassen:
 
 | Fehlerklasse | Beispiel | Folgeaktion |
 |---|---|---|
 | Validierung | Betrag oder Pflichtfeld ungültig | Eingabe korrigieren |
 | Authentifizierung | Falsche Zugangsdaten | Zugangsdaten prüfen oder erneut anmelden |
 | Netzwerk | Verbindung unterbrochen | Erneut versuchen oder Offline-Modus nutzen |
-| Synchronisation | Konflikt mit Serverstand | Konflikt prüfen und lokale Änderung erneut anwenden |
+| Synchronisation | Konflikt mit Serverstand | Aktuellen Serverstand laden, prüfen und bei Bedarf erneut bearbeiten |
 
 ## 8.5 Kosten, Schulden und Salden
 

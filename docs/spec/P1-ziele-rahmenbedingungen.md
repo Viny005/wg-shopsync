@@ -20,7 +20,7 @@ Ziel ist es, typische Probleme im WG-Alltag wie Doppelkäufe, vergessene Einkäu
 | G-06 | Schulden zwischen WG-Mitgliedern nachvollziehbar darstellen. |
 | G-07 | Änderungen an Einkaufslisten für alle Mitglieder nahezu in Echtzeit bereitstellen. |
 | G-08 | Die Anwendung als responsive Webanwendung im Browser nutzbar machen. |
-| G-09 | Wichtige Funktionen auch bei temporär fehlender Internetverbindung nutzbar machen. |
+| G-09 | Bereits synchronisierte Einkaufslistendaten bei temporär fehlender Internetverbindung lesbar halten und das Offline-Hinzufügen neuer Artikel mit späterer Synchronisation unterstützen. |
 
 ## P1.3 Stakeholder und Benutzer
 
@@ -51,7 +51,7 @@ Die erste Version von WG-ShopSync umfasst folgende Funktionen:
 - Automatische Kostenaufteilung auf alle oder ausgewählte Mitglieder
 - Darstellung von Schulden zwischen Mitgliedern
 - Nutzung als responsive Webanwendung im Desktop- und mobilen Browser
-- Offline-Nutzung wichtiger Kernfunktionen mit späterer Synchronisation
+- Offline-Anzeige bereits synchronisierter Einkaufslistendaten sowie Offline-Hinzufügen neuer Artikel mit späterer Synchronisation
 
 ### Out of Scope
 

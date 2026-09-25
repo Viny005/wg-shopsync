@@ -38,6 +38,7 @@ Triviale, allgemeine Datentypen wie Text, Integer, Boolean, Email, Timestamp, UR
 | wgId | Identifier | 1 | Zugehörige WG |
 | role | **Mitgliedsrolle** | 1 | Rolle innerhalb der WG (siehe D2.8) |
 | joinedAt | Timestamp | 1 | Beitrittszeitpunkt |
+| displayName | Text | 0..1 | Anzeigename des Mitglieds für die Darstellung in WG-, Kosten- und Schuldensichten; optional für bestehende ältere Membership-Dokumente |
 
 ---
 

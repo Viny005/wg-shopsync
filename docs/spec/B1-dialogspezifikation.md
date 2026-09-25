@@ -41,11 +41,11 @@ Jeder relevante Screen berücksichtigt mindestens den Normalzustand, einen Ladez
 | 2 – Registrierung | Kontoerstellung | Name, E-Mail, Passwort, Passwort-Wiederholung | → 5, → 1 | UC-01 |
 | 3 – WG erstellen | Neue WG anlegen | WG-Name, Erstellen-Button | → 5 | UC-03 |
 | 4 – WG beitreten | WG über Invite-Code beitreten | Invite-Code, Beitreten-Button | → 5 | UC-04 |
-| 5 – WG-Übersicht | Zentrale Startseite | WG-Liste, Mitgliederliste, Invite-Code | → 6, → 8, → 9, → 3, → 4 | UC-03, UC-04, UC-05 |
+| 5 – WG-Übersicht / WG-Ansicht | Zentrale Start- und WG-Ansicht | WG-Status, Rolle, WG öffnen, Invite-Code im WG-Detail, Abmelden, WG verlassen | → 6, → 8, → 3, → 4, → 1 | UC-03, UC-04, UC-05 |
 | 6 – Einkaufsliste | Gemeinsame Einkaufsliste | Artikelliste, Checkboxen, FAB | → 7 | UC-06 bis UC-10 |
 | 7 – Artikel hinzufügen/bearbeiten | Artikel erfassen oder ändern | Name, Menge, Kategorie | → 6 | UC-06, UC-07 |
-| 8 – Kostenübersicht | Ausgaben und Salden | Ausgabenliste, Saldenanzeige | → 5 | UC-11 bis UC-16 |
-| 9 – Benutzerprofil | Kontoverwaltung | Nutzerdaten, Logout, WG verlassen | → 5 | UC-05 |
+| 8 – Kostenübersicht | Ausgaben, Kostenanteile, Salden und Schulden | Ausgabenliste, Kostenanteile, Forderungen, Verbindlichkeiten und Zahlungsstatus | → 5 | UC-11 bis UC-16 |
+
 
 ---
 
@@ -201,11 +201,11 @@ Beitritt zu einer bestehenden Wohngemeinschaft.
 
 ---
 
-# B1.6 Screen 5 – WG-Übersicht
+# B1.6 Screen 5 – WG-Übersicht / WG-Ansicht
 
 ## Zweck
 
-Zentrale Startseite des Nutzers.
+Zentrale Startseite nach der Anmeldung und Einstieg in die Funktionen der eigenen WG.
 
 ## Bezug zu UC
 
@@ -219,32 +219,44 @@ Zentrale Startseite des Nutzers.
 
 ## Kernelemente
 
-- Anzeige der eigenen WG
-- Mitgliederliste
-- Anzeige des Invite-Codes
-- Teilen-Funktion
-- Buttons „WG erstellen“ und „WG beitreten“
+### Zustand ohne WG
+
+- Begrüßung und Hinweis, dass noch keine WG zugeordnet ist
+- Button „WG erstellen“
+- Button „WG beitreten“
+- Aktion „Abmelden“ in der App-Bar
+
+### Zustand mit WG
+
+- Name der eigenen WG
+- Anzeige der eigenen Rolle `admin` oder `member`
+- Button „WG öffnen“
+- Aktion „Abmelden“ in der App-Bar
+
+### WG-Detail nach „WG öffnen“
+
+- Name der WG
+- Einladungscode der WG
+- Anzeige der eigenen Rolle
+- Button „Einkaufsliste öffnen“
+- Button „Ausgaben öffnen“
+- Button „WG verlassen“ mit Bestätigungsdialog
 
 ## Fehlerfälle
 
-- Nutzer gehört keiner WG an → Leerzustand mit Direktzugriff auf Screen 3 und Screen 4
-
-## Mockup
-
-<p align="center">
-  <img src="./images/mockups/screen-3-wg-uebersicht.png" alt="Mockup Screen 3 – WG-Übersicht" width="260">
-</p>
+- Keine WG vorhanden → Zustand mit direkten Aktionen „WG erstellen“ und „WG beitreten“
+- WG verlassen als `admin` → verständlicher Hinweis; Mitgliedschaft bleibt bestehen
+- Technischer Fehler beim Verlassen → verständliche Fehlermeldung
 
 ## Navigation
 
-- → Screen 6
-- → Screen 8
-- → Screen 9
-- → Screen 3
-- → Screen 4
+- Ohne WG → Screen 3 oder Screen 4
+- Mit WG → WG-Detail
+- WG-Detail → Screen 6 oder Screen 8
+- Erfolgreiches Verlassen als `member` → Screen 5 im Zustand ohne WG
+- Abmelden → Screen 1
 
 ---
-
 # B1.7 Screen 6 – Einkaufsliste
 
 ## Zweck
@@ -379,40 +391,7 @@ Verwaltung gemeinsamer Ausgaben und Anzeige offener Salden.
 
 ---
 
-# B1.10 Screen 9 – Benutzerprofil
-
-## Zweck
-
-Verwaltung des Benutzerkontos.
-
-## Bezug zu UC
-
-[UC-05 – WG verlassen](F2-anwendungsfaelle.md#uc-05--wg-verlassen)
-
-## Vorbedingungen
-
-- Nutzer ist angemeldet.
-
-## Kernelemente
-
-- Anzeige des Namens
-- Anzeige der E-Mail-Adresse
-- Anzeige der eigenen WG
-- Logout
-- WG verlassen
-
-## Fehlerfälle
-
-- WG verlassen ohne Bestätigung nicht möglich
-
-## Navigation
-
-- Zurück → Screen 5
-- Logout → Screen 1
-
----
-
-# B1.11 Gemeinsame Dialogmuster
+# B1.10 Gemeinsame Dialogmuster
 
 ## Formularvalidierung
 
@@ -439,7 +418,7 @@ Beispiele:
 
 ## Offline-Modus
 
-Die zuletzt synchronisierten Daten bleiben lokal verfügbar. Änderungen werden bei bestehender Internetverbindung automatisch synchronisiert.
+Die zuletzt synchronisierte Einkaufsliste bleibt aus dem Firestore-Cache lesbar. Offline hinzugefügte Artikel können als ausstehende Schreibvorgänge angezeigt und nach Wiederherstellung der Verbindung synchronisiert werden. Bearbeiten und Als-gekauft-Markieren benötigen eine aktive Verbindung.
 
 ## Fehlermeldungen
 
@@ -454,52 +433,44 @@ Beispiele:
 
 ---
 
-# B1.12 Navigationsdiagramm
-
-./images/navigationsdiagramm.png
+# B1.11 Navigationsdiagramm
 
 ```mermaid
 flowchart LR
   S1[1 Login] -->|Registrieren| S2[2 Registrierung]
   S2 -->|Konto erstellt| S5[5 WG-Übersicht]
   S1 -->|Anmelden| S5
-  S5 -->|WG erstellen| S3[3 WG erstellen]
-  S5 -->|WG beitreten| S4[4 WG beitreten]
+
+  S5 -->|Keine WG: WG erstellen| S3[3 WG erstellen]
+  S5 -->|Keine WG: WG beitreten| S4[4 WG beitreten]
   S3 -->|WG erstellt| S5
   S4 -->|Beitritt bestätigt| S5
-  S5 -->|Einkaufsliste| S6[6 Einkaufsliste]
+
+  S5 -->|WG öffnen| D5[WG-Detail innerhalb Screen 5]
+
+  D5 -->|Einkaufsliste| S6[6 Einkaufsliste]
   S6 -->|Artikel hinzufügen oder bearbeiten| S7[7 Artikel bearbeiten]
   S7 -->|Speichern oder abbrechen| S6
-  S5 -->|Kostenübersicht| S8[8 Kostenübersicht]
-  S5 -->|Profil| S9[9 Benutzerprofil]
-  S9 -->|Logout| S1
+
+  D5 -->|Ausgaben| S8[8 Kostenübersicht]
+  S8 -->|Zurück| D5
+
+  D5 -->|WG verlassen als member| S5
+  S5 -->|Abmelden| S1
 ```
 
 *Abbildung B1-1: Navigationsdiagramm der Benutzerschnittstelle von WG-ShopSync*
 
-Das Navigationsdiagramm zeigt die möglichen Übergänge zwischen den einzelnen Screens der Anwendung WG-ShopSync.
+Screen 5 bildet den zentralen Einstieg nach der Anmeldung. Ohne WG werden die Aktionen „WG erstellen“ und „WG beitreten“ angeboten. Mit bestehender WG führt „WG öffnen“ in die WG-Detailansicht desselben Funktionsbereichs.
 
-Screen 5 (WG-Übersicht) fungiert als zentraler Navigations-Hub der Anwendung. Von dort aus können die wichtigsten Funktionen wie Einkaufsliste, Kostenübersicht und Benutzerprofil erreicht werden. Darüber hinaus können neue Wohngemeinschaften erstellt oder bestehenden Wohngemeinschaften beigetreten werden.
+Von der WG-Detailansicht aus werden die Einkaufsliste und die Kostenübersicht geöffnet. Das Verlassen der WG erfolgt ebenfalls dort. Die Abmeldung erfolgt direkt aus der WG-Übersicht über die App-Bar.
 
-Screen 1 (Login) und Screen 2 (Registrierung) bilden den Einstiegspunkt in die Anwendung. Nach erfolgreicher Authentifizierung wird der Nutzer zur WG-Übersicht weitergeleitet.
+Screen 6 zeigt die gemeinsame Einkaufsliste; Screen 7 dient zum Hinzufügen und Bearbeiten von Artikeln. Screen 8 enthält Ausgaben, Kostenanteile, Forderungen, Verbindlichkeiten, Salden und den Zahlungsstatus der eigenen Schulden.
 
-Die Verwaltung von Wohngemeinschaften erfolgt über Screen 3 (WG erstellen) und Screen 4 (WG beitreten). Nach dem Beitritt zu einer WG wird die entsprechende Einkaufsliste geöffnet.
+Das Diagramm beschreibt ausschließlich die Navigation auf Ebene der Benutzerschnittstelle. Die fachlichen Abläufe werden separat in F1 und F2 beschrieben.
 
-Screen 6 (Einkaufsliste) stellt die zentrale Funktion der Anwendung dar. Von dort aus können neue Artikel angelegt oder bestehende Artikel bearbeitet werden. Hierzu wird Screen 7 als Detaildialog verwendet.
-
-Screen 8 dient der Verwaltung gemeinsamer Ausgaben und der Anzeige von Salden innerhalb einer Wohngemeinschaft.
-
-Screen 9 ermöglicht die Verwaltung des Benutzerkontos, den Logout sowie das Verlassen einer Wohngemeinschaft.
-
-<p align="center">
-  <img src="./images/navigationsdiagramm.png" alt="Navigationsdiagramm" width="800">
-</p>
-Abbildung B1-1: Navigationsdiagramm der Benutzerschnittstelle von WG-ShopSync
-
-Das Diagramm beschreibt ausschließlich die Navigation auf Ebene der Benutzerschnittstelle. Die fachlichen Abläufe werden separat in F1 (Geschäftsprozesse) und F2 (Anwendungsfälle) beschrieben.
 ---
-
-# B1.13 Querverweise
+# B1.12 Querverweise
 
 | Block | Relevanz |
 |----------|----------|

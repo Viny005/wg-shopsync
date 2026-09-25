@@ -5,6 +5,7 @@ Dieses Kapitel ergänzt [E3 – Eingesetzte KI-Werkzeuge](../spec/E3-eingesetzte
 ## Verwendete Werkzeuge
 
 - GitHub Copilot
+- Claude
 - ChatGPT
 
 ## Einsatzbereiche
@@ -17,7 +18,6 @@ Die KI-Werkzeuge wurden unterstützend eingesetzt für:
 - Erstellung und Erweiterung automatisierter Tests
 - Prüfung und Überarbeitung von Firestore Security Rules
 - Abgleich zwischen Spezifikation, Architektur und Implementierungsstand
-
 ## Verifikation der Ergebnisse
 
 KI-generierte Vorschläge wurden vor der Übernahme technisch und fachlich überprüft.

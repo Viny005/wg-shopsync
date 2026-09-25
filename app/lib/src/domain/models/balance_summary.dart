@@ -1,14 +1,14 @@
 import 'debt.dart';
 
-/// UC-13 (Saldenanzeige) / AF-06 Saldo berechnen.
+/// UC-16 Kostenübersicht / AF-06 Saldo berechnen.
 ///
 /// Fasst die gerichteten Debt-Dokumente (siehe Debt) zu einem Netto-Saldo
 /// pro Gegenpartei zusammen. Positiver Wert: die Gegenpartei schuldet dem
 /// Nutzer Geld. Negativer Wert: der Nutzer schuldet der Gegenpartei Geld.
 ///
 /// Zwei gerichtete Debts zwischen denselben zwei Personen koennen
-/// gleichzeitig existieren (z.B. nach einem Zahlerwechsel bei UC-12, siehe
-/// DebtDeltaCalculator). Fuer die Anzeige werden sie zu einem Netto-Betrag
+/// gleichzeitig existieren, zum Beispiel nach einem Zahlerwechsel bei UC-12.
+/// Fuer die Anzeige werden sie zu einem Netto-Betrag
 /// verrechnet, damit ein Mitglied nicht gleichzeitig als Glaeubiger und
 /// Schuldner derselben Person angezeigt wird.
 class BalanceSummary {

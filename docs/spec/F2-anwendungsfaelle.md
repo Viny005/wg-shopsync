@@ -237,7 +237,7 @@ flowchart TD
 
 ### Hauptszenario
 
-1. Mitglied öffnet die WG-Einstellungen.
+1. Mitglied öffnet die WG-Ansicht.
 2. Mitglied wählt „WG verlassen“.
 3. System zeigt eine Bestätigung.
 4. Mitglied bestätigt.
@@ -251,6 +251,13 @@ System zeigt die Sicherheitsabfrage an.
 Mitglied entscheidet sich gegen das Verlassen der WG.
 Mitglied bricht den Vorgang ab.
 Die Mitgliedschaft bleibt unverändert bestehen.
+
+#### A2 – WG-Ersteller versucht die WG zu verlassen
+
+1. Ein Benutzer mit der Rolle `admin` wählt „WG verlassen“.
+2. Das System erkennt die Erstellerrolle.
+3. Das System informiert den Benutzer, dass die WG im MVP nicht verlassen werden kann, da keine Rollenübertragung oder Ernennung eines weiteren `admin` vorgesehen ist.
+4. Die Mitgliedschaft bleibt unverändert bestehen.
 
 ---
 
@@ -447,8 +454,8 @@ Mitglied kann den Ladevorgang erneut starten.
 1. Mitglied öffnet den Bereich „Ausgaben“.
 2. Mitglied erstellt eine neue Ausgabe.
 3. Mitglied gibt Betrag und Beschreibung ein.
-4. Mitglied wählt die beteiligten Mitglieder.
-5. System speichert die Ausgabe.
+4. Mitglied wählt den Zahler und die beteiligten Mitglieder.
+5. System speichert die Ausgabe und die daraus berechneten Kostenanteile.
 
 ### Ausnahmeszenarien
 
@@ -592,7 +599,7 @@ Mitglied kann den Ladevorgang erneut starten.
 | Ziel | Ein Mitglied markiert eine offene Schuld als beglichen. |
 | Akteur | Benutzer |
 | Auslöser | Die offene Schuld wurde außerhalb des Systems beglichen. |
-| Vorbedingung | Eine offene Schuld existiert. |
+| Vorbedingung | Eine eigene offene Verbindlichkeit des angemeldeten Benutzers existiert. |
 | Nachbedingung | Die Schuld besitzt den Status „Bezahlt“ und wird entsprechend angezeigt. |
 
 ### Hauptszenario
@@ -666,10 +673,10 @@ Die folgenden Ausnahmeszenarien gelten grundsätzlich für alle Anwendungsfälle
 ### A-G01 – Keine Internetverbindung
 
 1. Der Benutzer startet einen Anwendungsfall.
-2. Das System erkennt die fehlende Internetverbindung.
-3. Das System informiert den Benutzer über die fehlende Verbindung.
-4. Bei bereits synchronisierten Einkaufslistendaten werden Änderungen lokal gespeichert und nach Wiederherstellung der Verbindung synchronisiert. Für Authentifizierung, WG-Erstellung und WG-Beitritt ist eine Verbindung erforderlich.
-
+2. Das System erkennt die fehlende Internetverbindung beziehungsweise eine nicht verfügbare Serververbindung.
+3. Bereits synchronisierte Einkaufslistendaten können weiterhin aus dem Firestore-Cache angezeigt werden.
+4. Das Hinzufügen eines neuen Artikels kann lokal als ausstehender Firestore-Schreibvorgang vorgemerkt und nach Wiederherstellung der Verbindung synchronisiert werden.
+5. Konfliktgeschützte Transaktionen wie Artikel bearbeiten (UC-07) und als gekauft markieren (UC-09) sowie Authentifizierung, WG-Verwaltung und Kostenänderungen benötigen eine aktive Verbindung und zeigen bei fehlender Verbindung einen entsprechenden Hinweis.
 ### A-G02 – Technischer Fehler
 
 1. Während der Ausführung eines Anwendungsfalls tritt ein technischer Fehler auf.

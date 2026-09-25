@@ -1,4 +1,4 @@
-/// UC-13 - Kosten aufteilen (AF-06 Saldo berechnen).
+/// UC-13 - Kosten aufteilen; die fachliche Gleichverteilung stammt aus AF-01.
 ///
 /// Reine, ohne Firestore testbare Projektion der Debt-Datensaetze, die zu
 /// einer Expense gehoeren sollen. Getrennt von der Firestore-Schreiblogik in

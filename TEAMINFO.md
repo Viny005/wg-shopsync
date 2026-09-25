@@ -49,6 +49,7 @@ WG-ShopSync führt keine Zahlungen oder Banktransaktionen aus. Die Anwendung dok
 ## Eingesetzte KI-Werkzeuge
 
 - **GitHub Copilot:** Unterstützung bei Code-Vervollständigung, Implementierung und Überarbeitung.
+- **Claude:** Unterstützung bei der Präzisierung von Anforderungen sowie bei Entwürfen und Überarbeitungen von Markdown-Dokumentation.
 - **ChatGPT:** Unterstützung bei Dokumentation, Strukturierung, Refactoring, Tests und Konsistenzprüfungen.
 
 Die fachliche und technische Verantwortung für übernommene Ergebnisse liegt beim Projektteam.

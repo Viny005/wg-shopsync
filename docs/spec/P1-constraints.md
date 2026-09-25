@@ -77,16 +77,17 @@ Eine browserbasierte Anwendung ermöglicht den Zugriff ohne separate Installatio
 
 ## CON-3b-02: Offline-Unterstützung
 
-Wichtige Kernfunktionen sollen auch ohne aktive Internetverbindung nutzbar sein.
+Bereits synchronisierte Einkaufslistendaten sollen auch ohne aktive Internetverbindung angezeigt werden können.
 
-Datenänderungen an bereits synchronisierten Einkaufslisten können lokal gespeichert und später synchronisiert werden. Registrierung, Login ohne lokale Sitzung, WG-Erstellung und WG-Beitritt benötigen eine Verbindung.
+Das Hinzufügen eines neuen Artikels kann über die Firestore-Offline-Persistenz lokal als ausstehender Schreibvorgang vorgemerkt und nach Wiederherstellung der Verbindung synchronisiert werden.
+
+Die konfliktgeschützten Transaktionen für das Bearbeiten eines vorhandenen Artikels (UC-07) und das Markieren als gekauft (UC-09) benötigen eine aktive Verbindung. Registrierung, Login ohne vorhandene Sitzung, WG-Erstellung, WG-Beitritt sowie Ausgaben- und Schuldenänderungen benötigen ebenfalls eine Verbindung.
 
 **Begründung:**
 
-Eine stabile Internetverbindung kann nicht jederzeit vorausgesetzt werden.
+Firestore kann bereits geladene Daten lokal bereitstellen und nicht-transaktionale Schreibvorgänge zwischenspeichern. Firestore-Transaktionen benötigen dagegen eine Verbindung zum Server; deshalb wird der Offline-Umfang im MVP bewusst begrenzt.
 
 ---
-
 ## CON-3b-03: Echtzeit-Synchronisation
 
 Änderungen an Einkaufslisten sollen für alle Mitglieder möglichst zeitnah sichtbar sein. Ausgaben werden ebenfalls synchronisiert, sobald eine Verbindung besteht.

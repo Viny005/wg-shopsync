@@ -32,7 +32,7 @@ WG-Mitglieder sollen eine gemeinsame, aktuelle Einkaufsliste nutzen und gemeinsa
 - Kosten auf alle oder ausgewählte Mitglieder aufteilen
 - Kostenübersicht, Salden und Schulden anzeigen
 - Schulden als bezahlt markieren
-- Bereits synchronisierte Kerninhalte offline anzeigen und Änderungen später synchronisieren
+- Bereits synchronisierte Einkaufslistendaten offline anzeigen; neue Artikel können offline als ausstehende Firestore-Schreibvorgänge vorgemerkt und nach Wiederherstellung der Verbindung synchronisiert werden. Konfliktgeschütztes Bearbeiten und Als-gekauft-Markieren benötigen eine aktive Verbindung.
 
 ### 3.2 Nicht enthaltene Funktionen
 
@@ -48,8 +48,8 @@ WG-Mitglieder sollen eine gemeinsame, aktuelle Einkaufsliste nutzen und gemeinsa
 | Rolle | Rechte |
 |---|---|
 | Nicht angemeldeter Benutzer | Registrierung und Login |
-| `admin` / WG-Ersteller | WG erstellen, Einladungscode anzeigen und Mitgliederverwaltung gemäß den Use Cases durchführen. Der letzte Admin darf die WG nicht verlassen. |
-| `member` | Einkaufsliste und Ausgaben der eigenen WG verwalten, Kostenübersicht und Schulden einsehen, Schulden als bezahlt markieren und die WG verlassen. |
+| `admin` / WG-Ersteller | Erstellerrolle der WG. Darf Einkaufsliste und Ausgaben der eigenen WG verwalten, Kostenübersicht sowie eigene Forderungen und Verbindlichkeiten einsehen und eigene offene Verbindlichkeiten als bezahlt markieren. Der Einladungscode ist für Mitglieder der WG sichtbar. Da die erste Version keine Rollenübertragung oder Ernennung eines weiteren `admin` vorsieht, kann der `admin` die WG nicht verlassen. |
+| `member` | Darf den Einladungscode der eigenen WG sehen, Einkaufsliste und Ausgaben verwalten, Kostenübersicht sowie eigene Forderungen und Verbindlichkeiten einsehen, eigene offene Verbindlichkeiten als bezahlt markieren und die WG verlassen. |
 
 Ein Benutzer darf ausschließlich auf Daten von WGs zugreifen, deren Mitglied er ist. Die Rolle wird in `Membership.role` gespeichert.
 
@@ -69,7 +69,7 @@ Ein Benutzer darf ausschließlich auf Daten von WGs zugreifen, deren Mitglied er
 | BR-10 | Schuldner und Gläubiger einer Schuld dürfen nicht identisch sein. |
 | BR-11 | Eine als bezahlt markierte Schuld erhält den gespeicherten Status `paid` und wird nicht mehr als offene Schuld angezeigt. |
 | BR-12 | Die Anwendung dokumentiert Zahlungen nur; sie führt keine Zahlung aus. |
-| BR-13 | Bei konkurrierenden Änderungen besitzt der serverseitige Datenstand Vorrang; die lokale Änderung bleibt als Konflikthinweis zur erneuten Anwendung erhalten. |
+| BR-13 | Bei konkurrierenden Änderungen besitzt der serverseitige Datenstand Vorrang. Der Benutzer wird über den Konflikt informiert, kann den aktuellen Serverstand laden und die gewünschte Bearbeitung anschließend erneut durchführen. |
 
 ## 6. Validierung und Fehlerverhalten
 
@@ -82,7 +82,7 @@ Ein Benutzer darf ausschließlich auf Daten von WGs zugreifen, deren Mitglied er
 | Kostenanteil | Nicht negativ, Summe entspricht dem Ausgabebetrag |
 | Einladungscode | Genau sechs alphanumerische Zeichen, gültig solange die WG besteht |
 
-Validierungs-, Authentifizierungs-, Netzwerk- und Synchronisationsfehler werden verständlich angezeigt. Der Benutzer erhält, soweit möglich, eine konkrete Korrektur- oder Wiederholungsaktion. Nicht synchronisierte lokale Änderungen dürfen bei einem Fehler nicht stillschweigend verloren gehen.
+Validierungs-, Authentifizierungs-, Netzwerk- und Synchronisationsfehler werden verständlich angezeigt. Der Benutzer erhält, soweit möglich, eine konkrete Korrektur- oder Wiederholungsaktion. Konfliktgeschützte Aktionen überschreiben einen zwischenzeitlich geänderten Serverstand nicht stillschweigend. Bei erkanntem Konflikt wird der Benutzer informiert und kann auf Basis des aktuellen Serverstands erneut bearbeiten.
 
 ## 7. Systemgrenze und Nachbarsysteme
 
@@ -136,12 +136,12 @@ Die Webanwendung bildet die Benutzerschnittstelle und die lokale Offline-Nutzung
 
 ## 9. Grafiken und Modelle
 
-- [Datenmodellbild (Bestand)](images/anwendungsfaelle-diagramm.png)
-- [Informationsmodell (Bestand)](images/Information-Model.png)
-- [Navigationsdiagramm](images/navigationsdiagramm.png)
-- Architekturdiagramm: [P2 – Architekturüberblick](P2-architektur.md)
+- Use-Case-Diagramm mit versionierter Mermaid-Quelle: [F2 – Anwendungsfälle](F2-anwendungsfaelle.md)
+- Datenmodell und Beziehungen: [D1 – Datenmodell](D1-datenmodell.md)
+- Datentypen und Wertebereiche: [D2 – Datentypen](D2-datentypen.md)
+- Navigationsdiagramm mit Mermaid-Quelle: [B1 – Dialogspezifikation](B1-dialogspezifikation.md)
+- Architekturdiagramme mit Mermaid-Quellen: [A03 – Kontextabgrenzung](../arch/A03-kontextabgrenzung.md), [A05 – Bausteinsicht](../arch/A05-bausteinsicht.md), [A06 – Laufzeitsicht](../arch/A06-laufzeitsicht.md) und [A07 – Verteilungssicht](../arch/A07-verteilungssicht.md)
 - GUI-Mockups: [B1 – Dialogspezifikation](B1-dialogspezifikation.md)
-
 ## 10. Anforderungen und Nachweise
 
 | Anforderungsbereich | Spezifikation | Nachweis |
@@ -151,7 +151,7 @@ Die Webanwendung bildet die Benutzerschnittstelle und die lokale Offline-Nutzung
 | Einkaufsliste | UC-06 bis UC-10; BR-04, BR-05 | CRUD-, Status- und Synchronisationstest |
 | Kostenverwaltung | UC-11 bis UC-16; BR-06 bis BR-12 | Berechnungs- und Schuldenstatus-Test |
 | Datenschutz und Zugriff | N1.2; N2.2, N2.7 | Autorisierungs- und Security-Rules-Test |
-| Offline und Synchronisation | BR-13; N1.3-03; N2.3, N2.4 | Offline-/Reconnect- und Konflikttest |
+| Offline und Synchronisation | BR-13; N1.3-03; N2.3, N2.4 | Cache-, Pending-Write-, Verbindungs- und Konflikttests |
 | Bedienbarkeit | N1.4 | Usability-Test mit typischen WG-Szenarien |
 
 ### Teststatus Authentifizierung
@@ -168,7 +168,7 @@ Der aktuelle technische Teststand umfasst 230 erfolgreich ausgeführte Flutter-T
 - Anmeldung und Speichern erfolgen ohne unnötige Verzögerung; die Zielwerte stehen in [N1](N1-nichtfunktional-anforderungen.md).
 - Nur authentifizierte WG-Mitglieder können geschützte Daten lesen oder verändern.
 - Moderne Desktop- und mobile Webbrowser unterstützen die Kernfunktionen.
-- Offline verfügbare Daten und lokale Änderungen werden nach einer Wiederverbindung synchronisiert.
+- Bereits synchronisierte Einkaufslistendaten bleiben offline lesbar. Offline hinzugefügte Artikel werden als ausstehende Firestore-Schreibvorgänge geführt und nach Wiederherstellung der Verbindung synchronisiert.
 - Fehlermeldungen sind verständlich und enthalten eine Handlungsempfehlung.
 
 ## 12. Abnahmebasis
@@ -182,7 +182,7 @@ Die erste Version gilt als fachlich abnahmefähig, wenn mindestens folgende Szen
 5. Die berechneten Anteile ergeben in Summe den Ausgabebetrag.
 6. Die entstehende Schuld wird angezeigt und kann als bezahlt markiert werden.
 7. Ein Zugriff auf Daten einer fremden WG wird verhindert.
-8. Eine offline vorgenommene Listenänderung wird nach Wiederherstellung der Verbindung übernommen.
+8. Eine zuvor synchronisierte Einkaufsliste bleibt offline sichtbar; ein offline hinzugefügter Artikel wird als ausstehende Änderung angezeigt und nach Wiederherstellung der Verbindung synchronisiert.
 
 ## 13. Annahmen, Risiken und offene Entscheidungen
 

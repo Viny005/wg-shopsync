@@ -6,7 +6,7 @@ Dieses Kapitel beschreibt die fachliche Aufgabenstellung, die treibenden Qualit�
 
 WG-ShopSync ist eine browserbasierte Webanwendung für Wohngemeinschaften. Mitglieder können sich registrieren und anmelden, einer WG beitreten oder eine WG erstellen, eine gemeinsame Einkaufsliste verwalten und Artikel als gekauft markieren. Zusätzlich lassen sich gemeinsame Ausgaben erfassen, gleichmäßig auf alle oder ausgewählte Mitglieder verteilen und daraus offene Salden beziehungsweise Schulden ableiten.
 
-Die Anwendung reduziert typische Probleme im WG-Alltag wie Doppelkäufe, vergessene Einkäufe, Zettelwirtschaft und unübersichtliche Kostenaufteilungen. Änderungen an der Einkaufsliste werden für die Mitglieder derselben WG nahezu in Echtzeit sichtbar. Bereits synchronisierte Einkaufslistendaten bleiben offline bearbeitbar und werden nach Wiederherstellung der Verbindung synchronisiert.
+Die Anwendung reduziert typische Probleme im WG-Alltag wie Doppelkäufe, vergessene Einkäufe, Zettelwirtschaft und unübersichtliche Kostenaufteilungen. Änderungen an der Einkaufsliste werden für die Mitglieder derselben WG nahezu in Echtzeit sichtbar. Bereits synchronisierte Einkaufslistendaten bleiben offline lesbar; neu hinzugefügte Artikel können als ausstehende Firestore-Schreibvorgänge lokal vorgemerkt und nach Wiederherstellung der Verbindung synchronisiert werden.
 
 WG-ShopSync ist kein Online-Shop und ersetzt keine Zahlung. Die Anwendung dokumentiert organisatorische und finanzielle Informationen, berechnet Kostenanteile und stellt Schuldenübersichten dar. Eine tatsächliche Zahlungsabwicklung findet außerhalb des Systems statt.
 
@@ -26,7 +26,7 @@ Das System verfolgt die folgenden funktionalen und technischen Ziele:
 | G-06 | Offene Forderungen und Verbindlichkeiten zwischen WG-Mitgliedern nachvollziehbar darstellen. |
 | G-07 | Änderungen an Einkaufslisten für alle Mitglieder nahezu in Echtzeit bereitstellen. |
 | G-08 | Die Anwendung als responsive Webanwendung im Browser nutzbar machen. |
-| G-09 | Bereits synchronisierte Einkaufslistendaten offline bearbeiten und nach dem Reconnect automatisch synchronisieren. |
+| G-09 | Bereits synchronisierte Einkaufslistendaten offline anzeigen und das Offline-Hinzufügen neuer Artikel mit Synchronisation nach dem Reconnect unterstützen. |
 
 ### In Scope
 
@@ -42,7 +42,7 @@ Die folgenden Qualitätsziele sind für die Architektur besonders relevant und w
 
 | Priorität | Qualitätsziel | Szenario / Fit Criterion | Verweis |
 |:---:|---|---|---|
-| 1 | **Zuverlässigkeit** (Integrität und Fehlertoleranz) | Änderungen an der Einkaufsliste werden bei bestehender Verbindung innerhalb von 2 Sekunden auf verbundenen Geräten angezeigt. Offline vorgenommene Änderungen werden nach dem Reconnect automatisch synchronisiert. | N1.1-01, N1.3-03, BR-13 |
+| 1 | **Zuverlässigkeit** (Integrität und Fehlertoleranz) | Änderungen an der Einkaufsliste werden bei bestehender Verbindung innerhalb von 2 Sekunden auf verbundenen Geräten angezeigt. Bereits geladene Einkaufslistendaten bleiben offline lesbar; offline hinzugefügte Artikel werden nach dem Reconnect synchronisiert. | N1.1-01, N1.3-03, BR-13 |
 | 2 | **Funktionalität** (Sicherheit und Mandantentrennung) | Ein Benutzer kann ausschließlich Einkaufslisten und Ausgaben der eigenen WG lesen oder bearbeiten und sieht in der Schuldensicht nur die eigenen offenen und bezahlten Schulden. | N1.2-01, N1.2-02, N2.2 |
 | 3 | **Benutzbarkeit** (Bedienbarkeit und Erlernbarkeit) | Ein neuer Artikel kann mit höchstens drei Benutzeraktionen hinzugefügt werden. Die Kernfunktionen sind ohne vorheriges Studium einer Anleitung verständlich; Fehlermeldungen enthalten eine verständliche Folgeaktion. | N1.4-01, N1.4-02, N1.4-03 |
 | 4 | **Wartbarkeit** (Testbarkeit und Änderbarkeit) | Präsentation, Anwendungslogik, Datenzugriff und lokale Synchronisation sind getrennt. Die Kosten-, Saldo- und Statusberechnung kann unabhängig vom Firebase-Zugriff getestet werden. | A04, A08, N2.4 |
@@ -55,7 +55,7 @@ Die Ziele Zuverlässigkeit und Funktionalität sind eng gekoppelt: Die gemeinsam
 | Stakeholder | Beschreibung und Interessen | Beteiligung / Relevanz für die Abnahme |
 |---|---|---|
 | **WG-Mitglied** (primärer Anwender) | Einkaufsliste und Ausgaben im Alltag schnell, einfach und fehlerarm verwalten; eigene Salden transparent sehen. | Liefert Usability-Feedback und führt die wichtigsten Abnahmetests durch. |
-| **WG-Ersteller** (`admin`) | WG anlegen, den Einladungscode anzeigen und die WG im vorgesehenen Umfang verwalten. | Prüft insbesondere WG-Erstellung, Beitritt und Rollenverhalten. |
+| **WG-Ersteller** (`admin`) | WG anlegen und die Erstellerrolle besitzen. Der Einladungscode ist für alle Mitglieder der eigenen WG sichtbar. Im MVP gibt es keine Rollenübertragung; der `admin` kann die WG daher nicht verlassen. | Prüft insbesondere WG-Erstellung, Beitritt und Rollenverhalten. |
 | **Entwicklerteam** (sechs Studierende) | Eine erweiterbare, dokumentierte, testbare Webanwendung im Rahmen des Moduls WK_1106 erstellen. | Verantwortlich für Spezifikation, Architektur, Implementierung, Tests und Präsentation. |
 | **Betreuer und Prüfer** (Prof. Dr. Carsten Lucke) | Nachvollziehbare Anforderungen, konsistente Architektur- und Spezifikationsdokumente sowie saubere Git-Hygiene. | Bewertet den Projektstand, die Dokumentation und den Code-Walkthrough. |
 
