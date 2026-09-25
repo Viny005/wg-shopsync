@@ -1,44 +1,56 @@
 # Teaminfo & Projektidee
 
 ## Projekttitel
-WG-ShopSync – Gemeinsame Einkaufsliste für Wohngemeinschaften
+
+WG-ShopSync – Einkaufs- und Kostenorganisation für Wohngemeinschaften
 
 ## Kurzbeschreibung
-WG-ShopSync ist eine browserbasierte Webanwendung zur Organisation gemeinsamer Einkäufe in Wohngemeinschaften.
-Mitglieder einer WG können fehlende Produkte in eine gemeinsame Einkaufsliste eintragen und gekaufte Artikel markieren,
-sodass alle den aktuellen Stand der Liste in Echtzeit sehen.
-Die App unterstützt zudem grundlegende Funktionen zur Benutzer- und WG-Verwaltung.
-Ergänzend ermöglicht sie eine einfache Aufteilung von Ausgaben zwischen ausgewählten Mitgliedern, ohne Zahlungs- oder Transferfunktion.
+
+WG-ShopSync ist eine browserbasierte Webanwendung für Wohngemeinschaften.
+
+Mitglieder können gemeinsame Einkaufslisten verwalten, Artikel nahezu in Echtzeit synchronisieren, gemeinsame Ausgaben erfassen, Kosten auf beteiligte Mitglieder aufteilen und daraus entstehende Forderungen und Verbindlichkeiten nachvollziehen.
+
+Die Anwendung unterstützt außerdem Registrierung und Anmeldung, WG-Erstellung, WG-Beitritt über Einladungscode sowie das Verlassen einer WG.
+
+WG-ShopSync führt keine Zahlungen oder Banktransaktionen aus. Die Anwendung dokumentiert ausschließlich Ausgaben, Kostenanteile, Schulden und deren Zahlungsstatus.
 
 ## Team
 
-| Name                              | Studiengang | Rolle                                |
-|-----------------------------------|-------------|--------------------------------------|
-|Kamadjou Djiowouo, Viny Merveil    | WI B.Sc.    | Projektleiter:in & Backend Entwickler|
-|Nguepi Nguena Simon Pierre         | WI B.Sc.    | Software Architect                   |
-|Njinkou Pagna Valerie Sandra       | WI B.Sc.    | QA / Test Lead                       |
-|Kamwe Gufo Joela Merveilles        | WI B.Sc.    | Frontend Entwicklerin                |
-|Fuad Aliyev                        | WI B.Sc.    | Spec / Requirements Lead             |
-|Felefack Tigoumo Raoul Jordan      | WI B.Sc.    | Backend Entwickler                   |
+| Name | Studiengang | Rolle |
+|---|---|---|
+| Kamadjou Djiowouo, Viny Merveil | WI B.Sc. | Projektleiter:in & Backend Entwickler |
+| Nguepi Nguena Simon Pierre | WI B.Sc. | Software Architect |
+| Njinkou Pagna Valerie Sandra | WI B.Sc. | QA / Test Lead |
+| Kamwe Gufo Joela Merveilles | WI B.Sc. | Frontend Entwicklerin |
+| Fuad Aliyev | WI B.Sc. | Spec / Requirements Lead |
+| Felefack Tigoumo Raoul Jordan | WI B.Sc. | Backend Entwickler |
 
+## Technologien
 
-## Technologien (voraussichtlich)
-
-- **Sprache(n):** Dart, TypeScript
-- **Frameworks:** Flutter Web
-- **Persistenz:** Firestore (zentral mit Offline-Persistenz)
-- **Build / Tooling:** Flutter SDK, Git
-- **Sonstiges:** Authentifizierung (E-Mail)
-
-Diese Liste ist eine Momentaufnahme. Änderungen im Projektverlauf sind erlaubt und in der Architekturbeschreibung (M2) endgültig festzulegen.
+- **Anwendung:** Flutter Web
+- **Programmiersprache:** Dart
+- **Testskripte:** JavaScript
+- **Authentifizierung:** Firebase Authentication
+- **Persistenz und Echtzeit-Synchronisation:** Cloud Firestore
+- **Hosting:** Firebase Hosting
+- **Security:** Firestore Security Rules
+- **Tests:** Flutter Test, Firebase Emulator Suite, Mocha, `@firebase/rules-unit-testing`
+- **Build / Tooling:** Flutter SDK, Firebase CLI, npm, Git und GitHub
 
 ## Repository
 
 - **URL:** https://github.com/Viny005/wg-shopsync
 - **Sichtbarkeit:** öffentlich
 
-## Eingesetzte KI-Werkzeuge (vorläufige Planung)
+## Live-Anwendung
 
-- GitHub Copilot zur Code-Vervollständigung
-- ChatGPT zur Unterstützung bei Dokumentation, Refactoring und Strukturierung
-- Claude zur Unterstützung bei Code-Analyse, Architekturüberlegungen und Dokumentation
+- **Firebase Hosting:** https://wg-shopsync.web.app
+
+## Eingesetzte KI-Werkzeuge
+
+- **GitHub Copilot:** Unterstützung bei Code-Vervollständigung, Implementierung und Überarbeitung.
+- **ChatGPT:** Unterstützung bei Dokumentation, Strukturierung, Refactoring, Tests und Konsistenzprüfungen.
+
+Die fachliche und technische Verantwortung für übernommene Ergebnisse liegt beim Projektteam.
+
+Weitere Details sind in [E3 – Eingesetzte KI-Werkzeuge](docs/spec/E3-eingesetzte-ki-werkzeuge.md) und [A13 – Eingesetzte KI-Werkzeuge in Architektur und Entwicklung](docs/arch/A13-ki-werkzeuge.md) dokumentiert.
