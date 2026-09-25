@@ -102,14 +102,13 @@ Die Anwendung erreicht eine monatliche Verfügbarkeit von mindestens 99 %.
 
 ## N1.3-03: Offline-Verfügbarkeit
 
-Die zuletzt synchronisierten Einkaufslisten sollen auch ohne aktive Internetverbindung verfügbar sein.
+Die zuletzt synchronisierte Einkaufsliste soll auch ohne aktive Internetverbindung verfügbar sein.
 
 ### Fit Criterion
 
-Einkaufslisten können ohne Internetverbindung angezeigt und bearbeitet werden, sofern zuvor eine Synchronisation erfolgt ist. Lokale Änderungen werden nach Wiederherstellung der Verbindung automatisch synchronisiert.
+Eine zuvor synchronisierte Einkaufsliste bleibt ohne Internetverbindung lesbar. Ein neu hinzugefügter Artikel kann als lokaler, ausstehender Firestore-Schreibvorgang erscheinen und wird nach Wiederherstellung der Verbindung synchronisiert. Das Bearbeiten bestehender Artikel und das Markieren als gekauft benötigen wegen der verwendeten Firestore-Transaktionen eine aktive Verbindung.
 
 ---
-
 # N1.4 Usability-Anforderungen
 
 ## N1.4-01: Einfache Bedienbarkeit

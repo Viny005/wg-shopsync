@@ -5,6 +5,7 @@ Für die Erstellung und Überarbeitung der Spezifikation wurden KI-gestützte We
 ## Verwendete Werkzeuge
 
 - GitHub Copilot
+- Claude
 - ChatGPT
 
 ## Einsatzbereiche
@@ -16,7 +17,6 @@ Die Werkzeuge wurden insbesondere für folgende Tätigkeiten verwendet:
 - sprachliche Überarbeitung von Dokumentabschnitten
 - Prüfung von Konsistenz zwischen Anforderungen, Architektur und Implementierung
 - Unterstützung bei der Prüfung auf fehlende oder widersprüchliche Angaben
-
 ## Verifikation und Verantwortung
 
 KI-generierte Vorschläge wurden nicht ungeprüft übernommen.

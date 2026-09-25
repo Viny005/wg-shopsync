@@ -181,7 +181,7 @@ Die Architekturdokumentation ist nach arc42 strukturiert:
 
 ## KI-Unterstützung
 
-Im Projekt wurden GitHub Copilot und ChatGPT unterstützend eingesetzt, unter anderem für Code- und Dokumentationsentwürfe, Tests, Refactoring sowie Konsistenzprüfungen.
+Im Projekt wurden GitHub Copilot, Claude und ChatGPT unterstützend eingesetzt. GitHub Copilot wurde für Code-Vervollständigung und Implementierung genutzt, Claude insbesondere für die Präzisierung von Anforderungen und Markdown-Dokumentation und ChatGPT für Dokumentation, Refactoring, Tests sowie Konsistenzprüfungen.
 
 Die fachliche und technische Verantwortung für die übernommenen Ergebnisse verbleibt beim Projektteam. Details sind in [E3 – Eingesetzte KI-Werkzeuge](docs/spec/E3-eingesetzte-ki-werkzeuge.md) und [A13 – Eingesetzte KI-Werkzeuge in Architektur und Entwicklung](docs/arch/A13-ki-werkzeuge.md) dokumentiert.
 

@@ -33,39 +33,48 @@ Die Rechte eines Benutzers ergeben sich aus seiner Membership innerhalb der jewe
 
 ### admin
 
+Die Rolle `admin` kennzeichnet im MVP den Ersteller der WG.
+
 Darf:
 
-- den Einladungscode anzeigen
-- die WG im Rahmen der beschriebenen Use Cases verwalten
+- den Einladungscode der eigenen WG sehen
+- Artikel und Ausgaben der eigenen WG verwalten
+- eigene Forderungen und Verbindlichkeiten einsehen
+- eigene offene Verbindlichkeiten als bezahlt markieren
+
+Da die erste Version keine Rollenübertragung und keine Ernennung eines weiteren `admin` vorsieht, kann der `admin` die WG nicht verlassen.
 
 ### member
 
 Darf:
 
+- den Einladungscode der eigenen WG sehen
 - Artikel verwalten
 - Ausgaben verwalten
-- Schulden einsehen
-- eigene Schulden als bezahlt markieren
+- eigene Forderungen und Verbindlichkeiten einsehen
+- eigene offene Verbindlichkeiten als bezahlt markieren
+- die WG verlassen
 
 ## Regeln
 
 - Jeder Benutzer besitzt pro WG genau eine Rolle.
-- Die Rolle wird in Membership.role gespeichert.
-- Ein Benutzer darf nur Funktionen ausführen, für die er berechtigt ist.
-
+- Die Rolle wird in `Membership.role` gespeichert.
+- Datenzugriffe bleiben auf die eigene WG beschränkt.
+- Der Zahlungsstatus einer Schuld darf nur vom jeweiligen Schuldner von `open` auf `paid` geändert werden.
 # N2.3 Offline-Modus
 
-WG-ShopSync soll auch bei fehlender Internetverbindung eingeschränkt nutzbar bleiben.
+WG-ShopSync bleibt bei fehlender Internetverbindung eingeschränkt nutzbar.
 
-Bereits geladene Daten werden lokal zwischengespeichert.
+Bereits geladene Einkaufslistendaten werden durch die Firestore-Offline-Persistenz lokal zwischengespeichert.
 
 ## Regeln
 
-- Die zuletzt synchronisierte Einkaufsliste bleibt verfügbar.
-- Offline erfasste Änderungen an Einkaufslisten werden lokal gespeichert.
-- Nach Wiederherstellung der Verbindung erfolgt eine Synchronisation.
-- Der Benutzer wird über den Offline-Modus informiert.
-
+- Die zuletzt synchronisierte Einkaufsliste bleibt lesbar.
+- Neue Artikel können offline als ausstehende Firestore-Schreibvorgänge vorgemerkt werden.
+- Ausstehende Firestore-Schreibvorgänge werden nach Wiederherstellung der Verbindung synchronisiert.
+- Die Oberfläche kennzeichnet Cache-Daten und ausstehende Schreibvorgänge.
+- Artikel bearbeiten (UC-07) und als gekauft markieren (UC-09) benötigen eine aktive Verbindung, da diese Aktionen Firestore-Transaktionen verwenden.
+- Registrierung, Login ohne vorhandene Sitzung, WG-Erstellung, WG-Beitritt sowie Änderungen an Ausgaben und Schulden benötigen eine aktive Verbindung.
 # N2.4 Synchronisationsanforderungen
 
 Die Synchronisation gleicht lokale und serverseitige Datenstände ab.
@@ -87,7 +96,7 @@ Bei konkurrierenden Änderungen gilt:
 Server gewinnt
 ```
 
-Der serverseitige Datenstand besitzt Vorrang. Eine verworfene lokale Änderung bleibt als Konflikthinweis erhalten und kann erneut angewendet werden.
+Der serverseitige Datenstand besitzt Vorrang. Bei einem erkannten Konflikt wird der Benutzer informiert. Er kann den aktuellen Serverstand laden und die gewünschte Änderung anschließend als neue Bearbeitung erneut durchführen.
 
 # N2.5 Fehlerbehandlung
 
@@ -128,7 +137,7 @@ Beispiele:
 ## Regeln
 
 - Fehlermeldungen müssen verständlich sein.
-- Daten dürfen durch Fehler nicht verloren gehen.
+- Erkannte Fehler und Konflikte dürfen nicht stillschweigend als erfolgreicher Abschluss dargestellt werden.
 - Der Benutzer erhält einen Hinweis zur Fehlerursache.
 
 ---

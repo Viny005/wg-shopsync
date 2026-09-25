@@ -83,7 +83,8 @@ class ShoppingItem {
   final String createdBy;
 
   /// `null` solange der servergenerierte Zeitstempel (FieldValue.serverTimestamp)
-  /// im lokalen Pending-Snapshot noch nicht aufgelöst ist (siehe AF-06/AF-07).
+  /// im lokalen Pending-Snapshot noch nicht aufgelöst ist; `updatedAt` dient
+  /// unter anderem der Konflikterkennung bei UC-07 und UC-09.
   final DateTime? createdAt;
   final DateTime? updatedAt;
 

@@ -102,6 +102,7 @@ Stellt die Mitgliedschaft eines Benutzers in einer WG dar.
 - wgId
 - role
 - joinedAt
+- displayName (optional; Anzeigename für die UI, insbesondere für Kosten- und Schuldensichten)
 
 ---
 

@@ -259,7 +259,10 @@ void main() {
         ),
       );
 
-      expect(find.text('Als bezahlt markieren'), findsOneWidget);
+      expect(
+        find.widgetWithText(FilledButton, 'Als bezahlt markieren'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('zeigt KEINEN Button wenn Nutzer Glaeubiger ist',
@@ -335,8 +338,12 @@ void main() {
 
       await tester.tap(find.text('Als bezahlt markieren'));
       await tester.pumpAndSettle();
-      await tester
-          .tap(find.widgetWithText(FilledButton, 'Als bezahlt markieren'));
+      final confirmButton = find.byKey(
+        const Key('confirm-mark-debt-paid'),
+      );
+
+      expect(confirmButton, findsOneWidget);
+      await tester.tap(confirmButton);
       await tester.pumpAndSettle();
 
       expect(service.markDebtAsPaidCalls, 1);
@@ -355,8 +362,12 @@ void main() {
 
       await tester.tap(find.text('Als bezahlt markieren'));
       await tester.pumpAndSettle();
-      await tester
-          .tap(find.widgetWithText(FilledButton, 'Als bezahlt markieren'));
+      final confirmButton = find.byKey(
+        const Key('confirm-mark-debt-paid'),
+      );
+
+      expect(confirmButton, findsOneWidget);
+      await tester.tap(confirmButton);
       await tester.pumpAndSettle();
 
       expect(
