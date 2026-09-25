@@ -52,6 +52,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
   late Future<_OwnSharesLoadResult> _ownSharesFuture;
 
   StreamSubscription<List<Expense>>? _expensesSubscription;
+  StreamSubscription<List<Debt>>? _debtsSubscription;
 
   @override
   void initState() {
@@ -65,11 +66,23 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
         _reloadFinancialData();
       }
     });
+
+    // UC-16 Echtzeit-Erweiterung: eine Statusaenderung einer Debt (z.B.
+    // UC-15 open -> paid) aendert kein Expense-Dokument und wuerde sonst
+    // von der Expense-Subscription oben nicht erkannt.
+    _debtsSubscription = _expenseService
+        .watchDebtsForUser(wgId: widget.wgId, userId: widget.userId)
+        .listen((_) {
+      if (mounted) {
+        _reloadFinancialData();
+      }
+    });
   }
 
   @override
   void dispose() {
     _expensesSubscription?.cancel();
+    _debtsSubscription?.cancel();
     super.dispose();
   }
 
