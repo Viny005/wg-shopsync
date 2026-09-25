@@ -4,7 +4,7 @@ Dieser Baustein beschreibt die Einbettung von WG-ShopSync in seine Systemumgebun
 
 Ziel dieses Dokuments ist die Beschreibung der Systemumgebung und der technischen Infrastruktur von WG-ShopSync. Firebase wird dabei als verwaltete Cloud-Infrastruktur und nicht als fachliches Nachbarsystem betrachtet.
 
-Detaillierte Architekturentscheidungen, interne Komponenten, APIs oder Datenbankstrukturen sind nicht Bestandteil dieses Dokuments und werden in späteren Architekturartefakten dokumentiert.
+Detaillierte Architekturentscheidungen, interne Komponenten und technische Konzepte sind in der [Architekturdokumentation](../arch/A01-einfuehrung-und-ziele.md) beschrieben. Die fachliche Datenstruktur ist in D1 und D2 dokumentiert.
 
 ---
 

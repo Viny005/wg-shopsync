@@ -4,10 +4,13 @@
 
 WG-ShopSync ist eine browserbasierte Webanwendung zur Organisation gemeinsamer Einkäufe und Ausgaben in Wohngemeinschaften. Diese Spezifikation beschreibt die fachlichen Anforderungen, die Benutzeroberfläche, das Datenmodell, die Systemumgebung und die Qualitätsanforderungen. Sie ist die verbindliche Grundlage für Architektur, Implementierung, Tests und Abnahme im Projekt WK_1106.
 
-**Projekt:** WG-ShopSync  
-**Technologien:** Flutter, Firebase Authentication, Cloud Firestore  
+**Projekt:** WG-ShopSync
+
+**Technologien:** Flutter Web, Firebase Authentication, Cloud Firestore, Firebase Hosting
+
 **Zielplattform:** Moderne Desktop- und mobile Webbrowser
-**Status:** Arbeitsgrundlage für Entwicklung und Test
+
+**Status:** Abgabeversion – Stand 25.09.2026
 
 ## 2. Produktvision
 
@@ -155,7 +158,9 @@ Die Webanwendung bildet die Benutzerschnittstelle und die lokale Offline-Nutzung
 
 Die Unit- und Widget-Tests für UC-01 Registrierung und UC-02 Einloggen decken Eingabevalidierung, erfolgreiche Repository-Aufrufe, Ladezustände sowie Authentifizierungsfehler ab. Sie verwenden ein Fake `AuthRepository` und sind ohne echte Firebase-Verbindung ausführbar.
 
-Echte Firebase-Registrierung und -Anmeldung, Auth-State, persistente Sitzung, Navigation zu Screen 5 mit realem Auth-State sowie optionale Emulator-Tests bleiben offen, bis die FlutterFire-Konfiguration verfügbar ist.
+Die produktive Firebase-Integration ist eingerichtet. Registrierung und Anmeldung über Firebase Authentication, Auth-State, persistente Benutzersitzung sowie die Navigation anhand des realen Authentifizierungszustands wurden im End-to-End-Test mit der produktiven Firebase-Konfiguration geprüft.
+
+Der aktuelle technische Teststand umfasst 230 erfolgreich ausgeführte Flutter-Tests sowie 27 erfolgreich ausgeführte Firestore-Security-Rules-Tests. Zusätzlich wurden `flutter analyze` ohne Befund und der Flutter-Web-Build erfolgreich ausgeführt.
 
 ## 11. Qualitätsziele
 
@@ -190,9 +195,10 @@ Die erste Version gilt als fachlich abnahmefähig, wenn mindestens folgende Szen
 
 ### Risiken
 
-- Die vollständige Umsetzung der Kostenverwaltung kann die verfügbare Projektzeit überschreiten.
-- Offline-Konflikte können zu zusätzlicher Implementierungs- und Testarbeit führen.
-- Fehlende Firebase-Sicherheitsregeln würden den Datenzugriff unzulässig erweitern.
+- Die Anwendung ist für zentrale Funktionen von der Verfügbarkeit der verwendeten Firebase-Dienste abhängig.
+- Offline-Konflikte können bei parallelen Änderungen zusätzliche Benutzerinteraktion erfordern.
+- Fehlerhafte oder zu weit gefasste Firestore Security Rules könnten den Datenzugriff unzulässig erweitern; deshalb werden die Rules automatisiert getestet.
+- Erweiterte serverseitige Logik über Firebase Cloud Functions ist nicht Bestandteil der ausgelieferten Hauptversion und würde zusätzliche Firebase-Infrastruktur voraussetzen.
 
 ### Verbindliche Umsetzungsentscheidungen
 
