@@ -44,20 +44,40 @@ class WgJoinPreview {
   final String inviteCode;
 }
 
+/// Signatur fuer die injizierbare joinWg-Aufrufschicht (siehe [WgService]),
+/// damit das Fehlercode-Mapping ohne echtes Firebase getestet werden kann.
+typedef JoinWgCallable = Future<Map<String, dynamic>> Function(
+  String inviteCode,
+);
+
 class WgService {
   WgService({
     FirebaseFirestore? firestore,
     FirebaseFunctions? functions,
+    JoinWgCallable? joinWgCallable,
   })  : _firestore = firestore,
-        _functions = functions;
+        _functions = functions,
+        _joinWgCallable = joinWgCallable;
 
   final FirebaseFirestore? _firestore;
   final FirebaseFunctions? _functions;
+  final JoinWgCallable? _joinWgCallable;
 
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
 
   FirebaseFunctions get functions =>
       _functions ?? FirebaseFunctions.instanceFor(region: 'europe-west3');
+
+  Future<Map<String, dynamic>> _callJoinWg(String inviteCode) {
+    if (_joinWgCallable != null) {
+      return _joinWgCallable(inviteCode);
+    }
+    return functions
+        .httpsCallable('joinWg')
+        .call<Map<String, dynamic>>({'inviteCode': inviteCode}).then(
+      (result) => result.data,
+    );
+  }
 
   static const String _inviteCodeCharacters =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -249,12 +269,7 @@ class WgService {
     }
 
     try {
-      final callable = functions.httpsCallable('joinWg');
-      final result = await callable.call<Map<String, dynamic>>({
-        'inviteCode': normalizedCode,
-      });
-
-      final data = result.data;
+      final data = await _callJoinWg(normalizedCode);
       final wgId = data['wgId'];
 
       if (wgId is! String || wgId.isEmpty) {
