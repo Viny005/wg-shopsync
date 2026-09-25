@@ -1,6 +1,7 @@
-﻿import 'dart:math';
+import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 
 import '../../../domain/models/membership.dart';
 import '../../../domain/models/wg.dart';
@@ -46,11 +47,17 @@ class WgJoinPreview {
 class WgService {
   WgService({
     FirebaseFirestore? firestore,
-  }) : _firestore = firestore;
+    FirebaseFunctions? functions,
+  })  : _firestore = firestore,
+        _functions = functions;
 
   final FirebaseFirestore? _firestore;
+  final FirebaseFunctions? _functions;
 
   FirebaseFirestore get firestore => _firestore ?? FirebaseFirestore.instance;
+
+  FirebaseFunctions get functions =>
+      _functions ?? FirebaseFunctions.instanceFor(region: 'europe-west3');
 
   static const String _inviteCodeCharacters =
       'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -71,7 +78,7 @@ class WgService {
     return null;
   }
 
-    Future<WG> createWg({
+  Future<WG> createWg({
     required String name,
     required String userId,
   }) async {
@@ -109,12 +116,12 @@ class WgService {
       );
 
       final membership = Membership(
-          id: trimmedUserId,
-          userId: trimmedUserId,
-          wgId: wgRef.id,
-          role: MembershipRole.admin,
-          joinedAt: now,
-       );
+        id: trimmedUserId,
+        userId: trimmedUserId,
+        wgId: wgRef.id,
+        role: MembershipRole.admin,
+        joinedAt: now,
+      );
 
       final created = await firestore.runTransaction<bool>((transaction) async {
         final userMembershipSnapshot = await transaction.get(userMembershipRef);
@@ -129,7 +136,8 @@ class WgService {
           return false;
         }
 
-        final displayName = await _loadOwnDisplayName(transaction, trimmedUserId);
+        final displayName =
+            await _loadOwnDisplayName(transaction, trimmedUserId);
 
         transaction.set(
           inviteCodeRef,
@@ -219,10 +227,16 @@ class WgService {
     );
   }
 
+  /// UC-04 - WG beitreten. Ruft die vertrauenswuerdige Cloud Function
+  /// [joinWg] auf, die mit Firebase-Admin-Rechten den Einladungscode
+  /// serverseitig validiert und die Membership erzeugt (siehe
+  /// docs/spec/S3-inbetriebnahme.md und A09 ADR-08). Die Firestore
+  /// Security Rules verhindern bewusst, dass der Client selbst eine
+  /// member-Membership in einer fremden WG anlegt.
   Future<WG> joinWg({
     required String inviteCode,
     required String userId,
-    }) async {
+  }) async {
     final normalizedCode = inviteCode.trim().toUpperCase();
     final trimmedUserId = userId.trim();
 
@@ -234,80 +248,43 @@ class WgService {
       throw const InvalidInviteCodeException();
     }
 
-    final inviteCodeRef =
-        firestore.collection('inviteCodes').doc(normalizedCode);
+    try {
+      final callable = functions.httpsCallable('joinWg');
+      final result = await callable.call<Map<String, dynamic>>({
+        'inviteCode': normalizedCode,
+      });
 
-    final userMembershipRef =
-        firestore.collection('userMemberships').doc(trimmedUserId);
+      final data = result.data;
+      final wgId = data['wgId'];
 
-    final wgId = await firestore.runTransaction<String>((transaction) async {
-      final userMembershipSnapshot = await transaction.get(userMembershipRef);
-
-      if (userMembershipSnapshot.exists) {
-        throw const UserAlreadyInWgException();
-      }
-
-      final inviteCodeSnapshot = await transaction.get(inviteCodeRef);
-
-      if (!inviteCodeSnapshot.exists) {
-        throw const InviteCodeNotFoundException();
-      }
-
-      final inviteCodeData = inviteCodeSnapshot.data();
-      final foundWgId = inviteCodeData?['wgId'];
-
-      if (foundWgId is! String || foundWgId.isEmpty) {
+      if (wgId is! String || wgId.isEmpty) {
         throw StateError(
-          'Die Daten des Einladungscodes sind unvollständig.',
+          'Die Antwort des Servers war unvollständig.',
         );
       }
 
-      final wgRef = firestore.collection('wgs').doc(foundWgId);
+      final wgSnapshot = await firestore.collection('wgs').doc(wgId).get();
+      final wgData = wgSnapshot.data();
 
-      final membershipRef = wgRef.collection('memberships').doc(trimmedUserId);
+      if (!wgSnapshot.exists || wgData == null) {
+        throw StateError(
+          'Die WG konnte nach dem Beitritt nicht geladen werden.',
+        );
+      }
 
-      final displayName =
-        await _loadOwnDisplayName(transaction, trimmedUserId);
-
-      final membership = Membership(
-        id: trimmedUserId,
-        userId: trimmedUserId,
-        wgId: foundWgId,
-        role: MembershipRole.member,
-        joinedAt: DateTime.now(),
-        displayName: displayName,
-      );
-
-      transaction.set(
-        membershipRef,
-        membership.toMap(),
-      );
-
-      transaction.set(
-        userMembershipRef,
-        {
-          'wgId': foundWgId,
-          'inviteCode': normalizedCode,
-        },
-      );
-
-      return foundWgId;
-    });
-
-    final wgSnapshot = await firestore.collection('wgs').doc(wgId).get();
-
-    final wgData = wgSnapshot.data();
-
-    if (!wgSnapshot.exists || wgData == null) {
-      throw StateError(
-        'Die WG konnte nach dem Beitritt nicht geladen werden.',
-      );
+      return WG.fromMap(wgSnapshot.id, wgData);
+    } on FirebaseFunctionsException catch (error) {
+      switch (error.code) {
+        case 'already-exists':
+          throw const UserAlreadyInWgException();
+        case 'not-found':
+          throw const InviteCodeNotFoundException();
+        case 'invalid-argument':
+          throw const InvalidInviteCodeException();
+        default:
+          rethrow;
+      }
     }
-
-    return WG.fromMap(
-      wgSnapshot.id,
-      wgData,
-    );
   }
 
   Future<CurrentWgContext?> loadCurrentWg({
@@ -353,7 +330,7 @@ class WgService {
     }
 
     final wg = WG.fromMap(wgSnapshot.id, wgData);
-        final membership =
+    final membership =
         Membership.fromMap(membershipSnapshot.id, membershipData);
 
     // Self-Migration: eigene Membership ohne displayName nachtraeglich ergaenzen.
@@ -372,7 +349,6 @@ class WgService {
       wg: wg,
       role: membership.role,
     );
-
   }
 
   Future<List<String>> loadWgMemberIds({
