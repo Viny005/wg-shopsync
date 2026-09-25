@@ -332,22 +332,8 @@ function updatesValidExpenseShare(wgId, expenseId, shareId) {
         && isValidDisplayNameFor(userId, request.resource.data);
     }
 
-    function createsOwnWgMemberMembership(wgId, userId) {
-      return signedIn()
-        && request.auth.uid == userId
-        && request.resource.data.userId == userId
-        && request.resource.data.wgId == wgId
-        && request.resource.data.role == 'member'
-        && exists(/databases/$(database)/documents/wgs/$(wgId))
-        && existsAfter(/databases/$(database)/documents/userMemberships/$(userId))
-        && getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.wgId == wgId
-        && getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode is string
-        && get(/databases/$(database)/documents/wgs/$(wgId)).data.inviteCode == getAfter(/databases/$(database)/documents/userMemberships/$(userId)).data.inviteCode
-        && isValidDisplayNameFor(userId, request.resource.data);
-    }
-
-    function deletesOwnUserMembership(userId) {
-      return signedIn()
+        function deletesOwnUserMembership(userId) {
+        return signedIn()
         && request.auth.uid == userId
         && resource.data.wgId is string
         && !existsAfter(
@@ -394,11 +380,11 @@ function updatesValidExpenseShare(wgId, expenseId, shareId) {
 
     match /wgs/{wgId}/memberships/{userId} {
       allow read: if isMember(wgId);
-      allow create: if signedIn()
-        && (
-          createsOwnWgAdminMembership(wgId, userId)
-          || createsOwnWgMemberMembership(wgId, userId)
-        );
+      // UC-04 WG beitreten: eine member-Membership darf der Client seit
+      // A09 ADR-08 nicht mehr direkt anlegen. Der Beitritt laeuft ueber die
+      // Callable Function joinWg, die mit Firebase-Admin-Rechten schreibt und
+      // dadurch diese Regel nicht durchlaeuft.
+      allow create: if signedIn() && createsOwnWgAdminMembership(wgId, userId);
       allow update: if migratesOwnDisplayName(wgId, userId);
       allow delete: if leavesWgAsMember(wgId, userId);
     }
