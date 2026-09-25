@@ -7,6 +7,8 @@ import 'package:wg_shopsync/src/features/expense/application/expense_service.dar
 class FakeExpenseService extends ExpenseService {
   final StreamController<List<Expense>> _expensesStreamController =
       StreamController<List<Expense>>.broadcast();
+  final StreamController<List<Debt>> _debtsStreamController =
+      StreamController<List<Debt>>.broadcast();
   FakeExpenseService({
     this.expenses = const [],
     this.shares = const [],
@@ -70,6 +72,18 @@ class FakeExpenseService extends ExpenseService {
 
   void emitExpenseChange() {
     _expensesStreamController.add(expenses);
+  }
+
+  @override
+  Stream<List<Debt>> watchDebtsForUser({
+    required String wgId,
+    required String userId,
+  }) {
+    return _debtsStreamController.stream;
+  }
+
+  void emitDebtChange() {
+    _debtsStreamController.add(debts);
   }
 
   @override

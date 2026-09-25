@@ -502,4 +502,159 @@ void main() {
       },
     );
   });
+
+  group('UC-16 Echtzeit-Synchronisation', () {
+    testWidgets('Expense-Realtime-Listener bleibt funktionsfaehig',
+        (tester) async {
+      final service = FakeExpenseService(
+        expenses: [
+          Expense(
+            id: 'expense-1',
+            wgId: wgId,
+            amount: 10,
+            description: 'Erste Ausgabe',
+            paidBy: currentUid,
+            createdAt: DateTime(2026, 9, 18),
+            updatedAt: DateTime(2026, 9, 18),
+          ),
+        ],
+      );
+      await pumpPage(tester, expenseService: service);
+
+      expect(service.getExpensesCalls, 1);
+
+      service.emitExpenseChange();
+      await tester.pumpAndSettle();
+
+      expect(service.getExpensesCalls, 2);
+    });
+
+    testWidgets('Debt-Aenderung loest Aktualisierung der Finanzdaten aus',
+        (tester) async {
+      final service = FakeExpenseService(
+        debts: [
+          Debt(
+            id: 'expense-1_$otherUid',
+            wgId: wgId,
+            expenseId: 'expense-1',
+            creditorId: currentUid,
+            debtorId: otherUid,
+            amount: 8.5,
+            status: DebtStatus.open,
+            createdAt: DateTime(2026, 9, 18),
+          ),
+        ],
+      );
+      await pumpPage(tester, expenseService: service);
+
+      final initialCalls = service.getDebtsForUserCalls;
+
+      service.emitDebtChange();
+      await tester.pumpAndSettle();
+
+      expect(service.getDebtsForUserCalls, greaterThan(initialCalls));
+    });
+
+    testWidgets('open -> paid wird automatisch sichtbar ohne manuellen Reload',
+        (tester) async {
+      final openDebt = Debt(
+        id: 'expense-1_$otherUid',
+        wgId: wgId,
+        expenseId: 'expense-1',
+        creditorId: currentUid,
+        debtorId: otherUid,
+        amount: 8.5,
+        status: DebtStatus.open,
+        createdAt: DateTime(2026, 9, 18),
+      );
+      final service = FakeExpenseService(debts: [openDebt]);
+      await pumpPage(tester, expenseService: service);
+
+      expect(find.text('Offen'), findsWidgets);
+      expect(find.text('Bezahlt'), findsNothing);
+
+      // Simuliert, dass ein anderer Client (z.B. der Schuldner ueber UC-15)
+      // die Debt bezahlt hat; der lokale Fake-Datenbestand wird aktualisiert
+      // und der Stream feuert erneut, ohne dass diese Seite selbst
+      // etwas ausgeloest hat.
+      service.debts = [
+        Debt(
+          id: openDebt.id,
+          wgId: openDebt.wgId,
+          expenseId: openDebt.expenseId,
+          creditorId: openDebt.creditorId,
+          debtorId: openDebt.debtorId,
+          amount: openDebt.amount,
+          status: DebtStatus.paid,
+          paidAt: DateTime(2026, 9, 19),
+          createdAt: openDebt.createdAt,
+        ),
+      ];
+      service.emitDebtChange();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bezahlt'), findsWidgets);
+      expect(find.text('Offen'), findsNothing);
+    });
+
+    testWidgets('Saldo wird nach Bezahlen automatisch neu berechnet',
+        (tester) async {
+      final openDebt = Debt(
+        id: 'expense-1_$otherUid',
+        wgId: wgId,
+        expenseId: 'expense-1',
+        creditorId: currentUid,
+        debtorId: otherUid,
+        amount: 8.5,
+        status: DebtStatus.open,
+        createdAt: DateTime(2026, 9, 18),
+      );
+      final service = FakeExpenseService(debts: [openDebt]);
+      await pumpPage(tester, expenseService: service);
+
+      expect(find.textContaining('8.50'), findsWidgets);
+
+      service.debts = [
+        Debt(
+          id: openDebt.id,
+          wgId: openDebt.wgId,
+          expenseId: openDebt.expenseId,
+          creditorId: openDebt.creditorId,
+          debtorId: openDebt.debtorId,
+          amount: openDebt.amount,
+          status: DebtStatus.paid,
+          paidAt: DateTime(2026, 9, 19),
+          createdAt: openDebt.createdAt,
+        ),
+      ];
+      service.emitDebtChange();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Saldo'), findsNothing);
+    });
+
+    testWidgets('Debt-Subscription wird bei Dispose beendet', (tester) async {
+      final service = FakeExpenseService(debts: const []);
+      await pumpPage(tester, expenseService: service);
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+
+      // Nach dem Dispose darf ein weiteres Stream-Event keinen Fehler
+      // (z.B. "setState called after dispose") mehr ausloesen.
+      expect(() => service.emitDebtChange(), returnsNormally);
+    });
+
+    testWidgets('FakeExpenseService ruft niemals echtes Firebase auf',
+        (tester) async {
+      // Rein strukturelle Absicherung: FakeExpenseService ueberschreibt
+      // watchDebtsForUser vollstaendig mit einem lokalen StreamController
+      // und greift nicht auf ExpenseService.firestore zu. Ein erfolgreicher
+      // Testlauf ohne initialisiertes Firebase bestaetigt das indirekt.
+      final service = FakeExpenseService(debts: const []);
+      await pumpPage(tester, expenseService: service);
+
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

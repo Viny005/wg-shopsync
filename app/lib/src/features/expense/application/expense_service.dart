@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:async/async.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../../core/network/network_connectivity.dart';
@@ -897,6 +898,68 @@ class ExpenseService {
     ];
 
     return debts;
+  }
+
+  /// UC-16 Echtzeit-Erweiterung: beobachtet dieselben zwei zulaessigen
+  /// Perspektiven wie [getDebtsForUser] (Glaeubiger und Schuldner) als
+  /// Streams, statt die komplette `debts`-Collection zu abonnieren - das
+  /// waeren die Firestore Security Rules ohnehin nicht zulaessig, da sie
+  /// nur Lesezugriffe erlauben, bei denen der anfragende Nutzer selbst
+  /// Glaeubiger oder Schuldner ist. Die beiden Streams werden zu einem
+  /// zusammengefuehrt und nach Debt-ID dedupliziert; jedes Ereignis liefert
+  /// die vollstaendige, aktuelle Liste aller relevanten Debts.
+  Stream<List<Debt>> watchDebtsForUser({
+    required String wgId,
+    required String userId,
+  }) {
+    final trimmedWgId = wgId.trim();
+    final trimmedUserId = userId.trim();
+
+    if (trimmedWgId.isEmpty) {
+      throw ArgumentError('Die WG-ID darf nicht leer sein.');
+    }
+    if (trimmedUserId.isEmpty) {
+      throw ArgumentError('Die Benutzer-ID darf nicht leer sein.');
+    }
+
+    final debtsRef =
+        firestore.collection('wgs').doc(trimmedWgId).collection('debts');
+
+    Debt? tryParse(QueryDocumentSnapshot<Map<String, dynamic>> doc) {
+      try {
+        return Debt.fromMap(doc.id, doc.data());
+      } catch (_) {
+        return null;
+      }
+    }
+
+    var latestAsCreditor = <String, Debt>{};
+    var latestAsDebtor = <String, Debt>{};
+
+    final creditorStream = debtsRef
+        .where('creditorId', isEqualTo: trimmedUserId)
+        .snapshots()
+        .map((snapshot) {
+      latestAsCreditor = {
+        for (final debt in snapshot.docs.map(tryParse).whereType<Debt>())
+          debt.id: debt,
+      };
+      return <String, Debt>{...latestAsCreditor, ...latestAsDebtor};
+    });
+
+    final debtorStream = debtsRef
+        .where('debtorId', isEqualTo: trimmedUserId)
+        .snapshots()
+        .map((snapshot) {
+      latestAsDebtor = {
+        for (final debt in snapshot.docs.map(tryParse).whereType<Debt>())
+          debt.id: debt,
+      };
+      return <String, Debt>{...latestAsCreditor, ...latestAsDebtor};
+    });
+
+    return StreamGroup.merge([creditorStream, debtorStream])
+        .map((merged) => merged.values.toList());
   }
 
   /// UC-15 – Schuld als bezahlt markieren (AF-05). Nur der Schuldner darf
