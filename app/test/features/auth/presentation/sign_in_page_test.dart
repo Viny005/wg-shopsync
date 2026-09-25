@@ -72,14 +72,27 @@ void main() {
     expect(repository.signInCalls, 1);
   });
 
-  testWidgets('shows Firebase authentication errors', (tester) async {
+  testWidgets('shows friendly message for invalid credentials', (tester) async {
     final repository = FakeAuthRepository()
-      ..signInError = FirebaseAuthException(code: 'invalid-credential', message: 'E-Mail oder Passwort falsch');
+      ..signInError = FirebaseAuthException(
+        code: 'invalid-credential',
+        message:
+            'The supplied auth credential is incorrect, malformed or has expired.',
+      );
+
     await pumpPage(tester, repository);
     await enterCredentials(tester, 'name@example.com', 'password');
     await tester.tap(find.text('Einloggen'));
     await tester.pump();
     await tester.pump();
-    expect(find.text('E-Mail oder Passwort falsch'), findsOneWidget);
+
+    expect(
+      find.text('E-Mail-Adresse oder Passwort ist falsch.'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('The supplied auth credential'),
+      findsNothing,
+    );
   });
 }

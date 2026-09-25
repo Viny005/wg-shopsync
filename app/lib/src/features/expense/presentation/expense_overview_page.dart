@@ -339,11 +339,15 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
               : (isCreditor ? Colors.green.shade100 : Colors.red.shade100),
         ),
         subtitle: (!isPaid && isOwnDebt)
-            ? Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton(
-                  onPressed: () => _confirmMarkAsPaid(context, debt),
-                  child: const Text('Als bezahlt markieren'),
+            ? Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.icon(
+                    onPressed: () => _confirmMarkAsPaid(context, debt),
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('Als bezahlt markieren'),
+                  ),
                 ),
               )
             : null,
@@ -365,6 +369,7 @@ class _ExpenseOverviewPageState extends State<ExpenseOverviewPage> {
             child: const Text('Abbrechen'),
           ),
           FilledButton(
+            key: const Key('confirm-mark-debt-paid'),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('Als bezahlt markieren'),
           ),

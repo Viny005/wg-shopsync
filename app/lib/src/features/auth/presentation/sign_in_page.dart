@@ -69,8 +69,19 @@ class _SignInPageState extends State<SignInPage> {
       );
     } on FirebaseAuthException catch (error) {
       if (!mounted) return;
+
+      final isInvalidCredentials = const {
+        'invalid-credential',
+        'wrong-password',
+        'user-not-found',
+      }.contains(error.code);
+
+      final message = isInvalidCredentials
+          ? 'E-Mail-Adresse oder Passwort ist falsch.'
+          : (error.message ?? 'Anmeldung fehlgeschlagen.');
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message ?? 'Anmeldung fehlgeschlagen.')),
+        SnackBar(content: Text(message)),
       );
     } catch (_) {
       if (!mounted) return;
